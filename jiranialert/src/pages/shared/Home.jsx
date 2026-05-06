@@ -30,8 +30,9 @@ const navItems = [
   { label: 'Home', id: 'home' },
   { label: 'Features', id: 'features' },
   { label: 'How It Works', id: 'how-it-works' },
-  { label: 'About', id: 'about' },
-  { label: 'Contact', id: 'contact' },
+  { label: 'About', to: '/about' },
+  { label: 'Contact', to: '/contact' },
+  { label: 'Support', to: '/support' },
 ]
 
 const features = [
@@ -209,14 +210,24 @@ export default function Home() {
 
             <nav className="hidden lg:flex items-center gap-8">
               {navItems.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => goToSection(item.id)}
-                  className="text-sm font-semibold text-slate-700 hover:text-[#2563EB] transition-colors"
-                >
-                  {item.label}
-                </button>
+                item.to ? (
+                  <Link
+                    key={item.label}
+                    to={item.to}
+                    className="text-sm font-semibold text-slate-700 hover:text-[#2563EB] transition-colors"
+                  >
+                    {item.label}
+                  </Link>
+                ) : (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => goToSection(item.id)}
+                    className="text-sm font-semibold text-slate-700 hover:text-[#2563EB] transition-colors"
+                  >
+                    {item.label}
+                  </button>
+                )
               ))}
             </nav>
 
@@ -239,14 +250,25 @@ export default function Home() {
           <div className="lg:hidden border-t border-slate-200 bg-white/95 backdrop-blur">
             <div className="mx-auto max-w-7xl px-4 py-4 flex flex-col gap-3">
               {navItems.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => goToSection(item.id)}
-                  className="text-left px-2 py-2 rounded-lg text-slate-700 hover:bg-slate-100"
-                >
-                  {item.label}
-                </button>
+                item.to ? (
+                  <Link
+                    key={item.label}
+                    to={item.to}
+                    onClick={() => setMobileOpen(false)}
+                    className="text-left px-2 py-2 rounded-lg text-slate-700 hover:bg-slate-100"
+                  >
+                    {item.label}
+                  </Link>
+                ) : (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => goToSection(item.id)}
+                    className="text-left px-2 py-2 rounded-lg text-slate-700 hover:bg-slate-100"
+                  >
+                    {item.label}
+                  </button>
+                )
               ))}
               <div className="flex gap-2 pt-2">
                 <Link to="/login" className="flex-1 px-4 py-2 rounded-xl border border-slate-300 text-center font-semibold text-slate-700">
@@ -293,7 +315,7 @@ export default function Home() {
                   <Link to="/signup" className="px-6 py-3 rounded-xl bg-[#2563EB] text-white font-bold shadow-[0_0_18px_rgba(37,99,235,0.45)] hover:shadow-[0_0_28px_rgba(37,99,235,0.6)] transition-all">
                     Get Started
                   </Link>
-                  <Link to="/resident/report" className="px-6 py-3 rounded-xl bg-[#DC2626] text-white font-bold shadow-[0_0_18px_rgba(220,38,38,0.35)] hover:shadow-[0_0_28px_rgba(220,38,38,0.55)] transition-all">
+                  <Link to="/report" className="px-6 py-3 rounded-xl bg-[#DC2626] text-white font-bold shadow-[0_0_18px_rgba(220,38,38,0.35)] hover:shadow-[0_0_28px_rgba(220,38,38,0.55)] transition-all">
                     Report Emergency
                   </Link>
                 </div>
@@ -566,14 +588,20 @@ export default function Home() {
               <h3 className="font-semibold text-white">Quick Links</h3>
               <div className="mt-4 flex flex-col gap-2 text-sm">
                 {navItems.map((item) => (
-                  <button
-                    key={`footer-${item.id}`}
-                    type="button"
-                    onClick={() => goToSection(item.id)}
-                    className="text-left text-slate-400 hover:text-white"
-                  >
-                    {item.label}
-                  </button>
+                  item.to ? (
+                    <Link key={`footer-${item.label}`} to={item.to} className="text-left text-slate-400 hover:text-white">
+                      {item.label}
+                    </Link>
+                  ) : (
+                    <button
+                      key={`footer-${item.id}`}
+                      type="button"
+                      onClick={() => goToSection(item.id)}
+                      className="text-left text-slate-400 hover:text-white"
+                    >
+                      {item.label}
+                    </button>
+                  )
                 ))}
               </div>
             </div>

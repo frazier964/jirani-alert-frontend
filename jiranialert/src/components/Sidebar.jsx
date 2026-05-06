@@ -4,7 +4,7 @@ import { NavLink } from 'react-router-dom'
 const links = {
   resident: [
     ['Dashboard', '/resident/dashboard'],
-    ['Report Alert', '/resident/report'],
+    ['Report Alert', '/report'],
     ['Live Map', '/resident/map'],
     ['Notifications', '/resident/notifications'],
     ['Contacts', '/resident/contacts'],

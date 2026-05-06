@@ -129,7 +129,7 @@ export default function Login() {
             <div className="hidden md:flex items-center gap-7">
               <Link to="/" className="text-sm font-semibold text-slate-700 hover:text-[#2563EB] transition-colors">Home</Link>
               <button onClick={() => scrollToId('login-features')} className="text-sm font-semibold text-slate-700 hover:text-[#2563EB] transition-colors" type="button">Features</button>
-              <button onClick={() => scrollToId('contact')} className="text-sm font-semibold text-slate-700 hover:text-[#2563EB] transition-colors" type="button">Contact</button>
+              <Link to="/contact" className="text-sm font-semibold text-slate-700 hover:text-[#2563EB] transition-colors">Contact</Link>
               <Link to="/signup" className="px-4 py-2 rounded-xl bg-[#2563EB] text-white font-semibold hover:shadow-[0_0_20px_rgba(37,99,235,0.5)] transition-all">Sign Up</Link>
             </div>
 
@@ -147,7 +147,7 @@ export default function Login() {
             <div className="md:hidden border-t border-slate-200 py-3 flex flex-col gap-2">
               <Link to="/" className="px-2 py-2 rounded-lg hover:bg-slate-100">Home</Link>
               <button onClick={() => scrollToId('login-features')} className="px-2 py-2 rounded-lg hover:bg-slate-100 text-left" type="button">Features</button>
-              <button onClick={() => scrollToId('contact')} className="px-2 py-2 rounded-lg hover:bg-slate-100 text-left" type="button">Contact</button>
+              <Link to="/contact" className="px-2 py-2 rounded-lg hover:bg-slate-100 text-left">Contact</Link>
               <Link to="/signup" className="mt-2 px-4 py-2 rounded-xl bg-[#2563EB] text-white font-semibold text-center">Sign Up</Link>
             </div>
           )}
@@ -367,8 +367,9 @@ export default function Login() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between text-sm text-slate-600">
           <p className="font-medium">Secure access to your community safety network.</p>
           <div className="flex items-center gap-4">
-            <a href="mailto:support@jiranialert.co" className="hover:text-[#2563EB]">Contact Support</a>
-            <a href="#" className="hover:text-[#2563EB]">Privacy Policy</a>
+            <Link to="/contact" className="hover:text-[#2563EB]">Contact Support</Link>
+            <Link to="/privacy" className="hover:text-[#2563EB]">Privacy Policy</Link>
+            <Link to="/support" className="hover:text-[#2563EB]">Support</Link>
           </div>
         </div>
       </footer>

@@ -131,7 +131,7 @@ export default function SignUp() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-stretch">
             
             {/* Left Side - Form */}
-            <motion.div className="flex flex-col justify-center order-2 lg:order-1" variants={itemVariants}>
+            <motion.div className="flex flex-col justify-center order-1 lg:order-1" variants={itemVariants}>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-8 sm:mb-10 text-center lg:text-left">Sign Up</h1>
               
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -201,10 +201,12 @@ export default function SignUp() {
                 <motion.div variants={itemVariants}>
                   <div className="relative">
                     <input
+                      key={`password-${showPassword ? 'text' : 'password'}`}
                       type={showPassword ? 'text' : 'password'}
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
+                      autoComplete="new-password"
                       placeholder="Password"
                       className={`w-full px-6 py-4 pr-12 rounded-full bg-white placeholder-gray-400 text-gray-800 font-medium focus:outline-none transition-all duration-300 ${
                         errors.password
@@ -214,8 +216,11 @@ export default function SignUp() {
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      aria-pressed={showPassword}
+                      className="absolute right-3 top-1/2 z-10 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
                     >
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
@@ -231,10 +236,12 @@ export default function SignUp() {
                 <motion.div variants={itemVariants}>
                   <div className="relative">
                     <input
+                      key={`confirm-password-${showConfirmPassword ? 'text' : 'password'}`}
                       type={showConfirmPassword ? 'text' : 'password'}
                       name="confirmPassword"
                       value={formData.confirmPassword}
                       onChange={handleChange}
+                      autoComplete="new-password"
                       placeholder="Confirm Password"
                       className={`w-full px-6 py-4 pr-12 rounded-full bg-white placeholder-gray-400 text-gray-800 font-medium focus:outline-none transition-all duration-300 ${
                         errors.confirmPassword
@@ -244,8 +251,11 @@ export default function SignUp() {
                     />
                     <button
                       type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => setShowConfirmPassword((prev) => !prev)}
+                      aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                      aria-pressed={showConfirmPassword}
+                      className="absolute right-3 top-1/2 z-10 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
                     >
                       {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
@@ -272,7 +282,7 @@ export default function SignUp() {
 
             {/* Right Side - Buttons & Links */}
             <motion.div
-              className="flex flex-col items-center justify-center gap-5 order-1 lg:order-2"
+              className="flex flex-col items-center justify-center gap-5 order-2 lg:order-2"
               variants={containerVariants}
             >
               {/* Sign Up Button */}

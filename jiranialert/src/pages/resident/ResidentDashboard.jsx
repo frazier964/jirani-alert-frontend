@@ -39,7 +39,7 @@ import {
 
 const sidebarItems = [
   { label: 'Dashboard', to: '/resident/dashboard', icon: LayoutDashboard },
-  { label: 'Report Emergency', to: '/resident/report', icon: Siren },
+  { label: 'Report Emergency', to: '/report', icon: Siren },
   { label: 'Nearby Alerts', to: '/resident/map', icon: Navigation2 },
   { label: 'Community Feed', to: '/resident/notifications', icon: MessageSquare },
   { label: 'Messages', to: '/resident/notifications', icon: FileText },
@@ -297,7 +297,7 @@ export default function ResidentDashboard() {
 
                   <motion.button
                     type="button"
-                    onClick={() => navigate('/resident/report')}
+                    onClick={() => navigate('/report')}
                     className="inline-flex items-center gap-2 rounded-2xl bg-[#E53935] px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-white shadow-[0_0_0_0_rgba(229,57,53,0.45)]"
                     animate={{ boxShadow: ['0 0 0 0 rgba(229,57,53,0.45)', '0 0 0 12px rgba(229,57,53,0)', '0 0 0 0 rgba(229,57,53,0.45)'] }}
                     transition={{ duration: 2.2, repeat: Infinity }}
@@ -699,7 +699,7 @@ export default function ResidentDashboard() {
 
       <button
         type="button"
-        onClick={() => navigate('/resident/report')}
+        onClick={() => navigate('/report')}
         className="fixed bottom-5 right-5 z-[70] inline-flex items-center gap-2 rounded-full bg-[#E53935] px-5 py-4 text-sm font-black uppercase tracking-[0.16em] text-white shadow-[0_18px_42px_rgba(229,57,53,0.35)] lg:hidden"
       >
         <motion.span

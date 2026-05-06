@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   AlertTriangle,
+  ArrowLeft,
   Bell,
   Car,
   CloudLightning,
@@ -222,6 +223,14 @@ export default function ReportEmergency() {
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
             />
             <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="self-start mb-2 inline-flex items-center gap-2 text-white/80 hover:text-white transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                <span className="text-sm font-semibold">Back</span>
+              </button>
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em]">
                   <Siren className="h-4 w-4 animate-pulse" />
@@ -641,11 +650,11 @@ export default function ReportEmergency() {
                   type="button"
                   onClick={() => {
                     resetForm()
-                    navigate('/resident/dashboard')
+                    navigate('/')
                   }}
                   className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 font-bold text-slate-700 hover:bg-slate-50 transition-colors"
                 >
-                  Return Dashboard
+                  Return Home
                 </button>
               </div>
             </motion.div>

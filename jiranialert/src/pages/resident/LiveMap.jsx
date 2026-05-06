@@ -63,7 +63,7 @@ const mockAlerts = [
 
 const sidebarItems = [
   { label: 'Dashboard', to: '/resident/dashboard' },
-  { label: 'Report Emergency', to: '/resident/report' },
+  { label: 'Report Emergency', to: '/report' },
   { label: 'Nearby Alerts', to: '/resident/map' },
   { label: 'Community Feed', to: '/resident/notifications' },
   { label: 'Messages', to: '/resident/notifications' },
