@@ -251,7 +251,7 @@ export default function Support() {
                 <div className="relative w-full rounded-[2rem] border border-white/15 bg-slate-900/60 p-6 shadow-2xl backdrop-blur">
                   <div className="rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 p-5 ring-1 ring-white/10">
                     <div className="flex items-center justify-between text-sm text-slate-300">
-                      <span>Support dashboard</span>
+                      <span>Support center</span>
                       <span className="inline-flex items-center gap-2 rounded-full bg-red-500/15 px-3 py-1 text-red-200">
                         <CheckCircle2 className="h-4 w-4" /> Live
                       </span>
@@ -633,12 +633,6 @@ export default function Support() {
                   className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50"
                 >
                   Contact Support
-                </Link>
-                <Link
-                  to="/resident/dashboard"
-                  className="inline-flex items-center justify-center rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-                >
-                  Return Dashboard
                 </Link>
               </div>
             </Reveal>
