@@ -116,3 +116,26 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+/* Custom thin scrollbar for compact dropdowns and panels */
+.scrollbar-custom {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(30,58,95,0.12) transparent;
+}
+.scrollbar-custom::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-custom::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-custom::-webkit-scrollbar-thumb {
+  background: rgba(30,58,95,0.12);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.scrollbar-custom:hover::-webkit-scrollbar-thumb {
+  background: rgba(30,58,95,0.22);
+}
+

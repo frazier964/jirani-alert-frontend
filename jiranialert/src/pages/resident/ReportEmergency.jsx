@@ -11,15 +11,12 @@ import {
   HeartPulse,
   Info,
   MapPin,
-  Menu,
   MoonStar,
   PhoneCall,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
   Upload,
-  UserCircle2,
-  X,
   Loader2,
   LocateFixed,
   Navigation2,
@@ -86,7 +83,6 @@ function getSafetyTip(type) {
 }
 
 export default function ReportEmergency() {
-  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [selectedType, setSelectedType] = useState('Fire')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -212,55 +208,7 @@ export default function ReportEmergency() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 relative overflow-hidden">
-      <motion.div
-        className="fixed inset-x-0 top-0 z-50"
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.35 }}
-      >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mt-4 rounded-2xl border border-slate-200/80 bg-white/90 backdrop-blur-xl shadow-[0_10px_30px_rgba(15,23,42,0.08)] px-4 sm:px-5 h-16 flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-[#2563EB] text-white flex items-center justify-center shadow-md">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-              <div className="leading-tight">
-                <p className="font-bold tracking-wide text-[#2563EB]">JIRANI ALERT</p>
-                <p className="text-[11px] text-slate-500">Emergency Dispatch Interface</p>
-              </div>
-            </Link>
-
-            <nav className="hidden lg:flex items-center gap-7 text-sm font-semibold text-slate-700">
-              <Link to="/resident/dashboard" className="hover:text-[#2563EB]">Dashboard</Link>
-              <Link to="/resident/notifications" className="hover:text-[#2563EB]">Alerts</Link>
-              <span className="text-[#2563EB]">Report Emergency</span>
-              <Link to="/resident/profile" className="hover:text-[#2563EB]">Settings</Link>
-            </nav>
-
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setUserMenuOpen((s) => !s)}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:border-[#2563EB] hover:text-[#2563EB] transition-colors"
-              >
-                <UserCircle2 className="h-5 w-5" />
-                User
-                <Menu className="h-4 w-4" />
-              </button>
-
-              {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-slate-200 bg-white shadow-xl p-2 z-50">
-                  <Link to="/resident/dashboard" className="block rounded-lg px-3 py-2 text-sm hover:bg-slate-100">Dashboard</Link>
-                  <Link to="/resident/profile" className="block rounded-lg px-3 py-2 text-sm hover:bg-slate-100">Settings</Link>
-                  <Link to="/login" className="block rounded-lg px-3 py-2 text-sm hover:bg-slate-100">Log out</Link>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </motion.div>
-
-      <main className="relative z-10 pt-28 pb-16">
+      <main className="relative z-10 pt-8 pb-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8">
           <motion.section
             initial={{ opacity: 0, y: 20 }}
