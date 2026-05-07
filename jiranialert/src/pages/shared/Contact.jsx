@@ -458,7 +458,7 @@ export default function Contact() {
             <Link to="/about" className="transition-colors hover:text-[#153b82]">About</Link>
             <Link to="/privacy" className="transition-colors hover:text-[#153b82]">Privacy Policy</Link>
             <Link to="/support" className="transition-colors hover:text-[#153b82]">Support</Link>
-            <span>Terms</span>
+            <Link to="/terms" className="transition-colors hover:text-[#153b82]">Terms</Link>
           </div>
         </div>
       </footer>

@@ -27,7 +27,7 @@ import {
 
 const navItems = [
   { label: 'Home', id: 'home' },
-  { label: 'Features', id: 'features' },
+  { label: 'Features', to: '/features' },
   { label: 'How It Works', id: 'how-it-works' },
   { label: 'About', to: '/about' },
   { label: 'Contact', to: '/contact' },

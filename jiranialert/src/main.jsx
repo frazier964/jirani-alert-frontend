@@ -9,6 +9,7 @@ import Features from './pages/shared/Features'
 import Contact from './pages/shared/Contact'
 import Privacy from './pages/shared/Privacy'
 import Support from './pages/shared/Support'
+import Terms from './pages/shared/Terms'
 import Login from './pages/shared/Login'
 import SignUp from './pages/shared/SignUp'
 import ResidentDashboard from './pages/resident/ResidentDashboard'
@@ -34,6 +35,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/contact" element={<Contact />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/support" element={<Support />} />
+        <Route path="/terms" element={<Terms />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/register" element={<SignUp />} />

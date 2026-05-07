@@ -37,13 +37,13 @@ export default function Privacy() {
       icon: FileText,
       content: `We collect information to deliver Jirani Alert's safety and emergency coordination features. This includes:
 
-• Account Information: Name, email address, phone number, and account credentials
-• Location Data: Your location when you enable location services (with your permission)
-• Device Information: Device type, operating system, app version, and device identifiers
-• Emergency Report Details: Incident category, time, description, and approximate location when you submit a report
-• Notification Preferences: Your choices about what alerts and notifications you receive
-• Communication Records: Messages, support tickets, and feedback you send us
-• Usage Data: How you interact with the platform and which features you use`,
+- Account Information: Name, email address, phone number, and account credentials
+- Location Data: Your location when you enable location services (with your permission)
+- Device Information: Device type, operating system, app version, and device identifiers
+- Emergency Report Details: Incident category, time, description, and approximate location when you submit a report
+- Notification Preferences: Your choices about what alerts and notifications you receive
+- Communication Records: Messages, support tickets, and feedback you send us
+- Usage Data: How you interact with the platform and which features you use`,
     },
     {
       id: 'use',
@@ -51,14 +51,14 @@ export default function Privacy() {
       icon: Settings,
       content: `Your information helps us deliver life-saving emergency alert services:
 
-• Deliver Emergency Alerts: Route urgent alerts to nearby users in real-time
-• Verify Incident Reports: Validate emergency reports to prevent false alarms
-• Notify Nearby Users: Identify and alert community members of incidents in their area
-• Improve Platform Reliability: Analyze data to enhance speed and accuracy
-• Provide Support Services: Help users with account issues and platform questions
-• Enhance Safety Features: Use aggregated data to improve detection and response capabilities
-• Legal Compliance: Meet regulatory requirements and law enforcement requests
-• Community Safety Analytics: Track trends to help emergency responders prepare better`,
+- Deliver Emergency Alerts: Route urgent alerts to nearby users in real-time
+- Verify Incident Reports: Validate emergency reports to prevent false alarms
+- Notify Nearby Users: Identify and alert community members of incidents in their area
+- Improve Platform Reliability: Analyze data to enhance speed and accuracy
+- Provide Support Services: Help users with account issues and platform questions
+- Enhance Safety Features: Use aggregated data to improve detection and response capabilities
+- Legal Compliance: Meet regulatory requirements and law enforcement requests
+- Community Safety Analytics: Track trends to help emergency responders prepare better`,
     },
     {
       id: 'location',
@@ -67,16 +67,16 @@ export default function Privacy() {
       content: `Location data is critical for Jirani Alert's core mission. Here's how we handle it:
 
 Location data is only used to:
-• Detect nearby incidents and deliver relevant alerts to your area
-• Route emergency information to responders and nearby users
-• Improve emergency response speed and accuracy
-• Calculate proximity for emergency contact notifications
+- Detect nearby incidents and deliver relevant alerts to your area
+- Route emergency information to responders and nearby users
+- Improve emergency response speed and accuracy
+- Calculate proximity for emergency contact notifications
 
 Important: You control location permissions. You can:
-• Enable or disable location sharing at any time in Settings
-• Switch between always, while-using, and never location access
-• Delete location history from your account
-• Use Jirani Alert without location services (with reduced alert accuracy)
+- Enable or disable location sharing at any time in Settings
+- Switch between always, while-using, and never location access
+- Delete location history from your account
+- Use Jirani Alert without location services (with reduced alert accuracy)
 
 Location data is encrypted in transit and at rest. We do not sell location information to third parties.`,
     },
@@ -87,20 +87,20 @@ Location data is encrypted in transit and at rest. We do not sell location infor
       content: `When you submit an emergency report, we collect and handle that information with utmost care:
 
 Emergency reports may include:
-• Incident category (medical, security, fire, traffic, utility, other)
-• Time of incident
-• Detailed description of the emergency
-• Approximate location
-• Attached evidence (photos or videos)
-• Your contact information
-• Report status and resolution
+- Incident category (medical, security, fire, traffic, utility, other)
+- Time of incident
+- Detailed description of the emergency
+- Approximate location
+- Attached evidence (photos or videos)
+- Your contact information
+- Report status and resolution
 
 This information is used solely for:
-• Emergency coordination with local responders
-• Alerting nearby community members
-• Improving emergency response protocols
-• Training and analytics (anonymized)
-• Legal protection and documentation
+- Emergency coordination with local responders
+- Alerting nearby community members
+- Improving emergency response protocols
+- Training and analytics (anonymized)
+- Legal protection and documentation
 
 Anonymous Reporting: You can submit emergency reports anonymously. Anonymous reports are handled with priority to protect your identity while ensuring rapid response.`,
     },
@@ -111,24 +111,24 @@ Anonymous Reporting: You can submit emergency reports anonymously. Anonymous rep
       content: `Your data security is our highest priority. We implement multiple layers of protection:
 
 Technical Protections:
-• End-to-end encryption for location and emergency data
-• AES-256 encryption for data at rest
-• TLS 1.3 encryption for all data in transit
-• Secure authentication with bcrypt password hashing
-• Multi-factor authentication (MFA) options
+- End-to-end encryption for location and emergency data
+- AES-256 encryption for data at rest
+- TLS 1.3 encryption for all data in transit
+- Secure authentication with bcrypt password hashing
+- Multi-factor authentication (MFA) options
 
 Operational Protections:
-• Regular security audits and penetration testing
-• Strict access controls and role-based permissions
-• Background checks for employees with data access
-• Incident response team and breach notification protocols
-• Continuous monitoring for suspicious activity
+- Regular security audits and penetration testing
+- Strict access controls and role-based permissions
+- Background checks for employees with data access
+- Incident response team and breach notification protocols
+- Continuous monitoring for suspicious activity
 
 Compliance:
-• GDPR and privacy regulation compliance
-• Regular compliance audits
-• Security certifications and standards (ISO 27001)
-• Annual third-party security assessments
+- GDPR and privacy regulation compliance
+- Regular compliance audits
+- Security certifications and standards (ISO 27001)
+- Annual third-party security assessments
 
 We maintain a responsible disclosure program for security researchers. Please report vulnerabilities to security@jiranialert.com.`,
     },
@@ -139,22 +139,22 @@ We maintain a responsible disclosure program for security researchers. Please re
       content: `We respect your privacy and limit data sharing strictly:
 
 We do NOT:
-• Sell your personal data to advertisers or third parties
-• Share email addresses or phone numbers for marketing
-• Use your data for purposes beyond platform operations
-• Share location history with non-emergency contacts
+- Sell your personal data to advertisers or third parties
+- Share email addresses or phone numbers for marketing
+- Use your data for purposes beyond platform operations
+- Share location history with non-emergency contacts
 
 We MAY share information with:
-• Emergency Response Authorities: Police, fire, and medical services when responding to reports you submit
-• Verified Community Coordinators: Official emergency management personnel (with explicit user consent for some data)
-• Legal Obligations: Law enforcement with valid legal process (warrant, subpoena)
-• Service Providers: Cloud hosting, payment processors, and analytics (under strict data processing agreements)
-• Research Partners: Anonymized, aggregated data only (never personal information)
+- Emergency Response Authorities: Police, fire, and medical services when responding to reports you submit
+- Verified Community Coordinators: Official emergency management personnel (with explicit user consent for some data)
+- Legal Obligations: Law enforcement with valid legal process (warrant, subpoena)
+- Service Providers: Cloud hosting, payment processors, and analytics (under strict data processing agreements)
+- Research Partners: Anonymized, aggregated data only (never personal information)
 
 Third-Party Services:
-• We use third-party services for hosting, email delivery, and analytics
-• All service providers sign data processing agreements
-• You can request details about specific third parties`,
+- We use third-party services for hosting, email delivery, and analytics
+- All service providers sign data processing agreements
+- You can request details about specific third parties`,
     },
     {
       id: 'rights',
@@ -163,31 +163,31 @@ Third-Party Services:
       content: `You have important rights regarding your personal information:
 
 Access & Portability:
-• Request a copy of all your personal data
-• Export your data in a readable format
-• Understand what data we hold about you
+- Request a copy of all your personal data
+- Export your data in a readable format
+- Understand what data we hold about you
 
 Correction & Deletion:
-• Update inaccurate information
-• Delete your account and associated data
-• Request deletion of specific data types (with exceptions for legal/safety reasons)
+- Update inaccurate information
+- Delete your account and associated data
+- Request deletion of specific data types (with exceptions for legal/safety reasons)
 
 Control & Preferences:
-• Enable or disable location sharing
-• Adjust notification preferences
-• Modify emergency contact information
-• Control account visibility settings
-• Manage communication preferences
+- Enable or disable location sharing
+- Adjust notification preferences
+- Modify emergency contact information
+- Control account visibility settings
+- Manage communication preferences
 
 Data Processing:
-• Restrict how we process your data
-• Object to certain data uses
-• Withdraw consent for data processing
+- Restrict how we process your data
+- Object to certain data uses
+- Withdraw consent for data processing
 
 Special Protections:
-• Right to be forgotten (with some legal exceptions)
-• Right to not be subject to automated decisions
-• Right to lodge complaints with data protection authorities
+- Right to be forgotten (with some legal exceptions)
+- Right to not be subject to automated decisions
+- Right to lodge complaints with data protection authorities
 
 To exercise these rights:
 1. Visit your Account Settings
@@ -203,29 +203,29 @@ Most requests are processed within 30 days.`,
       content: `We keep data only as long as necessary:
 
 Account Data:
-• Retained while your account is active
-• Deleted within 30 days of account deletion
-• Some data retained for legal/compliance reasons (max 7 years)
+- Retained while your account is active
+- Deleted within 30 days of account deletion
+- Some data retained for legal/compliance reasons (max 7 years)
 
 Emergency Reports:
-• Kept for 2 years for emergency response analysis
-• Kept for 7 years if involved in legal proceedings
-• Anonymized data kept longer for safety pattern analysis
+- Kept for 2 years for emergency response analysis
+- Kept for 7 years if involved in legal proceedings
+- Anonymized data kept longer for safety pattern analysis
 
 Location Data:
-• Real-time location not stored permanently
-• Location history retained for 90 days
-• Incident location data retained per emergency report schedule
+- Real-time location not stored permanently
+- Location history retained for 90 days
+- Incident location data retained per emergency report schedule
 
 Deleted Data:
-• Securely purged from all systems
-• Backups purged according to retention schedule
-• Third parties notified to delete their copies
+- Securely purged from all systems
+- Backups purged according to retention schedule
+- Third parties notified to delete their copies
 
 Exceptions:
-• Legal obligations may require longer retention
-• We may retain anonymized data indefinitely
-• Court orders may prevent timely deletion
+- Legal obligations may require longer retention
+- We may retain anonymized data indefinitely
+- Court orders may prevent timely deletion
 
 You can request immediate deletion of your data at any time, subject to legal obligations.`,
     },
@@ -236,28 +236,28 @@ You can request immediate deletion of your data at any time, subject to legal ob
       content: `We use cookies and analytics to improve your experience:
 
 Necessary Cookies:
-• Session cookies for authentication
-• Security tokens for account protection
-• Preference cookies for language/theme settings
-• Required for platform functionality
+- Session cookies for authentication
+- Security tokens for account protection
+- Preference cookies for language/theme settings
+- Required for platform functionality
 
 Analytics Cookies:
-• Track page views and user flows
-• Measure feature usage and performance
-• Identify bugs and usability issues
-• Understand how you interact with alerts
+- Track page views and user flows
+- Measure feature usage and performance
+- Identify bugs and usability issues
+- Understand how you interact with alerts
 
 We use:
-• Google Analytics (anonymized)
-• Custom event tracking
-• Crash reporting tools
-• Performance monitoring
+- Google Analytics (anonymized)
+- Custom event tracking
+- Crash reporting tools
+- Performance monitoring
 
 You can:
-• Disable non-essential cookies in Settings
-• Clear cookies anytime from your browser
-• Opt out of analytics collection
-• Use browser privacy mode for anonymous browsing
+- Disable non-essential cookies in Settings
+- Clear cookies anytime from your browser
+- Opt out of analytics collection
+- Use browser privacy mode for anonymous browsing
 
 Note: Disabling cookies may reduce functionality. Essential cookies cannot be disabled as they're required for security.`,
     },
@@ -268,25 +268,25 @@ Note: Disabling cookies may reduce functionality. Essential cookies cannot be di
       content: `We may update this Privacy Policy as our platform evolves:
 
 Changes:
-• Significant changes will be announced via email
-• You'll have 30 days to review before changes take effect
-• Continued use constitutes acceptance of updated policy
+- Significant changes will be announced via email
+- You'll have 30 days to review before changes take effect
+- Continued use constitutes acceptance of updated policy
 
 Last Updated: May 2026
 
 Notification:
-• Major changes: Email notification + in-app notification
-• Minor clarifications: Updated with notice on this page
-• Critical security updates: Immediate notification
+- Major changes: Email notification + in-app notification
+- Minor clarifications: Updated with notice on this page
+- Critical security updates: Immediate notification
 
 Your Options:
-• Review the updated policy before it takes effect
-• Contact us with questions or concerns
-• Delete your account if you disagree with changes
+- Review the updated policy before it takes effect
+- Contact us with questions or concerns
+- Delete your account if you disagree with changes
 
 Historical Versions:
-• Previous privacy policies available upon request
-• We maintain a change log of policy updates
+- Previous privacy policies available upon request
+- We maintain a change log of policy updates
 
 We recommend reviewing this policy periodically to stay informed about how we protect your privacy.`,
     },
@@ -325,25 +325,26 @@ We recommend reviewing this policy periodically to stay informed about how we pr
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
       <motion.section
-        className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white py-20 lg:py-28"
+        className="relative overflow-hidden bg-[linear-gradient(135deg,#071329_0%,#10264d_52%,#153b82_100%)] text-white py-20 lg:py-28"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6 }}
       >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_38%,rgba(96,165,250,0.24),transparent_34%),linear-gradient(90deg,rgba(7,19,41,0.94),rgba(7,19,41,0.52))]" />
         <div className="max-w-6xl mx-auto px-4 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="relative grid lg:grid-cols-2 gap-12 items-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.6 }}
             >
-              <h1 className="text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+              <h1 className="!text-white text-5xl lg:text-6xl !font-black mb-6 leading-tight drop-shadow-[0_4px_18px_rgba(0,0,0,0.35)]">
                 Privacy Policy
               </h1>
-              <p className="text-xl text-slate-200 mb-4 leading-relaxed">
+              <p className="max-w-2xl text-xl text-white mb-4 leading-relaxed">
                 Your privacy and security are fundamental to how Jirani Alert operates.
               </p>
-              <p className="text-sm text-slate-400">Last Updated: May 2026</p>
+              <p className="text-sm font-semibold text-blue-100">Last Updated: May 2026</p>
             </motion.div>
 
             <motion.div
@@ -353,12 +354,12 @@ We recommend reviewing this policy periodically to stay informed about how we pr
               transition={{ delay: 0.4, duration: 0.6 }}
             >
               <div className="relative w-64 h-64">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full blur-3xl opacity-20"></div>
-                <div className="relative bg-blue-500/10 backdrop-blur border border-blue-400/20 rounded-full w-full h-full flex items-center justify-center">
-                  <Shield className="w-32 h-32 text-blue-300" strokeWidth={1.5} />
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-300 to-blue-600 rounded-full blur-3xl opacity-30"></div>
+                <div className="relative bg-blue-400/20 backdrop-blur border border-blue-200/30 rounded-full w-full h-full flex items-center justify-center shadow-[0_24px_80px_rgba(0,0,0,0.22)]">
+                  <Shield className="w-32 h-32 text-blue-100" strokeWidth={1.5} />
                 </div>
                 <motion.div
-                  className="absolute top-8 right-8 w-12 h-12 bg-slate-700 rounded-full flex items-center justify-center border border-slate-600"
+                  className="absolute top-8 right-8 w-12 h-12 bg-white/15 rounded-full flex items-center justify-center border border-white/20"
                   animate={{ y: [0, 10, 0] }}
                   transition={{ duration: 3, repeat: Infinity }}
                 >
