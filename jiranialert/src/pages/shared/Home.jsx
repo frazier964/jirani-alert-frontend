@@ -15,7 +15,6 @@ import {
   Mail,
   Map,
   MapPin,
-  Menu,
   Phone,
   Send,
   Shield,
@@ -23,7 +22,6 @@ import {
   Siren,
   Star,
   Twitter,
-  X,
   Zap,
 } from 'lucide-react'
 
@@ -244,20 +242,20 @@ export default function Home() {
                       return (
                         <div key={alert.title} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                           <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-center gap-3">
+                            <div className="flex min-w-0 items-center gap-3">
                               <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-[#2563EB]">
                                 <Icon className="h-5 w-5" />
                               </div>
-                              <div>
+                              <div className="min-w-0">
                                 <p className="text-sm font-bold text-slate-900">{alert.title}</p>
-                                <p className="text-xs text-slate-500 flex items-center gap-1">
-                                  <MapPin className="h-3.5 w-3.5" />
-                                  {alert.location}
+                                <p className="text-xs text-slate-500 flex min-w-0 items-center gap-1">
+                                  <MapPin className="h-3.5 w-3.5 shrink-0" />
+                                  <span className="truncate">{alert.location}</span>
                                 </p>
                               </div>
                             </div>
-                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-                              <span className={`h-2.5 w-2.5 rounded-full ${alert.color} animate-pulse`} />
+                            <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-slate-700">
+                              <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${alert.color} animate-pulse`} />
                               {alert.status}
                             </span>
                           </div>
@@ -370,20 +368,20 @@ export default function Home() {
                   return (
                     <div key={`preview-${alert.title}`} className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
                           <div className="h-10 w-10 rounded-lg bg-white/10 text-white flex items-center justify-center">
                             <Icon className="h-5 w-5" />
                           </div>
-                          <h3 className="font-bold text-white">{alert.title}</h3>
+                          <h3 className="truncate font-bold text-white">{alert.title}</h3>
                         </div>
-                        <span className="inline-flex items-center gap-1.5 text-xs text-slate-200">
-                          <span className={`h-2.5 w-2.5 rounded-full ${alert.color} animate-pulse`} />
+                        <span className="inline-flex shrink-0 items-center gap-1.5 text-xs text-slate-200">
+                          <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${alert.color} animate-pulse`} />
                           {alert.status}
                         </span>
                       </div>
-                      <p className="mt-3 text-sm text-slate-300 flex items-center gap-1.5">
-                        <MapPin className="h-4 w-4" />
-                        {alert.location}
+                      <p className="mt-3 text-sm text-slate-300 flex min-w-0 items-center gap-1.5">
+                        <MapPin className="h-4 w-4 shrink-0" />
+                        <span className="truncate">{alert.location}</span>
                       </p>
                     </div>
                   )
@@ -510,7 +508,7 @@ export default function Home() {
             <div>
               <h3 className="font-semibold text-white">Contact Info</h3>
               <div className="mt-4 space-y-2 text-sm text-slate-400">
-                <p className="flex items-center gap-2"><Mail className="h-4 w-4" /> support@jiranialert.co</p>
+                <p className="flex items-center gap-2"><Mail className="h-4 w-4" /> jiranisupport@gmail.com</p>
                 <p className="flex items-center gap-2"><Phone className="h-4 w-4" /> +254 700 123 456</p>
                 <p className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Nairobi, Kenya</p>
               </div>
@@ -533,7 +531,7 @@ export default function Home() {
           </div>
 
           <div className="mt-10 pt-6 border-t border-slate-800 text-sm text-slate-500 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
-            <p>© {new Date().getFullYear()} Jirani Alert. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} Jirani Alert. All rights reserved.</p>
             <p className="inline-flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-400" />
               Real-time verified emergency reporting

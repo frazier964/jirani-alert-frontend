@@ -7,6 +7,14 @@ export default function Header({ navItems = [], initialBg = 'transparent', scrol
   const [mobileOpen, setMobileOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
+  const goToSection = (id) => {
+    const section = document.getElementById(id)
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    setMobileOpen(false)
+  }
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 16)
     onScroll()
@@ -41,10 +49,7 @@ export default function Header({ navItems = [], initialBg = 'transparent', scrol
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => {
-                    const section = document.getElementById(item.id)
-                    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                  }}
+                  onClick={() => goToSection(item.id)}
                   className={`text-sm font-semibold ${textColor} hover:opacity-100 transition-opacity`}
                 >
                   {item.label}
@@ -77,7 +82,7 @@ export default function Header({ navItems = [], initialBg = 'transparent', scrol
                   {item.label}
                 </Link>
               ) : (
-                <button key={item.id} type="button" onClick={() => setMobileOpen(false)} className={`text-left px-2 py-2 rounded-lg ${textColor} hover:bg-slate-100`}>
+                <button key={item.id} type="button" onClick={() => goToSection(item.id)} className={`text-left px-2 py-2 rounded-lg ${textColor} hover:bg-slate-100`}>
                   {item.label}
                 </button>
               )
