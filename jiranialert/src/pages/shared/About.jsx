@@ -1,4 +1,5 @@
 import React from 'react'
+import Header from '../../components/Header'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -89,6 +90,20 @@ function Metric({ value, label }) {
 export default function About() {
   return (
     <div className="min-h-screen bg-[#f4f7fb] text-slate-900">
+      <Header
+        navItems={[
+          { label: 'Home', to: '/home' },
+          { label: 'Features', to: '/features' },
+          { label: 'How It Works', id: 'how-it-works' },
+          { label: 'About', to: '/about' },
+          { label: 'Contact', to: '/contact' },
+          { label: 'Support', to: '/support' },
+        ]}
+        initialBg="transparent"
+        scrolledBg="rgba(15,36,88,0.94)"
+        primaryColor="#153b82"
+        textColor="text-white"
+      />
       <main className="overflow-hidden">
         <section className="relative isolate overflow-hidden bg-[linear-gradient(135deg,#0f2458_0%,#153b82_45%,#ffffff_45%,#ffffff_100%)] px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(229,57,53,0.18),transparent_26%),radial-gradient(circle_at_80%_10%,rgba(59,130,246,0.18),transparent_20%),radial-gradient(circle_at_20%_85%,rgba(255,255,255,0.18),transparent_18%)]" />

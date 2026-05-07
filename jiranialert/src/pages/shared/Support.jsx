@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import Header from '../../components/Header'
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -190,6 +191,19 @@ export default function Support() {
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
+      <Header
+        navItems={[
+          { label: 'Home', to: '/home' },
+          { label: 'Features', to: '/features' },
+          { label: 'How It Works', id: 'how-it-works' },
+          { label: 'About', to: '/about' },
+          { label: 'Contact', to: '/contact' },
+          { label: 'Support', to: '/support' },
+        ]}
+        initialBg="transparent"
+        scrolledBg="rgba(255,255,255,0.96)"
+        primaryColor="#B91C1C"
+      />
       <motion.div
         className="fixed inset-x-0 top-0 z-50 h-1 origin-left bg-[#B91C1C]"
         initial={{ scaleX: 0 }}

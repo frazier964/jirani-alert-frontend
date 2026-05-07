@@ -222,8 +222,8 @@ export default function Notifications() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 overflow-hidden">
 
-      <div className="mx-auto grid max-w-[1700px] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)_320px] lg:px-8 lg:py-8">
-        <aside className="hidden lg:block">
+      <div className="mx-auto grid max-w-[1200px] gap-4 px-4 py-4 sm:px-6 lg:gap-6 xl:max-w-[1600px] xl:grid-cols-[240px_minmax(0,1fr)_280px] lg:px-6 lg:py-6 xl:px-8">
+        <aside className="hidden xl:block">
           <div className="sticky top-28 rounded-[28px] border border-white/70 bg-white/90 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl">
             <div className="rounded-[22px] bg-gradient-to-br from-[#1E3A5F] to-[#2563EB] p-5 text-white">
               <div className="flex items-center justify-between">
@@ -257,12 +257,12 @@ export default function Notifications() {
           </div>
         </aside>
 
-        <main className="min-w-0 space-y-6 pb-24 lg:pb-0">
+        <main className="min-w-0 space-y-4 pb-12 lg:pb-0">
           <motion.section
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
-            className="relative overflow-hidden rounded-[32px] border border-white/80 bg-gradient-to-r from-[#1E3A5F] via-[#2563EB] to-[#0f172a] p-6 text-white shadow-[0_30px_80px_rgba(15,23,42,0.24)] sm:p-8"
+            className="relative overflow-hidden rounded-[28px] border border-white/80 bg-gradient-to-r from-[#1E3A5F] via-[#2563EB] to-[#0f172a] p-5 text-white shadow-[0_30px_80px_rgba(15,23,42,0.24)] sm:p-6"
           >
             <motion.div
               className="absolute right-6 top-6 h-28 w-28 rounded-full bg-white/10 blur-3xl"
@@ -279,7 +279,7 @@ export default function Notifications() {
                 <p className="mt-3 text-lg text-blue-100">Stay updated with emergencies, safety alerts, and community activity near you.</p>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-3 xl:w-[430px]">
+              <div className="grid gap-2 sm:grid-cols-3 xl:w-[430px]">
                 <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
                   <p className="text-xs uppercase tracking-[0.18em] text-white/70">Total notifications</p>
                   <p className="mt-2 text-3xl font-black">{totalCount}</p>
@@ -296,9 +296,9 @@ export default function Notifications() {
             </div>
           </motion.section>
 
-          <section className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_320px]">
-            <div className="space-y-6 min-w-0">
-              <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-[30px] border border-white/80 bg-white/90 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-6">
+          <section className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_280px]">
+              <div className="space-y-4 min-w-0">
+              <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-[26px] border border-white/80 bg-white/90 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#E53935]">Header actions</p>
@@ -333,7 +333,7 @@ export default function Notifications() {
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4 }}
-                  className="relative overflow-hidden rounded-[30px] border border-red-200 bg-gradient-to-r from-red-600 to-[#E53935] p-5 text-white shadow-[0_24px_60px_rgba(229,57,53,0.22)]"
+                  className="relative overflow-hidden rounded-[26px] border border-red-200 bg-gradient-to-r from-red-600 to-[#E53935] p-4 text-white shadow-[0_24px_60px_rgba(229,57,53,0.22)]"
                 >
                   <motion.div className="absolute right-4 top-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" animate={{ scale: [1, 1.12, 1], opacity: [0.25, 0.55, 0.25] }} transition={{ duration: 2.4, repeat: Infinity }} />
                   <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -358,7 +358,7 @@ export default function Notifications() {
                 </motion.section>
               )}
 
-              <section className="space-y-4">
+              <section className="space-y-3">
                 {filteredNotifications.length === 0 ? (
                   <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-[30px] border border-white/80 bg-white/90 p-8 text-center shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-10">
                     <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-slate-100 text-slate-500">
@@ -380,7 +380,7 @@ export default function Notifications() {
                         initial={{ opacity: 0, y: 14 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.35, delay: index * 0.05 }}
-                        className={`rounded-[30px] border p-5 shadow-[0_24px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-6 ${read ? 'border-white/80 bg-white/90' : 'border-blue-200 bg-blue-50/80'}`}
+                        className={`rounded-[26px] border p-4 shadow-[0_24px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-5 ${read ? 'border-white/80 bg-white/90' : 'border-blue-200 bg-blue-50/80'}`}
                       >
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                           <div className="flex min-w-0 gap-4">
@@ -506,7 +506,7 @@ export default function Notifications() {
 
       <button
         type="button"
-        onClick={() => navigate('/report')}
+        onClick={() => navigate('/resident/report')}
         className="fixed bottom-5 right-5 z-[70] inline-flex items-center gap-2 rounded-full bg-[#E53935] px-5 py-4 text-sm font-black uppercase tracking-[0.16em] text-white shadow-[0_18px_42px_rgba(229,57,53,0.35)] lg:hidden"
       >
         <motion.span

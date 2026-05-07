@@ -6,11 +6,11 @@ import Avatar from '../UI/Avatar'
 
 const sidebarItems = [
   { label: 'Dashboard', to: '/resident/dashboard', icon: LayoutDashboard },
-  { label: 'Report Emergency', to: '/report', icon: Siren },
+  { label: 'Report Emergency', to: '/resident/report', icon: Siren },
   { label: 'Nearby Alerts', to: '/resident/map', icon: Navigation2 },
-  { label: 'Community Feed', to: '/resident/notifications', icon: MessageSquare },
-  { label: 'Messages', to: '/resident/notifications', icon: FileText },
-  { label: 'My Reports', to: '/resident/notifications', icon: FileText },
+  { label: 'Notifications', to: '/resident/notifications', icon: MessageSquare },
+  { label: 'Messages', to: '/resident/messages', icon: FileText },
+  { label: 'My Reports', to: '/resident/reports', icon: FileText },
   { label: 'Safety Tips', to: '/resident/contacts', icon: LifeBuoy },
   { label: 'Settings', to: '/resident/profile', icon: Settings2 },
 ]
@@ -78,7 +78,10 @@ export default function TopNav() {
                             <NavLink
                               key={item.to + item.label}
                               to={item.to}
-                              onClick={() => setProfileOpen(false)}
+                              onClick={() => {
+                                // keep the profile menu open when navigating inside resident area
+                                if (!item.to || !item.to.startsWith('/resident')) setProfileOpen(false)
+                              }}
                               className={({ isActive }) =>
                                 `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${isActive || active ? 'bg-[#E53935] text-white' : 'text-slate-700 hover:bg-slate-50'}`
                               }

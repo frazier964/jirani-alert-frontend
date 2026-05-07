@@ -15,6 +15,8 @@ import ResidentDashboard from './pages/resident/ResidentDashboard'
 import ReportEmergency from './pages/resident/ReportEmergency'
 import LiveMap from './pages/resident/LiveMap'
 import Notifications from './pages/resident/Notifications'
+import Reports from './pages/resident/Reports'
+import Messages from './pages/resident/Messages'
 import EmergencyContacts from './pages/resident/EmergencyContacts'
 import Profile from './pages/resident/Profile'
 import ResponderDashboard from './pages/responder/ResponderDashboard'
@@ -39,8 +41,11 @@ createRoot(document.getElementById('root')).render(
 
         <Route element={<Layout />}> 
           <Route path="/resident/dashboard" element={<ResidentDashboard />} />
+          <Route path="/resident/report" element={<ReportEmergency />} />
           <Route path="/resident/map" element={<LiveMap />} />
           <Route path="/resident/notifications" element={<Notifications />} />
+          <Route path="/resident/reports" element={<Reports />} />
+          <Route path="/resident/messages" element={<Messages />} />
           <Route path="/resident/contacts" element={<EmergencyContacts />} />
           <Route path="/resident/profile" element={<Profile />} />
           <Route path="/alerts/:id" element={<AlertDetails />} />
