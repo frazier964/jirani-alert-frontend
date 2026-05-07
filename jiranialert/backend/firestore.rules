@@ -1,0 +1,45 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsUserDocument(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      allow create: if ownsUserDocument(userId);
+      allow read, update: if ownsUserDocument(userId);
+      allow delete: if false;
+    }
+
+    match /reports/{reportId} {
+      allow create: if signedIn()
+        && request.resource.data.reporterId == request.auth.uid;
+      allow read: if signedIn()
+        && (resource.data.reporterId == request.auth.uid
+          || request.auth.token.role in ['admin', 'responder']);
+      allow update: if signedIn()
+        && request.auth.token.role in ['admin', 'responder'];
+      allow delete: if false;
+    }
+
+    match /alerts/{alertId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && request.auth.token.role in ['admin', 'responder'];
+      allow delete: if false;
+    }
+
+    match /notifications/{notificationId} {
+      allow read, update: if signedIn()
+        && resource.data.recipientId == request.auth.uid;
+      allow create: if signedIn()
+        && request.auth.token.role in ['admin', 'responder'];
+      allow delete: if false;
+    }
+  }
+}

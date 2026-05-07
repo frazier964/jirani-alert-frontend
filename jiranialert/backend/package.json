@@ -1,0 +1,16 @@
+{
+  "name": "jiranialert-firebase-backend",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Firebase backend for Jirani Alert.",
+  "scripts": {
+    "emulators": "firebase emulators:start",
+    "deploy": "firebase deploy",
+    "deploy:functions": "firebase deploy --only functions",
+    "deploy:firestore": "firebase deploy --only firestore",
+    "lint": "npm --prefix functions run lint"
+  },
+  "devDependencies": {
+    "firebase-tools": "^14.0.0"
+  }
+}
