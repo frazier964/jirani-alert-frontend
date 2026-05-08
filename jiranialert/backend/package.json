@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "description": "Firebase backend for Jirani Alert.",
   "scripts": {
+    "dev": "firebase emulators:start",
     "emulators": "firebase emulators:start",
     "deploy": "firebase deploy",
     "deploy:functions": "firebase deploy --only functions",
