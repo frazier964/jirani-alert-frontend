@@ -33,10 +33,10 @@ export default function Header({ navItems = [], initialBg = 'transparent', scrol
       transition={{ duration: 0.25 }}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-20 items-center justify-between">
-          <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-3">
-            <img src="/jirani-alert-logo.svg" alt="Jirani Alert" className="h-11 w-11 rounded-full bg-white" />
-            <span className="text-sm sm:text-base font-bold tracking-wide" style={{ color: primaryColor }}>JIRANI ALERT</span>
+        <div className="flex h-16 sm:h-20 items-center justify-between gap-2 sm:gap-3">
+          <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <img src="/jirani-alert-logo.svg" alt="Jirani Alert" className="h-9 sm:h-11 w-9 sm:w-11 rounded-full bg-white" />
+            <span className="hidden xs:text-xs sm:inline-block text-xs sm:text-sm font-bold tracking-wide truncate" style={{ color: primaryColor }}>JIRANI ALERT</span>
           </button>
 
           <nav className="hidden lg:flex items-center gap-8">
@@ -59,38 +59,38 @@ export default function Header({ navItems = [], initialBg = 'transparent', scrol
           </nav>
 
           <div className="hidden lg:flex items-center gap-3">
-            <Link to="/login" className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-semibold hover:border-opacity-100 transition-colors">
+            <Link to="/login" className="px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl border border-slate-300 text-xs sm:text-sm font-semibold text-slate-700 hover:border-opacity-100 transition-colors">
               Login
             </Link>
-            <Link to="/signup" className="px-4 py-2 rounded-xl bg-[var(--primary,#2563EB)] text-white font-semibold shadow-[0_0_18px_rgba(37,99,235,0.45)] transition-all" style={{ backgroundColor: primaryColor }}>
+            <Link to="/signup" className="px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl bg-[var(--primary,#2563EB)] text-xs sm:text-sm text-white font-semibold shadow-[0_0_18px_rgba(37,99,235,0.45)] transition-all" style={{ backgroundColor: primaryColor }}>
               Sign Up
             </Link>
           </div>
 
-          <button type="button" onClick={() => setMobileOpen((s) => !s)} className="lg:hidden p-2 rounded-lg border border-slate-300 text-slate-700" aria-label="Toggle Menu">
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          <button type="button" onClick={() => setMobileOpen((s) => !s)} className="lg:hidden p-1.5 sm:p-2 rounded-lg border border-slate-300 text-slate-700 flex-shrink-0" aria-label="Toggle Menu">
+            {mobileOpen ? <X className="w-4 sm:w-5 h-4 sm:h-5" /> : <Menu className="w-4 sm:w-5 h-4 sm:h-5" />}
           </button>
         </div>
       </div>
 
       {mobileOpen && (
         <div className="lg:hidden border-t border-slate-200 bg-white/95 backdrop-blur">
-          <div className="mx-auto max-w-7xl px-4 py-4 flex flex-col gap-3">
+          <div className="mx-auto max-w-7xl px-4 py-3 sm:py-4 flex flex-col gap-2">
             {navItems.map((item) => (
               item.to ? (
-                <Link key={item.label} to={item.to} onClick={() => setMobileOpen(false)} className={`text-left px-2 py-2 rounded-lg ${textColor} hover:bg-slate-100`}>
+                <Link key={item.label} to={item.to} onClick={() => setMobileOpen(false)} className={`text-left px-2 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm ${textColor} hover:bg-slate-100`}>
                   {item.label}
                 </Link>
               ) : (
-                <button key={item.id} type="button" onClick={() => goToSection(item.id)} className={`text-left px-2 py-2 rounded-lg ${textColor} hover:bg-slate-100`}>
+                <button key={item.id} type="button" onClick={() => goToSection(item.id)} className={`text-left px-2 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm ${textColor} hover:bg-slate-100`}>
                   {item.label}
                 </button>
               )
             ))}
 
             <div className="flex gap-2 pt-2">
-              <Link to="/login" className="flex-1 px-4 py-2 rounded-xl border border-slate-300 text-center font-semibold text-slate-700">Login</Link>
-              <Link to="/signup" className="flex-1 px-4 py-2 rounded-xl bg-[#2563EB] text-center font-semibold text-white">Sign Up</Link>
+              <Link to="/login" className="flex-1 px-2 sm:px-4 py-2 rounded-lg text-center font-semibold text-xs sm:text-sm border border-slate-300 text-slate-700">Login</Link>
+              <Link to="/signup" className="flex-1 px-2 sm:px-4 py-2 rounded-lg text-center font-semibold text-xs sm:text-sm bg-[#2563EB] text-white">Sign Up</Link>
             </div>
           </div>
         </div>

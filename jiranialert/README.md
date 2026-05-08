@@ -1,16 +1,73 @@
-# React + Vite
+# Jirani Alert - Emergency Community Response Platform
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A comprehensive community emergency notification and coordination system.
 
-Currently, two official plugins are available:
+## 📁 Project Structure
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+This project is organized into two main directories:
 
-## React Compiler
+### Frontend (`/frontend`)
+- React-based web application
+- Built with Vite
+- Styled with Tailwind CSS
+- Features include:
+  - Emergency reporting interface
+  - Real-time alerts dashboard
+  - Community coordination features
+  - Live incident tracking
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+**Key files:**
+- `package.json` - Frontend dependencies
+- `vite.config.js` - Vite configuration
+- `tailwind.config.js` - Tailwind CSS configuration
+- `src/` - React source code
+- `public/` - Static assets
+- `dist/` - Production build output
 
-## Expanding the ESLint configuration
+### Backend (`/backend`)
+- Firebase Cloud Functions
+- Firestore database configuration
+- Real-time database rules
+- Emergency data processing
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+**Key files:**
+- `firebase.json` - Firebase configuration
+- `firestore.rules` - Database access rules
+- `firestore.indexes.json` - Firestore indexes
+- `functions/` - Cloud function implementations
+- `package.json` - Backend dependencies
+
+## 🚀 Getting Started
+
+### Frontend Setup
+```bash
+cd frontend
+npm install
+npm run dev      # Development server
+npm run build    # Production build
+```
+
+### Backend Setup
+```bash
+cd backend
+npm install
+npm run emulator # Run Firebase emulator locally
+```
+
+## 📦 Dependencies
+
+- **Frontend:** React, Vite, Tailwind CSS, Framer Motion, Lucide React
+- **Backend:** Firebase, Cloud Functions
+
+## 🔧 Configuration
+
+- Root `.gitignore` - Global git ignore rules
+- `.vscode/` - VS Code workspace settings
+
+## 📝 License
+
+[Add your license here]
+
+---
+
+**Ready to push to GitHub!** Both frontend and backend are properly organized and ready for deployment.

@@ -183,7 +183,7 @@ export default function Home() {
       <Header navItems={navItems} initialBg="transparent" scrolledBg="rgba(255,255,255,0.88)" primaryColor="#2563EB" />
 
       <main>
-        <section id="home" className="relative overflow-hidden pt-28 sm:pt-32 pb-16 sm:pb-20">
+        <section id="home" className="relative overflow-hidden pt-20 sm:pt-28 md:pt-32 pb-12 sm:pb-16 md:pb-20">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_15%,rgba(37,99,235,0.2),transparent_32%),radial-gradient(circle_at_85%_5%,rgba(220,38,38,0.16),transparent_28%),linear-gradient(180deg,#eff6ff_0%,#ffffff_45%,#f8fafc_100%)]" />
           <motion.div
             className="absolute top-20 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-[#2563EB]/20 blur-3xl"
@@ -192,7 +192,7 @@ export default function Home() {
           />
 
           <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+            <div className="grid lg:grid-cols-2 gap-8 lg:gap-14 items-center">
               <motion.div
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -203,18 +203,18 @@ export default function Home() {
                   <ShieldCheck className="h-4 w-4" />
                   Trusted Emergency Network
                 </span>
-                <h1 className="mt-4 text-4xl sm:text-5xl lg:text-6xl leading-[1.05] font-extrabold text-slate-900">
+                <h1 className="mt-4 text-2xl sm:text-3xl md:text-4xl lg:text-6xl leading-tight font-extrabold text-slate-900">
                   Instant Emergency Alerts for Safer Communities
                 </h1>
-                <p className="mt-5 text-lg text-slate-600 max-w-xl">
+                <p className="mt-5 text-base sm:text-lg text-slate-600 max-w-xl">
                   Report emergencies, receive verified alerts, and protect your neighborhood in real time.
                 </p>
 
                 <div className="mt-8 flex flex-wrap gap-3">
-                  <Link to="/signup" className="px-6 py-3 rounded-xl bg-[#2563EB] text-white font-bold shadow-[0_0_18px_rgba(37,99,235,0.45)] hover:shadow-[0_0_28px_rgba(37,99,235,0.6)] transition-all">
+                  <Link to="/signup" className="px-4 sm:px-6 py-3 rounded-xl bg-[#2563EB] text-white font-bold text-sm sm:text-base shadow-[0_0_18px_rgba(37,99,235,0.45)] hover:shadow-[0_0_28px_rgba(37,99,235,0.6)] transition-all">
                     Get Started
                   </Link>
-                  <Link to="/report" className="px-6 py-3 rounded-xl bg-[#DC2626] text-white font-bold shadow-[0_0_18px_rgba(220,38,38,0.35)] hover:shadow-[0_0_28px_rgba(220,38,38,0.55)] transition-all">
+                  <Link to="/report" className="px-4 sm:px-6 py-3 rounded-xl bg-[#DC2626] text-white font-bold text-sm sm:text-base shadow-[0_0_18px_rgba(220,38,38,0.35)] hover:shadow-[0_0_28px_rgba(220,38,38,0.55)] transition-all">
                     Report Emergency
                   </Link>
                 </div>
@@ -227,10 +227,10 @@ export default function Home() {
                 transition={{ duration: 0.6, delay: 0.1 }}
                 className="relative"
               >
-                <div className="rounded-3xl border border-white/60 bg-white/70 backdrop-blur-xl shadow-[0_30px_80px_rgba(37,99,235,0.22)] p-5 sm:p-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-bold text-slate-900">Live Alert Dashboard</h3>
-                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600">
+                <div className="rounded-3xl border border-white/60 bg-white/70 backdrop-blur-xl shadow-[0_30px_80px_rgba(37,99,235,0.22)] p-4 sm:p-5">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900">Live Alert Dashboard</h3>
+                    <span className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-emerald-600 flex-shrink-0">
                       <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
                       System Online
                     </span>
@@ -240,22 +240,22 @@ export default function Home() {
                     {liveAlerts.map((alert) => {
                       const Icon = alert.icon
                       return (
-                        <div key={alert.title} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex min-w-0 items-center gap-3">
-                              <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-[#2563EB]">
-                                <Icon className="h-5 w-5" />
+                        <div key={alert.title} className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm">
+                          <div className="flex items-start justify-between gap-2 sm:gap-3">
+                            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                              <div className="h-8 sm:h-10 w-8 sm:w-10 rounded-xl bg-slate-100 flex items-center justify-center text-[#2563EB] flex-shrink-0">
+                                <Icon className="h-4 sm:h-5 w-4 sm:w-5" />
                               </div>
                               <div className="min-w-0">
-                                <p className="text-sm font-bold text-slate-900">{alert.title}</p>
+                                <p className="text-xs sm:text-sm font-bold text-slate-900">{alert.title}</p>
                                 <p className="text-xs text-slate-500 flex min-w-0 items-center gap-1">
-                                  <MapPin className="h-3.5 w-3.5 shrink-0" />
+                                  <MapPin className="h-3 w-3 shrink-0" />
                                   <span className="truncate">{alert.location}</span>
                                 </p>
                               </div>
                             </div>
-                            <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-slate-700">
-                              <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${alert.color} animate-pulse`} />
+                            <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-slate-700 whitespace-nowrap">
+                              <span className={`h-2 w-2 shrink-0 rounded-full ${alert.color} animate-pulse`} />
                               {alert.status}
                             </span>
                           </div>

@@ -40,8 +40,8 @@ function SectionTitle({ eyebrow, title, description, align = 'left' }) {
   return (
     <div className={align === 'center' ? 'mx-auto max-w-3xl text-center' : 'max-w-3xl'}>
       <p className="text-xs font-black uppercase tracking-[0.28em] text-[#E53935]">{eyebrow}</p>
-      <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl lg:text-5xl">{title}</h2>
-      <p className="mt-4 text-base leading-8 text-slate-600 sm:text-lg">{description}</p>
+      <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-950">{title}</h2>
+      <p className="mt-4 text-xs sm:text-base leading-8 text-slate-600">{description}</p>
     </div>
   )
 }
@@ -151,52 +151,52 @@ export default function Contact() {
                 <Sparkles className="h-4 w-4 text-[#ffb4b0]" />
                 Professional support for every community
               </div>
-              <h1 className="max-w-2xl text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl">
-                We’re Here to Help
+              <h1 className="max-w-2xl text-2xl sm:text-3xl lg:text-5xl font-black tracking-tight">
+                We're Here to Help
               </h1>
-              <p className="max-w-2xl text-lg leading-8 text-blue-50/90 sm:text-xl">
+              <p className="max-w-2xl text-base sm:text-lg leading-8 text-blue-50/90">
                 Reach out to the Jirani Alert team for support, feedback, or assistance.
               </p>
               <div className="flex flex-wrap gap-3 pt-2">
-                <a href="#contact-form" className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 font-bold text-[#113a7a] shadow-[0_18px_40px_rgba(0,0,0,0.18)] transition-transform hover:-translate-y-0.5">
+                <a href="#contact-form" className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 font-bold text-[#113a7a] shadow-[0_18px_40px_rgba(0,0,0,0.18)] transition-transform hover:-translate-y-0.5 text-sm sm:text-base">
                   Send Message
                   <ArrowRight className="h-4 w-4" />
                 </a>
-                <a href="#faqs" className="inline-flex items-center gap-2 rounded-full bg-[#E53935] px-6 py-3 font-bold text-white shadow-[0_18px_40px_rgba(229,57,53,0.28)] transition-transform hover:-translate-y-0.5">
+                <a href="#faqs" className="inline-flex items-center gap-2 rounded-full bg-[#E53935] px-6 py-3 font-bold text-white shadow-[0_18px_40px_rgba(229,57,53,0.28)] transition-transform hover:-translate-y-0.5 text-sm sm:text-base">
                   View FAQs
                 </a>
               </div>
             </Reveal>
 
             <Reveal delay={0.08} className="relative">
-              <div className="rounded-[2rem] border border-white/50 bg-white/85 p-4 shadow-[0_28px_80px_rgba(15,23,42,0.2)] backdrop-blur-2xl sm:p-6">
-                <div className="rounded-[1.75rem] bg-[linear-gradient(180deg,#0c1f49_0%,#163b82_52%,#1f6bda_100%)] p-5 text-white shadow-inner">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
+              <div className="rounded-[2rem] border border-white/50 bg-white/85 p-4 sm:p-6 shadow-[0_28px_80px_rgba(15,23,42,0.2)] backdrop-blur-2xl">
+                <div className="rounded-[1.75rem] bg-[linear-gradient(180deg,#0c1f49_0%,#163b82_52%,#1f6bda_100%)] p-4 sm:p-5 text-white shadow-inner">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="min-w-0">
                       <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-100">Support Network</p>
-                      <h3 className="mt-2 text-2xl font-extrabold">Chat bubbles and emergency coordination</h3>
+                      <h3 className="mt-2 text-lg sm:text-2xl font-extrabold break-words">Chat bubbles and emergency coordination</h3>
                     </div>
-                    <div className="rounded-2xl bg-white/12 p-3 backdrop-blur">
+                    <div className="rounded-2xl bg-white/12 p-3 backdrop-blur flex-shrink-0">
                       <MessageSquare className="h-6 w-6 text-white" />
                     </div>
                   </div>
 
-                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                  <div className="mt-6 grid gap-3 grid-cols-1 sm:grid-cols-2">
                     <div className="rounded-2xl bg-white/12 p-4 backdrop-blur">
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-100">Chat bubbles</p>
-                      <p className="mt-3 text-sm text-white/90">Support conversations are clear and easy to start.</p>
+                      <p className="mt-3 text-xs sm:text-sm text-white/90">Support conversations are clear and easy to start.</p>
                     </div>
                     <div className="rounded-2xl bg-white/12 p-4 backdrop-blur">
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-100">Agent icons</p>
-                      <p className="mt-3 text-sm text-white/90">Friendly support identities make communication simple.</p>
+                      <p className="mt-3 text-xs sm:text-sm text-white/90">Friendly support identities make communication simple.</p>
                     </div>
                     <div className="rounded-2xl bg-white/12 p-4 backdrop-blur">
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-100">Emergency graphics</p>
-                      <p className="mt-3 text-sm text-white/90">Escalations remain calm, visible, and trustworthy.</p>
+                      <p className="mt-3 text-xs sm:text-sm text-white/90">Escalations remain calm, visible, and trustworthy.</p>
                     </div>
                     <div className="rounded-2xl bg-white/12 p-4 backdrop-blur">
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-100">Support response</p>
-                      <p className="mt-3 text-sm text-white/90">Issues are routed to the right team quickly.</p>
+                      <p className="mt-3 text-xs sm:text-sm text-white/90">Issues are routed to the right team quickly.</p>
                     </div>
                   </div>
                 </div>
@@ -205,19 +205,19 @@ export default function Contact() {
           </div>
         </section>
 
-        <section className="px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+        <section className="px-4 py-12 sm:py-16 lg:py-24">
           <div className="mx-auto max-w-7xl">
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {contactCards.map((card, index) => {
                 const Icon = card.icon
                 return (
-                  <Reveal key={card.title} delay={index * 0.04} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.06)] transition-all hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(15,23,42,0.1)]">
-                    <div className="rounded-2xl bg-[#113a7a]/10 p-3 text-[#113a7a] w-fit">
-                      <Icon className="h-5 w-5" />
+                  <Reveal key={card.title} delay={index * 0.04} className="rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-[0_16px_40px_rgba(15,23,42,0.06)] transition-all hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(15,23,42,0.1)]">
+                    <div className="rounded-2xl bg-[#113a7a]/10 p-2 sm:p-3 text-[#113a7a] w-fit">
+                      <Icon className="h-4 sm:h-5 w-4 sm:w-5" />
                     </div>
-                    <h3 className="mt-5 text-xl font-bold text-slate-950">{card.title}</h3>
-                    <p className="mt-2 text-sm font-semibold text-[#E53935]">{card.detail}</p>
-                    <p className="mt-3 text-sm leading-7 text-slate-600">{card.description}</p>
+                    <h3 className="mt-4 sm:mt-5 text-lg sm:text-xl font-bold text-slate-950">{card.title}</h3>
+                    <p className="mt-1 sm:mt-2 text-xs sm:text-sm font-semibold text-[#E53935]">{card.detail}</p>
+                    <p className="mt-2 sm:mt-3 text-xs sm:text-sm leading-6 sm:leading-7 text-slate-600">{card.description}</p>
                   </Reveal>
                 )
               })}
@@ -283,9 +283,9 @@ export default function Contact() {
                     <label className="text-sm font-semibold text-slate-700">Priority Level</label>
                     <div className="mt-2 grid gap-2 sm:grid-cols-3">
                       {['Normal', 'Important', 'Urgent'].map((item) => (
-                        <label key={item} className={`flex cursor-pointer items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold transition-colors ${formData.priority === item ? 'border-[#113a7a] bg-blue-50 text-[#113a7a]' : 'border-slate-300 bg-white text-slate-700'}`}>
+                        <label key={item} className={`flex cursor-pointer items-center justify-between rounded-xl sm:rounded-2xl border px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold transition-colors ${formData.priority === item ? 'border-[#113a7a] bg-blue-50 text-[#113a7a]' : 'border-slate-300 bg-white text-slate-700'}`}>
                           <span>{item}</span>
-                          <input type="radio" name="priority" value={item} checked={formData.priority === item} onChange={handleChange} className="h-4 w-4 text-[#E53935]" />
+                          <input type="radio" name="priority" value={item} checked={formData.priority === item} onChange={handleChange} className="h-3 sm:h-4 w-3 sm:w-4 text-[#E53935]" />
                         </label>
                       ))}
                     </div>
@@ -344,38 +344,38 @@ export default function Contact() {
           </div>
         </section>
 
-        <section className="px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-          <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-stretch">
-            <Reveal className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
-              <div className="h-full bg-[radial-gradient(circle_at_top_left,rgba(229,57,53,0.16),transparent_26%),linear-gradient(135deg,#0f2458_0%,#153b82_100%)] p-8 text-white sm:p-10">
+        <section className="px-4 py-12 sm:py-16 lg:py-24">
+          <div className="mx-auto grid max-w-7xl gap-4 sm:gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-stretch">
+            <Reveal className="overflow-hidden rounded-2xl sm:rounded-[2rem] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+              <div className="h-full bg-[radial-gradient(circle_at_top_left,rgba(229,57,53,0.16),transparent_26%),linear-gradient(135deg,#0f2458_0%,#153b82_100%)] p-5 sm:p-8 lg:p-10 text-white">
                 <p className="text-xs font-black uppercase tracking-[0.28em] text-blue-100">Operations Center</p>
-                <h2 className="mt-3 text-3xl font-extrabold sm:text-4xl">Our Operations Center</h2>
-                <div className="mt-6 rounded-[1.5rem] border border-white/15 bg-white/10 p-5 backdrop-blur-xl">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
+                <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-extrabold">Our Operations Center</h2>
+                <div className="mt-6 rounded-2xl border border-white/15 bg-white/10 p-4 sm:p-5 backdrop-blur-xl">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-3 sm:gap-4">
+                    <div className="min-w-0">
                       <p className="text-sm font-bold">Nairobi, Kenya</p>
-                      <p className="mt-2 text-sm leading-7 text-blue-50/90">Supporting safer communities through real-time emergency communication.</p>
+                      <p className="mt-2 text-xs sm:text-sm leading-6 sm:leading-7 text-blue-50/90">Supporting safer communities through real-time emergency communication.</p>
                     </div>
-                    <div className="rounded-2xl bg-white/12 p-3">
-                      <MapPin className="h-6 w-6" />
+                    <div className="rounded-xl sm:rounded-2xl bg-white/12 p-2 sm:p-3 flex-shrink-0">
+                      <MapPin className="h-5 sm:h-6 w-5 sm:w-6" />
                     </div>
                   </div>
-                  <div className="mt-5 h-52 rounded-[1.25rem] border border-dashed border-white/20 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.35),transparent_20%),radial-gradient(circle_at_70%_55%,rgba(255,255,255,0.25),transparent_18%),linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.04))]" />
+                  <div className="mt-5 h-40 sm:h-52 rounded-lg sm:rounded-[1.25rem] border border-dashed border-white/20 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.35),transparent_20%),radial-gradient(circle_at_70%_55%,rgba(255,255,255,0.25),transparent_18%),linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.04))]" />
                 </div>
               </div>
             </Reveal>
 
-            <Reveal delay={0.08} className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-[0_24px_70px_rgba(15,23,42,0.08)] sm:p-10">
+            <Reveal delay={0.08} className="rounded-2xl sm:rounded-[2rem] border border-slate-200 bg-white p-5 sm:p-8 lg:p-10 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
               <p className="text-xs font-black uppercase tracking-[0.28em] text-[#E53935]">Hours</p>
-              <h3 className="mt-3 text-3xl font-extrabold text-slate-950">Operating Hours</h3>
+              <h3 className="mt-3 text-2xl sm:text-3xl lg:text-3xl font-extrabold text-slate-950">Operating Hours</h3>
               <div className="mt-6 space-y-4">
-                <div className="rounded-2xl bg-slate-50 p-4">
+                <div className="rounded-xl sm:rounded-2xl bg-slate-50 p-3 sm:p-4">
                   <p className="text-sm font-bold text-slate-900">24/7 Emergency Monitoring</p>
-                  <p className="mt-1 text-sm text-slate-600">Support Hours: Always available for emergency system assistance</p>
+                  <p className="mt-1 text-xs sm:text-sm text-slate-600">Support Hours: Always available for emergency system assistance</p>
                 </div>
-                <div className="rounded-2xl bg-slate-50 p-4">
+                <div className="rounded-xl sm:rounded-2xl bg-slate-50 p-3 sm:p-4">
                   <p className="text-sm font-bold text-slate-900">General inquiries</p>
-                  <p className="mt-1 text-sm text-slate-600">Mon – Fri, 8AM – 6PM</p>
+                  <p className="mt-1 text-xs sm:text-sm text-slate-600">Mon – Fri, 8AM – 6PM</p>
                 </div>
               </div>
             </Reveal>
@@ -388,20 +388,20 @@ export default function Contact() {
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.28em] text-[#E53935]">Social Connect</p>
-                  <h2 className="mt-2 text-2xl font-extrabold text-slate-950">Stay connected for platform updates and safety awareness.</h2>
+                  <h2 className="mt-2 text-lg sm:text-2xl font-extrabold text-slate-950">Stay connected for platform updates and safety awareness.</h2>
                 </div>
-                <div className="flex items-center gap-3">
-                  <a href="#" className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-[#113a7a] transition-transform hover:-translate-y-0.5">
-                    <Facebook className="h-5 w-5" />
+                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                  <a href="#" className="inline-flex h-9 sm:h-12 w-9 sm:w-12 items-center justify-center rounded-full bg-slate-100 text-[#113a7a] transition-transform hover:-translate-y-0.5">
+                    <Facebook className="h-4 sm:h-5 w-4 sm:w-5" />
                   </a>
-                  <a href="#" className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-[#113a7a] transition-transform hover:-translate-y-0.5">
-                    <Instagram className="h-5 w-5" />
+                  <a href="#" className="inline-flex h-9 sm:h-12 w-9 sm:w-12 items-center justify-center rounded-full bg-slate-100 text-[#113a7a] transition-transform hover:-translate-y-0.5">
+                    <Instagram className="h-4 sm:h-5 w-4 sm:w-5" />
                   </a>
-                  <a href="#" className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-[#113a7a] transition-transform hover:-translate-y-0.5">
-                    <X className="h-5 w-5" />
+                  <a href="#" className="inline-flex h-9 sm:h-12 w-9 sm:w-12 items-center justify-center rounded-full bg-slate-100 text-[#113a7a] transition-transform hover:-translate-y-0.5">
+                    <X className="h-4 sm:h-5 w-4 sm:w-5" />
                   </a>
-                  <a href="#" className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-[#113a7a] transition-transform hover:-translate-y-0.5">
-                    <Linkedin className="h-5 w-5" />
+                  <a href="#" className="inline-flex h-9 sm:h-12 w-9 sm:w-12 items-center justify-center rounded-full bg-slate-100 text-[#113a7a] transition-transform hover:-translate-y-0.5">
+                    <Linkedin className="h-4 sm:h-5 w-4 sm:w-5" />
                   </a>
                 </div>
               </div>
@@ -409,16 +409,16 @@ export default function Contact() {
           </div>
         </section>
 
-        <section className="px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
+        <section className="px-4 py-8 sm:py-10 lg:py-16">
           <div className="mx-auto max-w-7xl">
-            <Reveal className="rounded-[2rem] border border-amber-200 bg-amber-50 p-6 shadow-[0_20px_50px_rgba(15,23,42,0.05)] sm:p-8">
-              <div className="flex items-start gap-4">
-                <div className="rounded-2xl bg-amber-100 p-3 text-amber-700">
-                  <X className="h-5 w-5" />
+            <Reveal className="rounded-xl sm:rounded-[2rem] border border-amber-200 bg-amber-50 p-4 sm:p-6 shadow-[0_20px_50px_rgba(15,23,42,0.05)]">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="rounded-xl sm:rounded-2xl bg-amber-100 p-2 sm:p-3 text-amber-700 flex-shrink-0">
+                  <X className="h-4 sm:h-5 w-4 sm:w-5" />
                 </div>
-                <div>
-                  <p className="text-lg font-bold text-slate-950">Jirani Alert is a community emergency notification platform.</p>
-                  <p className="mt-2 text-sm leading-7 text-slate-600">
+                <div className="min-w-0">
+                  <p className="text-base sm:text-lg font-bold text-slate-950">Jirani Alert is a community emergency notification platform.</p>
+                  <p className="mt-2 text-xs sm:text-sm leading-6 sm:leading-7 text-slate-600">
                     For life-threatening emergencies, contact official emergency responders immediately.
                   </p>
                 </div>
@@ -435,11 +435,11 @@ export default function Contact() {
                 Reach out and let us help improve your emergency response experience.
               </p>
               <div className="mt-8 flex flex-wrap justify-center gap-3">
-                <Link to="/signup" className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 font-bold text-[#153b82] transition-transform hover:-translate-y-0.5">
+                <Link to="/signup" className="inline-flex items-center gap-2 rounded-full bg-white px-4 sm:px-6 py-2 sm:py-3 font-bold text-[#153b82] transition-transform hover:-translate-y-0.5 text-sm sm:text-base">
                   Create Account
                   <ArrowRight className="h-4 w-4" />
                 </Link>
-                <Link to="/features" className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 px-6 py-3 font-bold text-white backdrop-blur transition-colors hover:bg-white/15">
+                <Link to="/features" className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 px-4 sm:px-6 py-2 sm:py-3 font-bold text-white backdrop-blur transition-colors hover:bg-white/15 text-sm sm:text-base">
                   Explore Features
                 </Link>
               </div>
@@ -448,13 +448,13 @@ export default function Contact() {
         </section>
       </main>
 
-      <footer className="border-t border-slate-200 bg-white px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <footer className="border-t border-slate-200 bg-white px-4 py-6 sm:py-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-bold text-slate-900">Jirani Alert © 2026</p>
-            <p className="mt-1 text-sm text-slate-500">Building safer communities through technology.</p>
+            <p className="text-xs sm:text-sm font-bold text-slate-900">Jirani Alert © 2026</p>
+            <p className="mt-1 text-xs sm:text-sm text-slate-500">Building safer communities through technology.</p>
           </div>
-          <div className="flex flex-wrap items-center gap-4 text-sm font-semibold text-slate-600">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm font-semibold text-slate-600">
             <Link to="/about" className="transition-colors hover:text-[#153b82]">About</Link>
             <Link to="/privacy" className="transition-colors hover:text-[#153b82]">Privacy Policy</Link>
             <Link to="/support" className="transition-colors hover:text-[#153b82]">Support</Link>

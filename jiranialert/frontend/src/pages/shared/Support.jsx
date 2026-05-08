@@ -105,7 +105,7 @@ function SectionTitle({ eyebrow, title, subtitle }) {
   return (
     <div className="max-w-3xl">
       <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#B91C1C]">{eyebrow}</p>
-      <h2 className="mt-3 text-3xl font-bold text-slate-950 sm:text-4xl">{title}</h2>
+      <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-950">{title}</h2>
       <p className="mt-4 text-base leading-7 text-slate-600 sm:text-lg">{subtitle}</p>
     </div>
   );
@@ -217,24 +217,24 @@ export default function Support() {
             <div className="absolute left-1/3 top-0 h-72 w-72 rounded-full bg-red-600 blur-3xl" />
             <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-blue-500 blur-3xl" />
           </div>
-          <div className="relative mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8 lg:py-28">
+          <div className="relative mx-auto grid max-w-7xl gap-10 sm:gap-12 px-4 py-16 sm:py-20 md:py-28 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
             <Reveal>
               <p className="text-sm font-semibold uppercase tracking-[0.4em] text-red-300">Support Center</p>
-              <h1 className="mt-4 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
+              <h1 className="mt-4 text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold leading-tight">
                 How Can We Help You Today?
               </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200 sm:text-xl">
+              <p className="mt-6 max-w-2xl text-base sm:text-lg leading-8 text-slate-200">
                 Find answers, report issues, and get assistance quickly.
               </p>
 
-              <div className="mt-8 flex max-w-2xl items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
-                <Search className="h-5 w-5 text-slate-300" />
+              <div className="mt-8 flex max-w-2xl items-center gap-2 sm:gap-3 rounded-2xl border border-white/10 bg-white/10 px-3 sm:px-4 py-2 sm:py-3 backdrop-blur-sm">
+                <Search className="h-4 sm:h-5 w-4 sm:w-5 text-slate-300 flex-shrink-0" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search for help articles, issues, or support topics..."
-                  className="w-full bg-transparent text-sm outline-none placeholder:text-slate-300"
+                  placeholder="Search articles or topics..."
+                  className="w-full bg-transparent text-xs sm:text-sm outline-none placeholder:text-slate-300"
                   aria-label="Search support topics"
                 />
               </div>
@@ -244,7 +244,7 @@ export default function Support() {
                   href="#ticket"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-950 transition-colors hover:bg-slate-100"
+                  className="inline-flex items-center justify-center rounded-full bg-white px-4 sm:px-6 py-3 text-xs sm:text-sm font-semibold text-slate-950 transition-colors hover:bg-slate-100"
                 >
                   Contact Support
                 </motion.a>
@@ -252,7 +252,7 @@ export default function Support() {
                   href="#ticket"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="inline-flex items-center justify-center rounded-full border border-red-400/70 bg-red-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-500"
+                  className="inline-flex items-center justify-center rounded-full border border-red-400/70 bg-red-600 px-4 sm:px-6 py-3 text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-red-500"
                 >
                   Report an Issue
                 </motion.a>
@@ -263,11 +263,11 @@ export default function Support() {
               <div className="relative mx-auto flex max-w-md items-center justify-center">
                 <div className="absolute inset-0 rounded-[2rem] bg-white/10 blur-2xl" />
                 <div className="relative w-full rounded-[2rem] border border-white/15 bg-slate-900/60 p-6 shadow-2xl backdrop-blur">
-                  <div className="rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 p-5 ring-1 ring-white/10">
-                    <div className="flex items-center justify-between text-sm text-slate-300">
+                  <div className="rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 p-4 sm:p-5 ring-1 ring-white/10">
+                    <div className="flex items-center justify-between text-xs sm:text-sm text-slate-300 gap-2">
                       <span>Support center</span>
-                      <span className="inline-flex items-center gap-2 rounded-full bg-red-500/15 px-3 py-1 text-red-200">
-                        <CheckCircle2 className="h-4 w-4" /> Live
+                      <span className="inline-flex items-center gap-2 rounded-full bg-red-500/15 px-2 sm:px-3 py-1 text-xs text-red-200 flex-shrink-0">
+                        <CheckCircle2 className="h-3 sm:h-4 w-3 sm:w-4" /> Live
                       </span>
                     </div>
                     <div className="mt-5 grid gap-3">
@@ -276,15 +276,15 @@ export default function Support() {
                         { label: 'Emergency Alerts', color: 'bg-red-500' },
                         { label: 'Notifications', color: 'bg-amber-500' },
                       ].map((item) => (
-                        <div key={item.label} className="flex items-center gap-3 rounded-xl bg-white/5 px-4 py-3">
-                          <div className={`h-10 w-10 rounded-xl ${item.color}/20 ${item.color.replace('bg-', 'text-')} flex items-center justify-center`}>
-                            <Headphones className="h-5 w-5" />
+                        <div key={item.label} className="flex items-center gap-2 sm:gap-3 rounded-xl bg-white/5 px-3 sm:px-4 py-2 sm:py-3">
+                          <div className={`h-8 sm:h-10 w-8 sm:w-10 rounded-xl ${item.color}/20 ${item.color.replace('bg-', 'text-')} flex items-center justify-center flex-shrink-0`}>
+                            <Headphones className="h-4 sm:h-5 w-4 sm:w-5" />
                           </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold text-white">{item.label}</p>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs sm:text-sm font-semibold text-white truncate">{item.label}</p>
                             <p className="text-xs text-slate-400">Support queue ready</p>
                           </div>
-                          <ArrowRight className="h-4 w-4 text-slate-400" />
+                          <ArrowRight className="h-4 w-4 text-slate-400 flex-shrink-0" />
                         </div>
                       ))}
                     </div>
@@ -307,12 +307,12 @@ export default function Support() {
                 const Icon = category.icon;
                 return (
                   <Reveal key={category.title} delay={index * 0.04}>
-                    <article className={`h-full rounded-3xl border border-slate-200 bg-gradient-to-br ${category.color} p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg`}>
-                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm ring-1 ring-slate-200/80">
-                        <Icon className="h-7 w-7 text-slate-900" />
+                    <article className={`h-full rounded-3xl border border-slate-200 bg-gradient-to-br ${category.color} p-5 sm:p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg`}>
+                      <div className="flex h-12 sm:h-14 w-12 sm:w-14 items-center justify-center rounded-2xl bg-white text-xl sm:text-2xl shadow-sm ring-1 ring-slate-200/80">
+                        <Icon className="h-6 sm:h-7 w-6 sm:w-7 text-slate-900" />
                       </div>
-                      <h3 className="mt-5 text-xl font-bold text-slate-950">{category.title}</h3>
-                      <p className="mt-2 text-sm leading-6 text-slate-600">{category.description}</p>
+                      <h3 className="mt-5 text-lg sm:text-xl font-bold text-slate-950">{category.title}</h3>
+                      <p className="mt-2 text-xs sm:text-sm leading-6 text-slate-600">{category.description}</p>
                     </article>
                   </Reveal>
                 );
@@ -333,19 +333,19 @@ export default function Support() {
                 const Icon = article.icon;
                 return (
                   <Reveal key={article.title} delay={index * 0.03}>
-                    <article className="group h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-700 transition-colors group-hover:bg-red-50 group-hover:text-red-600">
-                          <Icon className="h-6 w-6" />
+                    <article className="group h-full rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                      <div className="flex items-start justify-between gap-3 sm:gap-4">
+                        <div className="flex h-10 sm:h-12 w-10 sm:w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-700 transition-colors group-hover:bg-red-50 group-hover:text-red-600 flex-shrink-0">
+                          <Icon className="h-5 sm:h-6 w-5 sm:w-6" />
                         </div>
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                        <span className="rounded-full bg-slate-100 px-2 sm:px-3 py-1 text-xs font-semibold text-slate-600 flex-shrink-0">
                           {article.readTime}
                         </span>
                       </div>
-                      <h3 className="mt-5 text-xl font-bold text-slate-950">{article.title}</h3>
-                      <button className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[#B91C1C] transition-colors hover:text-[#991B1B]">
+                      <h3 className="mt-5 text-lg sm:text-xl font-bold text-slate-950">{article.title}</h3>
+                      <button className="mt-6 inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-[#B91C1C] transition-colors hover:text-[#991B1B]\">
                         Read Article
-                        <ArrowRight className="h-4 w-4" />
+                        <ArrowRight className="h-3 sm:h-4 w-3 sm:w-4\" />
                       </button>
                     </article>
                   </Reveal>
@@ -550,10 +550,10 @@ export default function Support() {
                       <button
                         type="button"
                         onClick={() => setOpenFaq(isOpen ? -1 : index)}
-                        className="flex w-full items-center justify-between px-5 py-4 text-left transition hover:bg-slate-50"
+                        className="flex w-full items-center justify-between px-4 sm:px-5 py-3 sm:py-4 text-left transition hover:bg-slate-50"
                       >
-                        <span className="text-base font-semibold text-slate-900">{faq.question}</span>
-                        {isOpen ? <ChevronUp className="h-5 w-5 text-slate-500" /> : <ChevronDown className="h-5 w-5 text-slate-500" />}
+                        <span className="text-sm sm:text-base font-semibold text-slate-900">{faq.question}</span>
+                        {isOpen ? <ChevronUp className="h-4 sm:h-5 w-4 sm:w-5 text-slate-500 flex-shrink-0" /> : <ChevronDown className="h-4 sm:h-5 w-4 sm:w-5 text-slate-500 flex-shrink-0" />}
                       </button>
                       <AnimatePresence initial={false}>
                         {isOpen && (
@@ -562,7 +562,7 @@ export default function Support() {
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
                             transition={{ duration: 0.28 }}
-                            className="px-5 pb-5 text-sm leading-7 text-slate-600"
+                            className="px-4 sm:px-5 pb-4 sm:pb-5 text-xs sm:text-sm leading-6 sm:leading-7 text-slate-600"
                           >
                             {faq.answer}
                           </motion.div>
@@ -576,28 +576,28 @@ export default function Support() {
           </div>
         </section>
 
-        <section className="bg-slate-950 py-16 text-white sm:py-20">
+        <section className="bg-slate-950 py-12 sm:py-16 text-white lg:py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr_1fr]">
+            <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1fr_0.9fr_1fr]">
               <Reveal>
-                <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-300">
-                      <Activity className="h-6 w-6" />
+                <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur-sm">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="flex h-10 sm:h-12 w-10 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-emerald-500/15 text-emerald-300 flex-shrink-0">
+                      <Activity className="h-5 sm:h-6 w-5 sm:w-6" />
                     </div>
-                    <h3 className="text-2xl font-bold">Platform Status</h3>
+                    <h3 className="text-lg sm:text-2xl font-bold">Platform Status</h3>
                   </div>
-                  <div className="mt-6 space-y-3 text-sm text-slate-200">
+                  <div className="mt-4 sm:mt-6 space-y-2 sm:space-y-3 text-xs sm:text-sm text-slate-200">
                     {systemStatus.map((item) => (
-                      <div key={item} className="flex items-center gap-3 rounded-2xl bg-white/5 px-4 py-3">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                      <div key={item} className="flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-2xl bg-white/5 px-3 sm:px-4 py-2 sm:py-3\">
+                        <CheckCircle2 className="h-3 sm:h-4 w-3 sm:w-4 text-emerald-400 flex-shrink-0\" />
                         <span>{item} — Operational</span>
                       </div>
                     ))}
                   </div>
-                  <button className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-red-300 transition hover:text-red-200">
+                  <button className="mt-4 sm:mt-6 inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-red-300 transition hover:text-red-200\">
                     View Status Details
-                    <ArrowRight className="h-4 w-4" />
+                    <ArrowRight className="h-3 sm:h-4 w-3 sm:w-4\" />
                   </button>
                 </div>
               </Reveal>
