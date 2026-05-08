@@ -138,7 +138,7 @@ export default function Login() {
           {mobileMenuOpen && (
             <div className="md:hidden border-t border-slate-200 py-3 flex flex-col gap-2">
               <Link to="/" className="px-2 py-2 rounded-lg hover:bg-slate-100">Home</Link>
-              <Link to="/features" className="px-2 py-2 rounded-lg hover:bg-slate-100">Features</Link>
+                      {showPassword ? <Eye className="h-4.5 w-4.5" /> : <EyeOff className="h-4.5 w-4.5" />}
               <Link to="/contact" className="px-2 py-2 rounded-lg hover:bg-slate-100 text-left">Contact</Link>
               <Link to="/signup" className="mt-2 px-4 py-2 rounded-xl bg-[#2563EB] text-white font-semibold text-center">Sign Up</Link>
             </div>
@@ -261,7 +261,7 @@ export default function Login() {
                       className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-md text-slate-500 hover:bg-slate-100"
                       aria-label="Toggle password visibility"
                     >
-                      {showPassword ? <EyeOff className="h-4.5 w-4.5 mx-auto" /> : <Eye className="h-4.5 w-4.5 mx-auto" />}
+                      {showPassword ? <Eye className="h-4.5 w-4.5 mx-auto" /> : <EyeOff className="h-4.5 w-4.5 mx-auto" />}
                     </button>
                   </div>
 
