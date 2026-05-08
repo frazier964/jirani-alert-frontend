@@ -36,7 +36,7 @@ export default function Header({ navItems = [], initialBg = 'transparent', scrol
         <div className="flex h-16 sm:h-20 items-center justify-between gap-2 sm:gap-3">
           <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <img src="/jirani-alert-logo.svg" alt="Jirani Alert" className="h-9 sm:h-11 w-9 sm:w-11 rounded-full bg-white" />
-            <span className="hidden xs:text-xs sm:inline-block text-xs sm:text-sm font-bold tracking-wide truncate" style={{ color: primaryColor }}>JIRANI ALERT</span>
+            <span className="inline-block max-w-[9rem] truncate text-xs sm:max-w-none sm:text-sm font-bold tracking-wide" style={{ color: primaryColor }}>JIRANI ALERT</span>
           </button>
 
           <nav className="hidden lg:flex items-center gap-8">

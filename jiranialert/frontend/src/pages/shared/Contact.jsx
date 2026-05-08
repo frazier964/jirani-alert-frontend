@@ -140,7 +140,7 @@ export default function Contact() {
         initialBg="transparent"
         scrolledBg="rgba(12,31,73,0.94)"
         primaryColor="#113a7a"
-        textColor="text-white"
+        textColor="text-slate-950"
       />
       <main className="overflow-hidden">
         <section className="relative isolate overflow-hidden bg-[linear-gradient(135deg,#0c1f49_0%,#113a7a_45%,#ffffff_45%,#ffffff_100%)] px-4 py-10 sm:px-6 lg:px-8 lg:py-16">

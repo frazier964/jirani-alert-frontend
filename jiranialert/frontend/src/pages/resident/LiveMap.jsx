@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { motion } from 'framer-motion'
 import {
@@ -71,8 +70,12 @@ const typeIcons = {
 }
 
 function createAlertIcon(alert) {
+  throw new Error('Leaflet must be provided to createAlertIcon')
+}
+
+function createAlertIconWithLeaflet(leaflet, alert) {
   const color = markerColors[alert.severity] || '#2563eb'
-  return L.divIcon({
+  return leaflet.divIcon({
     className: '',
     html: `<div style="width:38px;height:38px;border-radius:9999px;background:${color};border:4px solid white;box-shadow:0 14px 32px rgba(15,23,42,.28);display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:12px;">${alert.type[0]}</div>`,
     iconSize: [38, 38],
@@ -80,8 +83,8 @@ function createAlertIcon(alert) {
   })
 }
 
-function createUserIcon() {
-  return L.divIcon({
+function createUserIconWithLeaflet(leaflet) {
+  return leaflet.divIcon({
     className: '',
     html: '<div style="width:28px;height:28px;border-radius:9999px;background:#2563eb;border:5px solid white;box-shadow:0 0 0 10px rgba(37,99,235,.18),0 14px 30px rgba(15,23,42,.25);"></div>',
     iconSize: [28, 28],
@@ -94,12 +97,14 @@ export default function LiveMap() {
   const mapRef = useRef(null)
   const markersRef = useRef([])
   const userMarkerRef = useRef(null)
+  const leafletRef = useRef(null)
   const [query, setQuery] = useState('')
   const [type, setType] = useState('All')
   const [selectedId, setSelectedId] = useState(alerts[0].id)
   const [center, setCenter] = useState(fallbackCenter)
   const [locationStatus, setLocationStatus] = useState('Using default Nairobi location until GPS permission is allowed.')
   const [hasPreciseLocation, setHasPreciseLocation] = useState(false)
+  const [mapReady, setMapReady] = useState(false)
 
   const alertsWithCoords = useMemo(() => {
     return alerts.map((alert) => ({
@@ -146,49 +151,64 @@ export default function LiveMap() {
   }
 
   useEffect(() => {
-    if (!mapElementRef.current || mapRef.current) return
+    let cancelled = false
 
-    mapRef.current = L.map(mapElementRef.current, {
-      center,
-      zoom: 13,
-      minZoom: 3,
-      zoomControl: false,
-      maxBounds: [
-        [-85, -180],
-        [85, 180],
-      ],
-      maxBoundsViscosity: 1,
-      worldCopyJump: false,
-    })
+    async function initMap() {
+      if (!mapElementRef.current || mapRef.current) return
 
-    L.tileLayer(
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      {
-        noWrap: true,
-        bounds: [
+      const leafletModule = await import('leaflet')
+      const leaflet = leafletModule.default ?? leafletModule
+
+      if (cancelled || !mapElementRef.current) return
+
+      leafletRef.current = leaflet
+      mapRef.current = leaflet.map(mapElementRef.current, {
+        center,
+        zoom: 13,
+        minZoom: 3,
+        zoomControl: false,
+        maxBounds: [
           [-85, -180],
           [85, 180],
         ],
-        maxZoom: 19,
-        attribution: 'Tiles &copy; Esri',
-      },
-    ).addTo(mapRef.current)
+        maxBoundsViscosity: 1,
+        worldCopyJump: false,
+      })
 
-    L.control.zoom({ position: 'bottomright' }).addTo(mapRef.current)
-    locateUser()
+      leaflet
+        .tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          noWrap: true,
+          bounds: [
+            [-85, -180],
+            [85, 180],
+          ],
+          maxZoom: 19,
+          attribution: 'Tiles &copy; Esri',
+        })
+        .addTo(mapRef.current)
+
+      leaflet.control.zoom({ position: 'bottomright' }).addTo(mapRef.current)
+      setMapReady(true)
+      locateUser()
+    }
+
+    initMap()
 
     return () => {
+      cancelled = true
       mapRef.current?.remove()
       mapRef.current = null
+      leafletRef.current = null
+      setMapReady(false)
     }
   }, [])
 
   useEffect(() => {
-    if (!mapRef.current) return
+    if (!mapRef.current || !leafletRef.current) return
 
     markersRef.current.forEach((marker) => marker.remove())
     markersRef.current = filteredAlerts.map((alert) => {
-      const marker = L.marker(alert.coords, { icon: createAlertIcon(alert) })
+      const marker = leafletRef.current.marker(alert.coords, { icon: createAlertIconWithLeaflet(leafletRef.current, alert) })
         .addTo(mapRef.current)
         .bindPopup(`<strong>${alert.title}</strong><br />${alert.location}<br />${alert.severity}`)
       marker.on('click', () => setSelectedId(alert.id))
@@ -198,7 +218,7 @@ export default function LiveMap() {
     if (userMarkerRef.current) {
       userMarkerRef.current.remove()
     }
-    userMarkerRef.current = L.marker(center, { icon: createUserIcon() })
+    userMarkerRef.current = leafletRef.current.marker(center, { icon: createUserIconWithLeaflet(leafletRef.current) })
       .addTo(mapRef.current)
       .bindPopup(hasPreciseLocation ? 'Your current GPS location' : 'Default map center')
   }, [center, filteredAlerts, hasPreciseLocation])
@@ -259,7 +279,13 @@ export default function LiveMap() {
             </div>
 
             <div className="relative overflow-hidden rounded-3xl border border-slate-200">
-              <div ref={mapElementRef} className="h-[620px] w-full bg-slate-200" />
+              <div ref={mapElementRef} className="relative h-[620px] w-full bg-slate-200">
+                {!mapReady && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-100/90 text-sm font-semibold text-slate-600">
+                    Loading map...
+                  </div>
+                )}
+              </div>
               <div className="pointer-events-none absolute bottom-4 left-4 right-4 rounded-2xl border border-white/80 bg-white/90 p-4 shadow-xl backdrop-blur sm:left-auto sm:w-[390px]">
                 <div className="flex items-start gap-3">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-600">
