@@ -236,3 +236,51 @@ exports.markNotificationRead = onRequest({ region: 'us-central1' }, async (req, 
     sendError(res, error)
   }
 })
+
+// Get user profile (public)
+exports.getUserProfile = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'GET')
+    const userId = req.path.replace(/^\//, '') || req.query.userId
+    if (!userId) {
+      const error = new Error('userId is required in path')
+      error.status = 400
+      throw error
+    }
+
+    const doc = await db.collection('profiles').doc(userId).get()
+    if (!doc.exists) return res.json({ profile: null })
+    res.json({ profile: doc.data() })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+// Update user profile (public for prototype)
+exports.updateUserProfile = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    // require authenticated user; use their uid for profile id
+    const user = await requireUser(req)
+    const userId = user.uid
+
+    const body = req.body || {}
+    const updates = {}
+    if (typeof body.displayName === 'string') updates.displayName = body.displayName.trim()
+    if (typeof body.profileImageUrl === 'string') updates.profileImageUrl = body.profileImageUrl
+    updates.updatedAt = FieldValue.serverTimestamp()
+
+    await db.collection('profiles').doc(userId).set(updates, { merge: true })
+
+    const saved = await db.collection('profiles').doc(userId).get()
+    res.json({ ok: true, profile: saved.data() })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
