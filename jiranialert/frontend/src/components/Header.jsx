@@ -31,8 +31,11 @@ export default function Header({ navItems = [], initialBg = 'transparent', scrol
         backdropFilter: scrolled ? 'blur(10px)' : 'blur(0px)',
       }}
       transition={{ duration: 0.25 }}
+      initial={{ backgroundColor: initialBg }}
     >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      {/* Mobile background overlay for visibility */}
+      <div className="lg:hidden absolute inset-0 bg-gradient-to-r from-slate-900/40 to-slate-900/20 pointer-events-none"></div>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="flex h-16 sm:h-20 items-center justify-between gap-2 sm:gap-3">
           <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <img src="/jirani-alert-logo.svg" alt="Jirani Alert" className="h-9 sm:h-11 w-9 sm:w-11 rounded-full bg-white" />
@@ -74,7 +77,7 @@ export default function Header({ navItems = [], initialBg = 'transparent', scrol
       </div>
 
       {mobileOpen && (
-        <div className="lg:hidden border-t border-slate-200 bg-white/95 backdrop-blur">
+        <div className="lg:hidden border-t border-slate-200 bg-white/95 backdrop-blur relative z-10">
           <div className="mx-auto max-w-7xl px-4 py-3 sm:py-4 flex flex-col gap-2">
             {navItems.map((item) => (
               item.to ? (
@@ -88,9 +91,9 @@ export default function Header({ navItems = [], initialBg = 'transparent', scrol
               )
             ))}
 
-            <div className="flex gap-2 pt-2">
-              <Link to="/login" className="flex-1 px-2 sm:px-4 py-2 rounded-lg text-center font-semibold text-xs sm:text-sm border border-slate-300 text-slate-700">Login</Link>
-              <Link to="/signup" className="flex-1 px-2 sm:px-4 py-2 rounded-lg text-center font-semibold text-xs sm:text-sm bg-[#2563EB] text-white">Sign Up</Link>
+            <div className="flex gap-3 pt-4">
+              <Link to="/login" className="flex-1 px-4 py-3 rounded-lg text-center font-semibold text-sm border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors">Login</Link>
+              <Link to="/signup" className="flex-1 px-4 py-3 rounded-lg text-center font-semibold text-sm bg-[#2563EB] text-white hover:opacity-90 transition-opacity">Sign Up</Link>
             </div>
           </div>
         </div>

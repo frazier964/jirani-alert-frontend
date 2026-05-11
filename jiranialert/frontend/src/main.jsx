@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
 import Layout from './components/Layout'
+import { ensureAnonymous } from './lib/firebase'
+import { initAuthListener } from './lib/auth'
 
 const Home = lazy(() => import('./pages/shared/Home'))
 const About = lazy(() => import('./pages/shared/About'))
@@ -37,6 +39,8 @@ function PageLoader() {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
+    {/* initialize auth listener */}
+    {initAuthListener()}
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Suspense fallback={<PageLoader />}>
         <Routes>

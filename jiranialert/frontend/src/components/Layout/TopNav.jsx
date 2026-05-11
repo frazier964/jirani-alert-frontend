@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { NavLink, Link, useNavigate } from 'react-router-dom'
 import { AlertTriangle, Bell, Search, ShieldCheck, UserCircle2, ChevronRight, LogOut, LayoutDashboard, Siren, Navigation2, MessageSquare, FileText, LifeBuoy, Settings2, X } from 'lucide-react'
 import Avatar from '../UI/Avatar'
-import { logout as logoutUser } from '../../lib/auth'
+// ProfileImageUpload intentionally omitted from dropdown (use Profile page)
+import { logout as logoutUser, getCurrentUser } from '../../lib/auth'
 
 const sidebarItems = [
   { label: 'Dashboard', to: '/resident/dashboard', icon: LayoutDashboard },
@@ -41,7 +42,27 @@ export default function TopNav() {
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
+  const [profileImage, setProfileImage] = useState(null)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    // Load user profile image from current user
+    const currentUser = getCurrentUser()
+    if (currentUser?.profileImageUrl) {
+      setProfileImage(currentUser.profileImageUrl)
+    }
+    // update when profile changes server-side
+    const handler = (e) => {
+      const profile = e?.detail || null
+      setProfileImage(profile?.profileImageUrl || null)
+    }
+    window.addEventListener('jiranialert_profile_updated', handler)
+    return () => window.removeEventListener('jiranialert_profile_updated', handler)
+  }, [])
+
+  const handleProfileImageUpload = (imageUrl) => {
+    setProfileImage(imageUrl)
+  }
 
   const requestLogout = () => {
     setProfileOpen(false)
@@ -156,7 +177,7 @@ export default function TopNav() {
                   aria-expanded={profileOpen}
                   aria-label="Profile menu"
                 >
-                  <Avatar src="/images/user.jpg" alt="Profile" size={32} />
+                  <Avatar src={profileImage} alt="Profile" size={32} />
                   <UserCircle2 className="hidden h-5 w-5 text-slate-500 sm:block" />
                 </button>
 
@@ -198,6 +219,9 @@ export default function TopNav() {
                           })}
                         </div>
 
+                        <div className="my-2 h-px bg-slate-200" />
+
+                        {/* Upload removed from quick menu to avoid accidental changes; use Profile page */}
                         <div className="my-2 h-px bg-slate-200" />
 
                         <Link to="/resident/profile" className="flex items-center justify-between rounded-xl px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setProfileOpen(false)}>

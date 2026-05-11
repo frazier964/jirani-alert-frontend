@@ -75,8 +75,7 @@ export default function Login() {
 
     setSubmitting(true)
     try {
-      await new Promise((resolve) => setTimeout(resolve, 700))
-      const user = loginUser({ email, password })
+      const user = await loginUser({ email, password })
 
       if (remember) {
         localStorage.setItem('jiranialert_remember_email', email)
@@ -84,8 +83,9 @@ export default function Login() {
         localStorage.removeItem('jiranialert_remember_email')
       }
 
-      if (user.role === 'resident') navigate('/resident/dashboard')
-      else if (user.role === 'responder') navigate('/responder/dashboard')
+      const role = user.role || 'resident'
+      if (role === 'resident') navigate('/resident/dashboard')
+      else if (role === 'responder') navigate('/responder/dashboard')
       else navigate('/admin/dashboard')
     } catch (err) {
       setError(err.message || 'Unable to sign in. Please try again.')
@@ -138,7 +138,6 @@ export default function Login() {
           {mobileMenuOpen && (
             <div className="md:hidden border-t border-slate-200 py-3 flex flex-col gap-2">
               <Link to="/" className="px-2 py-2 rounded-lg hover:bg-slate-100">Home</Link>
-                      {showPassword ? <Eye className="h-4.5 w-4.5" /> : <EyeOff className="h-4.5 w-4.5" />}
               <Link to="/contact" className="px-2 py-2 rounded-lg hover:bg-slate-100 text-left">Contact</Link>
               <Link to="/signup" className="mt-2 px-4 py-2 rounded-xl bg-[#2563EB] text-white font-semibold text-center">Sign Up</Link>
             </div>

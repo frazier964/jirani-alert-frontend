@@ -61,10 +61,11 @@ export default function SignUp() {
 
     setLoading(true)
     try {
-      registerUser({
+      await registerUser({
         email: formData.email,
         password: formData.password,
         role: formData.role,
+        displayName: formData.fullName,
       })
       navigate(`/${formData.role}/dashboard`)
     } catch (err) {

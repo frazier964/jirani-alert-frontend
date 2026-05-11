@@ -139,9 +139,9 @@ export default function Features() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(229,57,53,0.18),transparent_24%),radial-gradient(circle_at_80%_15%,rgba(59,130,246,0.2),transparent_22%),radial-gradient(circle_at_18%_82%,rgba(255,255,255,0.15),transparent_16%)]" />
           <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-2 lg:items-center">
             <Reveal className="space-y-6 text-slate-950">
-              <div className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-100 px-4 py-2 text-sm font-semibold backdrop-blur-xl text-slate-900">
-                <Sparkles className="h-4 w-4 text-[#E53935]" />
-                Explore the platform that powers safer communities
+              <div className="inline-flex flex-wrap items-center gap-2 sm:gap-3 rounded-full border border-slate-300 bg-slate-100 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold backdrop-blur-xl text-slate-900">
+                <Sparkles className="h-4 w-4 text-[#E53935] flex-shrink-0" />
+                <span>Explore the platform that powers safer communities</span>
               </div>
               <h1 className="max-w-2xl text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight">
                 Powerful Features Built for Safer Communities

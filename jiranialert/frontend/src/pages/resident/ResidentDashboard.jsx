@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { getCurrentUser } from '../../lib/auth'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import {
@@ -221,6 +222,10 @@ export default function ResidentDashboard() {
   const selectedTipItem = safetyTips[selectedTip]
   const SelectedTipIcon = selectedTipItem.icon
 
+  const currentUser = getCurrentUser()
+
+  const displayName = currentUser?.displayName || 'Resident Name'
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 overflow-hidden">
 
@@ -245,7 +250,7 @@ export default function ResidentDashboard() {
                     <Sparkles className="h-4 w-4" />
                     Welcome back
                   </div>
-                  <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl">Welcome back, Resident Name 👋</h1>
+                  <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl">Welcome back, {displayName} 👋</h1>
                   <p className="mt-3 text-lg text-blue-100">Stay connected and help keep your neighborhood safe.</p>
 
                   <div className="mt-5 flex flex-wrap items-center gap-3">

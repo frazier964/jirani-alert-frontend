@@ -32,6 +32,9 @@ import {
   HeartPulse,
   FileText,
 } from 'lucide-react'
+import ProfileImageUpload from '../../components/UI/ProfileImageUpload'
+import Avatar from '../../components/UI/Avatar'
+import { getCurrentUser, updateCurrentUserProfile } from '../../lib/auth'
 
 const sidebarItems = [
   { label: 'Dashboard', to: '/resident/dashboard', icon: LayoutDashboard },
@@ -64,6 +67,8 @@ function settingBadgeTone(status) {
 export default function Profile() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [profileImage, setProfileImage] = useState(null)
+  const [fullName, setFullName] = useState('')
   const [darkMode, setDarkMode] = useState(false)
   const [highContrast, setHighContrast] = useState(false)
   const [autoDetect, setAutoDetect] = useState(true)
@@ -81,7 +86,26 @@ export default function Profile() {
   const [radius, setRadius] = useState(2500)
   const [selectedTip, setSelectedTip] = useState(0)
   const [toastVisible, setToastVisible] = useState(false)
+  const [saving, setSaving] = useState(false)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    // Load user profile image from current user
+    const currentUser = getCurrentUser()
+    if (currentUser?.profileImageUrl) {
+      setProfileImage(currentUser.profileImageUrl)
+    }
+    if (currentUser?.displayName) setFullName(currentUser.displayName)
+    // respond to server-confirmed profile updates
+    const handler = (e) => {
+      const profile = e?.detail || null
+      if (!profile) return
+      if (profile.profileImageUrl) setProfileImage(profile.profileImageUrl)
+      if (profile.displayName) setFullName(profile.displayName)
+    }
+    window.addEventListener('jiranialert_profile_updated', handler)
+    return () => window.removeEventListener('jiranialert_profile_updated', handler)
+  }, [])
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -107,7 +131,24 @@ export default function Profile() {
   const SelectedTipIcon = selectedTipItem.icon
 
   const handleSave = () => {
-    setToastVisible(true)
+    // Persist profile fields (server-first). Include current avatar URL so it's kept.
+    (async () => {
+      setSaving(true)
+      try {
+        const current = getCurrentUser() || {}
+        const payload = {
+          displayName: fullName,
+          profileImageUrl: current.profileImageUrl || profileImage || '',
+          updatedAt: new Date().toISOString(),
+        }
+        await updateCurrentUserProfile(payload)
+        setToastVisible(true)
+      } catch (e) {
+        setToastVisible(true)
+      } finally {
+        setSaving(false)
+      }
+    })()
   }
 
   return (
@@ -203,39 +244,50 @@ export default function Profile() {
                   {['Full Name', 'Email Address', 'Phone Number', 'Residential Area / Estate'].map((label, index) => (
                     <label key={label} className={index === 3 ? 'md:col-span-2' : ''}>
                       <span className="text-sm font-semibold text-slate-700">{label}</span>
-                      <input
-                        type="text"
-                        defaultValue={label === 'Full Name' ? 'Resident Name' : ''}
-                        placeholder={label}
-                        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition-all placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
-                      />
+                      {index === 0 ? (
+                        <input
+                          type="text"
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                          placeholder={label}
+                          className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition-all placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
+                        />
+                      ) : (
+                        <input
+                          type="text"
+                          defaultValue={''}
+                          placeholder={label}
+                          className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition-all placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
+                        />
+                      )}
                     </label>
                   ))}
 
                   <label className="md:col-span-2">
-                    <span className="text-sm font-semibold text-slate-700">Profile Picture Upload</span>
-                    <div className="mt-2 flex flex-col gap-3 rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1E3A5F] text-white">
-                          <UserCircle2 className="h-6 w-6" />
+                    <span className="text-sm font-semibold text-slate-700">Profile Picture</span>
+                    <div className="mt-2 flex flex-col gap-4">
+                      {profileImage && (
+                        <div className="flex items-end gap-4">
+                          <div>
+                            <p className="mb-2 text-xs font-semibold text-slate-600 uppercase tracking-wider">Current Photo</p>
+                            <Avatar src={profileImage} alt="Current profile" size={80} />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-slate-700">Photo uploaded successfully</p>
+                            <p className="mt-1 text-xs text-slate-500">Last updated: {new Date().toLocaleDateString()}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-semibold text-slate-900">Upload a new photo</p>
-                          <p className="text-sm text-slate-500">PNG or JPG up to 5MB</p>
-                        </div>
-                      </div>
-                      <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50">
-                        <Upload className="h-4 w-4" />
-                        Select File
-                        <input type="file" className="hidden" accept="image/*" />
-                      </label>
+                      )}
+                      <ProfileImageUpload 
+                        onUploadComplete={(imageUrl) => setProfileImage(imageUrl)}
+                      />
                     </div>
                   </label>
                 </div>
 
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                  <button type="button" onClick={handleSave} className="rounded-2xl bg-[#E53935] px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-white shadow-[0_0_24px_rgba(229,57,53,0.25)] hover:shadow-[0_0_36px_rgba(229,57,53,0.38)]">
-                    Save Changes
+                  <button type="button" onClick={handleSave} disabled={saving} className="rounded-2xl bg-[#E53935] px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-white shadow-[0_0_24px_rgba(229,57,53,0.25)] hover:shadow-[0_0_36px_rgba(229,57,53,0.38)] disabled:opacity-60 disabled:cursor-not-allowed">
+                    {saving ? 'Saving...' : 'Save Changes'}
                   </button>
                   <button type="button" className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">
                     Cancel
@@ -528,10 +580,11 @@ export default function Profile() {
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1700px] items-center gap-3 sm:px-2 lg:px-8">
-          <button type="button" onClick={handleSave} className="flex-1 rounded-2xl bg-[#E53935] px-5 py-4 text-sm font-black uppercase tracking-[0.14em] text-white shadow-[0_0_24px_rgba(229,57,53,0.2)]">
-            Save All Changes
+          <div className="mx-auto flex max-w-[1700px] items-center gap-3 sm:px-2 lg:px-8">
+          <button type="button" onClick={handleSave} disabled={saving} className="flex-1 rounded-2xl bg-[#E53935] px-5 py-4 text-sm font-black uppercase tracking-[0.14em] text-white shadow-[0_0_24px_rgba(229,57,53,0.2)] disabled:opacity-60 disabled:cursor-not-allowed">
+            {saving ? 'Saving...' : 'Save All Changes'}
           </button>
+          
           <button type="button" className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-bold text-slate-700">
             Reset to Default
           </button>
