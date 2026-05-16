@@ -129,24 +129,25 @@ export default function Features() {
           { label: 'Contact', to: '/contact' },
           { label: 'Support', to: '/support' },
         ]}
-        initialBg="transparent"
-        scrolledBg="rgba(12,31,73,0.94)"
+        initialBg="rgba(12,31,73,0.96)"
+        scrolledBg="rgba(12,31,73,0.98)"
         primaryColor="#113a7a"
-        textColor="text-slate-950"
+        textColor="text-white/90"
+        theme="dark"
       />
       <main className="overflow-hidden">
         <section className="relative isolate overflow-hidden bg-[linear-gradient(135deg,#0c1f49_0%,#113a7a_45%,#ffffff_45%,#ffffff_100%)] px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(229,57,53,0.18),transparent_24%),radial-gradient(circle_at_80%_15%,rgba(59,130,246,0.2),transparent_22%),radial-gradient(circle_at_18%_82%,rgba(255,255,255,0.15),transparent_16%)]" />
           <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-2 lg:items-center">
-            <Reveal className="space-y-6 text-slate-950">
+            <Reveal className="space-y-6 text-white">
               <div className="inline-flex flex-wrap items-center gap-2 sm:gap-3 rounded-full border border-slate-300 bg-slate-100 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold backdrop-blur-xl text-slate-900">
                 <Sparkles className="h-4 w-4 text-[#E53935] flex-shrink-0" />
                 <span>Explore the platform that powers safer communities</span>
               </div>
-              <h1 className="max-w-2xl text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight">
+              <h1 className="max-w-2xl text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.22)]">
                 Powerful Features Built for Safer Communities
               </h1>
-              <p className="max-w-2xl text-base sm:text-lg leading-8 text-slate-700 lg:text-xl">
+              <p className="max-w-2xl text-base sm:text-lg leading-8 text-blue-100 lg:text-xl">
                 Discover how Jirani Alert helps residents report emergencies, receive real-time alerts, and improve community response.
               </p>
               <div className="flex flex-wrap gap-3 pt-2">
@@ -166,8 +167,7 @@ export default function Features() {
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-100">Interactive Dashboard</p>
-                      <h3 className="mt-2 text-2xl font-extrabold">Emergency awareness in motion</h3>
-                        <h3 className="mt-2 text-2xl font-extrabold text-white">Emergency awareness in motion</h3>
+                      <h3 className="mt-2 text-2xl font-extrabold text-white">Emergency awareness in motion</h3>
                     </div>
                     <div className="rounded-2xl bg-white/12 p-3 backdrop-blur">
                       <ShieldCheck className="h-6 w-6 text-white" />
