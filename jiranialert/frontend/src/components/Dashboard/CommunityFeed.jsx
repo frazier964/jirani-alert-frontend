@@ -145,12 +145,48 @@ export default function CommunityFeedComponent() {
       setLoading(true)
       setError(null)
       const data = await getCommunityFeed(50)
-      setPosts(data.posts || [])
+      if (data && data.posts && data.posts.length > 0) {
+        // Success - cache the feed
+        try {
+          localStorage.setItem('cachedCommunityFeed', JSON.stringify(data.posts))
+        } catch (e) {
+          // ignore cache write errors
+        }
+        setPosts(data.posts)
+      } else {
+        // Empty response - try cache
+        try {
+          const cached = localStorage.getItem('cachedCommunityFeed')
+          const parsedCache = cached ? JSON.parse(cached) : null
+          if (parsedCache && parsedCache.length > 0) {
+            setPosts(parsedCache)
+            setError('Showing cached feed (backend temporarily unavailable)')
+          } else {
+            setPosts(demoFeed)
+            setError('Backend unavailable - showing demo data. Like and comment features require backend.')
+          }
+        } catch (e) {
+          setPosts(demoFeed)
+          setError('Backend unavailable - showing demo data. Like and comment features require backend.')
+        }
+      }
     } catch (err) {
       console.error('Error loading feed:', err)
-      setError(err.message)
-      // Fall back to demo data if backend fails
-      setPosts(demoFeed)
+      // Try to load from cache if backend fails
+      try {
+        const cached = localStorage.getItem('cachedCommunityFeed')
+        const parsedCache = cached ? JSON.parse(cached) : null
+        if (parsedCache && parsedCache.length > 0) {
+          setPosts(parsedCache)
+          setError('Showing cached feed (backend error). Like and comment features may not work.')
+        } else {
+          setPosts(demoFeed)
+          setError('Backend unavailable - showing demo data. Like and comment features require backend.')
+        }
+      } catch (e) {
+        setPosts(demoFeed)
+        setError('Backend unavailable - showing demo data. Like and comment features require backend.')
+      }
     } finally {
       setLoading(false)
     }
@@ -215,32 +251,34 @@ export default function CommunityFeedComponent() {
 
     try {
       setSubmittingCommentId(postId)
-      const result = await commentOnPost(postId, commentText)
+      const userComment = commentText // Save before clearing
+      
+      // Call backend to save comment
+      const result = await commentOnPost(postId, userComment)
 
-      // Optimistic update
-      setPosts((prev) =>
-        prev.map((p) =>
-          p.id === postId
-            ? {
-                ...p,
-                commentCount: currentCommentCount + 1,
-                comments: [
-                  ...(p.comments || []),
-                  {
-                    id: Date.now().toString(),
-                    text: commentText,
-                    createdAt: new Date().toISOString(),
-                  },
-                ],
-              }
-            : p,
-        ),
-      )
-
+      // Clear input and close comment section immediately for better UX
       setCommentText('')
+      setCommentingPostId(null)
+
+      // Immediately refetch the feed to show real comments from backend
+      const updatedFeed = await getCommunityFeed(50)
+      if (updatedFeed && updatedFeed.posts) {
+        setPosts(updatedFeed.posts)
+        try {
+          localStorage.setItem('cachedCommunityFeed', JSON.stringify(updatedFeed.posts))
+        } catch (e) {
+          // ignore cache write errors
+        }
+      }
+
+      setToastMessage('Comment posted successfully!')
+      setShowToast(true)
+      setTimeout(() => setShowToast(false), 3000)
     } catch (err) {
       console.error('Error commenting:', err)
-      setError('Failed to post comment')
+      setError('Failed to post comment - backend may be unavailable')
+      // Still clear the input on error to avoid confusion
+      setCommentText('')
     } finally {
       setSubmittingCommentId(null)
     }
@@ -318,8 +356,10 @@ export default function CommunityFeedComponent() {
         <div className="flex items-start gap-3">
           <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold">Unable to load feed</p>
+            <p className="font-semibold">Feed Status</p>
             <p className="text-sm mt-1">{error}</p>
+            <p className="text-xs mt-2 text-amber-800">To enable likes and comments, ensure Firebase backend is running:
+              <br />cd backend && npm run serve</p>
           </div>
         </div>
       </div>
@@ -328,6 +368,19 @@ export default function CommunityFeedComponent() {
 
   return (
     <div className="space-y-4">
+      {error && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-amber-900">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-semibold">{error}</p>
+              {error.includes('Backend unavailable') && (
+                <p className="text-xs mt-1 text-amber-800">Run: cd backend && npm run serve</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       {posts.map((item, index) => (
         <motion.article
           key={item.id}
@@ -489,13 +542,13 @@ export default function CommunityFeedComponent() {
                         className="flex gap-3"
                       >
                         <div className="flex-1 rounded-xl bg-white p-3 border border-slate-200">
-                          <p className="text-xs font-semibold text-slate-900 mb-1">You</p>
+                          <p className="text-xs font-semibold text-slate-900 mb-1">{comment.name || 'Resident'}</p>
                           <p className="text-sm text-slate-700 leading-5">{comment.text}</p>
                           <p className="text-xs text-slate-400 mt-1">
-                            {new Date(comment.createdAt).toLocaleTimeString([], {
+                            {comment.createdAt ? new Date(comment.createdAt).toLocaleTimeString([], {
                               hour: '2-digit',
                               minute: '2-digit',
-                            })}
+                            }) : 'just now'}
                           </p>
                         </div>
                       </motion.div>
@@ -559,16 +612,10 @@ const demoFeed = [
     time: '5m ago',
     post: 'Community watch patrol started at 7 PM. Please keep gates locked and report unusual activity.',
     likeCount: 24,
-    commentCount: 5,
+    commentCount: 0,
     shareCount: 8,
     userLiked: false,
-    comments: [
-      {
-        id: '1a',
-        text: 'Great initiative! Community safety starts with cooperation.',
-        createdAt: new Date(Date.now() - 120000).toISOString(),
-      },
-    ],
+    comments: [],
   },
   {
     id: '2',
@@ -577,7 +624,7 @@ const demoFeed = [
     time: '19m ago',
     post: 'Roadside lamp near the estate entrance is now fixed. Safer visibility for the evening commute.',
     likeCount: 18,
-    commentCount: 3,
+    commentCount: 0,
     shareCount: 6,
     userLiked: false,
     comments: [],
@@ -589,7 +636,7 @@ const demoFeed = [
     time: '1h ago',
     post: 'First aid kit restocked at the community center. Thanks to everyone who contributed.',
     likeCount: 42,
-    commentCount: 12,
+    commentCount: 0,
     shareCount: 15,
     userLiked: false,
     comments: [],

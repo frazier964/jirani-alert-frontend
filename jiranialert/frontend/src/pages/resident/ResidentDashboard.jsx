@@ -256,9 +256,9 @@ export default function ResidentDashboard() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 overflow-hidden">
 
-      <div className="w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_360px]">
-          <main className="min-w-0 space-y-5 pb-24 lg:pb-0">
+      <div className="w-full px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_360px]">
+          <main className="min-w-0 space-y-4 pb-24 lg:pb-0">
             <motion.section
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
@@ -280,7 +280,7 @@ export default function ResidentDashboard() {
                   <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl">Welcome back, {displayName} 👋</h1>
                   <p className="mt-3 text-lg text-blue-100">Stay connected and help keep your neighborhood safe.</p>
 
-                  <div className="mt-5 flex flex-wrap items-center gap-3">
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
                     <span className={`rounded-full border px-4 py-2 text-sm font-bold ${dashboardStatus === 'Safe' ? 'border-emerald-300 bg-emerald-400/15 text-emerald-50' : dashboardStatus === 'Alert' ? 'border-amber-300 bg-amber-400/15 text-amber-50' : 'border-red-300 bg-red-400/15 text-red-50'}`}>
                       {dashboardStatus}
                     </span>
@@ -290,7 +290,7 @@ export default function ResidentDashboard() {
                   </div>
                 </div>
 
-                <aside className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 xl:self-stretch">
+                <aside className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1 xl:self-stretch">
                   {quickStats.map((item, index) => {
                     const Icon = item.icon
                     return (
@@ -313,14 +313,14 @@ export default function ResidentDashboard() {
               </div>
             </motion.section>
 
-            <div className="grid gap-5 2xl:grid-cols-[minmax(0,1.5fr)_minmax(0,0.95fr)]">
+            <div className="grid gap-3 2xl:grid-cols-[minmax(0,1.5fr)_minmax(0,0.95fr)]">
               <motion.section
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.04 }}
-                className="rounded-[30px] border border-white/80 bg-white/90 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-6"
+                className="rounded-[30px] border border-white/80 bg-white/90 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-5"
               >
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#E53935]">Emergency shortcuts</p>
                     <h2 className="mt-2 text-2xl font-black text-slate-900">Quick Safety Actions</h2>
@@ -338,7 +338,7 @@ export default function ResidentDashboard() {
                   </motion.button>
                 </div>
 
-                <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
                   {emergencyTypes.map((item) => {
                     const Icon = item.icon
                     const active = selectedEmergency === item.value
@@ -359,7 +359,7 @@ export default function ResidentDashboard() {
                   })}
                 </div>
 
-                <div className="mt-5 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                <div className="mt-3 rounded-3xl border border-slate-200 bg-slate-50 p-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">Selected type</p>
@@ -384,7 +384,7 @@ export default function ResidentDashboard() {
                   </div>
                   <CheckCircle2 className="h-6 w-6 text-emerald-500" />
                 </div>
-                <div className="mt-5 rounded-3xl bg-slate-900 p-5 text-white">
+                <div className="mt-4 rounded-3xl bg-slate-900 p-4 text-white">
                   <div className="flex items-end justify-between">
                     <div>
                       <p className="text-sm text-white/70">Current score</p>
@@ -398,7 +398,7 @@ export default function ResidentDashboard() {
                   <p className="mt-3 text-sm text-white/75">Your neighborhood is actively monitored with strong community participation.</p>
                 </div>
 
-                <div className="mt-5 space-y-3">
+                <div className="mt-3 space-y-2">
                   {weatherAlerts.map((item) => (
                     <div key={item.label} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                       <span className={`text-sm font-semibold ${item.tone}`}>{item.label}</span>
@@ -409,14 +409,14 @@ export default function ResidentDashboard() {
               </motion.section>
             </div>
 
-            <div className="grid gap-5 2xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+            <div className="grid gap-3 2xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
               <motion.section
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.12 }}
-                className="rounded-[30px] border border-white/80 bg-white/90 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-6"
+                className="rounded-[30px] border border-white/80 bg-white/90 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-5"
               >
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-2">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#E53935]">Live Nearby Alerts</p>
                     <h2 className="mt-2 text-2xl font-black text-slate-900">Real-time incident feed</h2>
@@ -427,7 +427,7 @@ export default function ResidentDashboard() {
                   </Link>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-3 flex flex-wrap gap-2">
                   {mapFilters.map((filter) => (
                     <button
                       key={filter}
@@ -440,7 +440,7 @@ export default function ResidentDashboard() {
                   ))}
                 </div>
 
-                <div className="mt-5 space-y-4">
+                <div className="mt-3 space-y-3">
                   {alerts.map((item) => {
                     const Icon = item.icon
                     return (
@@ -493,9 +493,9 @@ export default function ResidentDashboard() {
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.16 }}
-                className="rounded-[30px] border border-white/80 bg-white/90 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-6"
+                className="rounded-[30px] border border-white/80 bg-white/90 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-5"
               >
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-2">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#2563EB]">Interactive map</p>
                     <h2 className="mt-2 text-2xl font-black text-slate-900">Community map</h2>
@@ -503,12 +503,12 @@ export default function ResidentDashboard() {
                   <MapPin className="h-6 w-6 text-[#E53935]" />
                 </div>
 
-                <div className="mt-4 overflow-hidden rounded-[28px] bg-gradient-to-br from-[#1E3A5F] via-[#2563EB] to-[#0f172a] p-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]">
+                <div className="mt-3 overflow-hidden rounded-[28px] bg-gradient-to-br from-[#1E3A5F] via-[#2563EB] to-[#0f172a] p-4 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]">
                   <div className="flex items-center justify-between text-xs font-semibold text-white/80">
                     <span>User location</span>
                     <span>Nearby incident markers</span>
                   </div>
-                  <div className="relative mt-5 h-64 overflow-hidden rounded-[24px] border border-white/15 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.18),transparent_28%),radial-gradient(circle_at_75%_65%,rgba(16,185,129,0.18),transparent_22%),linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))]">
+                  <div className="relative mt-3 h-56 overflow-hidden rounded-[24px] border border-white/15 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.18),transparent_28%),radial-gradient(circle_at_75%_65%,rgba(16,185,129,0.18),transparent_22%),linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))]">
                     <div className="absolute inset-x-8 top-1/2 h-px bg-white/15" />
                     <div className="absolute inset-y-8 left-1/2 w-px bg-white/15" />
                     <motion.div className="absolute left-8 top-8 flex items-center gap-2 rounded-2xl bg-white/90 px-3 py-2 text-xs font-bold text-slate-700" animate={{ y: [0, -5, 0] }} transition={{ duration: 3.6, repeat: Infinity }}>
@@ -526,7 +526,7 @@ export default function ResidentDashboard() {
                     </motion.div>
                   </div>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     {mapFilters.map((filter) => (
                       <span key={filter} className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-white/80">
                         {filter}
@@ -537,14 +537,14 @@ export default function ResidentDashboard() {
               </motion.section>
             </div>
 
-            <div className="grid gap-5 2xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+            <div className="grid gap-3 2xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
               <motion.section
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.2 }}
-                className="rounded-[30px] border border-white/80 bg-white/90 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-6"
+                className="rounded-[30px] border border-white/80 bg-white/90 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-5"
               >
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-2">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#E53935]">Community activity feed</p>
                     <h2 className="mt-2 text-2xl font-black text-slate-900">Resident updates</h2>
@@ -555,7 +555,7 @@ export default function ResidentDashboard() {
                   </Link>
                 </div>
 
-                <div className="mt-5">
+                <div className="mt-3">
                   <CommunityFeed />
                 </div>
               </motion.section>
@@ -564,9 +564,9 @@ export default function ResidentDashboard() {
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.24 }}
-                className="rounded-[30px] border border-white/80 bg-white/90 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-6"
+                className="rounded-[30px] border border-white/80 bg-white/90 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-5"
               >
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-2">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#2563EB]">Recent reports</p>
                     <h2 className="mt-2 text-2xl font-black text-slate-900">Submitted by residents</h2>
@@ -574,7 +574,7 @@ export default function ResidentDashboard() {
                   <ShieldCheck className="h-6 w-6 text-emerald-500" />
                 </div>
 
-                <div className="mt-5 space-y-4">
+                <div className="mt-3 space-y-3">
                   {recentReports.map((item) => (
                     <div key={item.title} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
                       <div className="flex items-start justify-between gap-4">
@@ -595,7 +595,7 @@ export default function ResidentDashboard() {
                   ))}
                 </div>
 
-                <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-4">
+                <div className="mt-3 rounded-3xl border border-slate-200 bg-white p-4">
                   <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
                     <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                     Safety Tips Widget
@@ -615,21 +615,21 @@ export default function ResidentDashboard() {
             </div>
           </main>
 
-          <aside className="space-y-6 xl:sticky xl:top-28 xl:h-[calc(100vh-8rem)] xl:overflow-y-auto xl:pr-1">
+          <aside className="space-y-4 xl:sticky xl:top-28 xl:h-[calc(100vh-8rem)] xl:overflow-y-auto xl:pr-1">
             <motion.section
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="rounded-[30px] border border-white/80 bg-white/90 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl"
+              className="rounded-[30px] border border-white/80 bg-white/90 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl"
             >
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-2">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#E53935]">Emergency contacts</p>
                   <h2 className="mt-2 text-xl font-black text-slate-900">Quick call list</h2>
                 </div>
                 <PhoneCall className="h-5 w-5 text-[#2563EB]" />
               </div>
-              <div className="mt-4 space-y-3">
+              <div className="mt-3 space-y-2">
                 {emergencyContacts.map((item) => (
                   <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <p className="text-sm font-bold text-slate-900">{item.label}</p>
@@ -643,16 +643,16 @@ export default function ResidentDashboard() {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.14 }}
-              className="rounded-[30px] border border-white/80 bg-white/90 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl"
+              className="rounded-[30px] border border-white/80 bg-white/90 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl"
             >
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-2">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#2563EB]">Weather alerts</p>
                   <h2 className="mt-2 text-xl font-black text-slate-900">Local conditions</h2>
                 </div>
                 <CloudSun className="h-5 w-5 text-amber-500" />
               </div>
-              <div className="mt-4 space-y-3">
+              <div className="mt-3 space-y-2">
                 {weatherAlerts.map((item) => (
                   <div key={item.label} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                     <span className={`text-sm font-semibold ${item.tone}`}>{item.label}</span>
@@ -666,16 +666,16 @@ export default function ResidentDashboard() {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.18 }}
-              className="rounded-[30px] border border-white/80 bg-white/90 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl"
+              className="rounded-[30px] border border-white/80 bg-white/90 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl"
             >
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-2">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#E53935]">Safety score</p>
                   <h2 className="mt-2 text-xl font-black text-slate-900">Community snapshot</h2>
                 </div>
                 <Star className="h-5 w-5 text-amber-500" />
               </div>
-              <div className="mt-4 rounded-[28px] bg-[#1E3A5F] p-5 text-white">
+              <div className="mt-3 rounded-[28px] bg-[#1E3A5F] p-4 text-white">
                 <p className="text-sm text-white/70">Current safety score</p>
                 <p className="mt-2 text-5xl font-black">{communityScore}</p>
                 <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10">
