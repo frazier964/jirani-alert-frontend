@@ -214,10 +214,10 @@ export default function Features() {
                       <div className="rounded-2xl bg-[#113a7a]/10 p-3 text-[#113a7a] transition-colors group-hover:bg-[#E53935]/10 group-hover:text-[#E53935]">
                         <Icon className="h-5 w-5" />
                       </div>
-                      <Link to="/report" className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-[0.22em] text-slate-400 transition-colors group-hover:text-[#E53935]">
+                      <button type="button" className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-[0.22em] text-slate-400 transition-colors group-hover:text-[#E53935]">
                         Learn More
                         <ChevronRight className="h-3.5 w-3.5" />
-                      </Link>
+                      </button>
                     </div>
                     <h3 className="mt-5 text-xl font-bold text-slate-950">{feature.title}</h3>
                     <p className="mt-3 text-sm leading-7 text-slate-600">{feature.description}</p>
