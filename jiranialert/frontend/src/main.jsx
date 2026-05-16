@@ -1,4 +1,4 @@
-import { StrictMode, lazy, Suspense } from 'react'
+import { StrictMode, lazy, Suspense, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
@@ -37,10 +37,12 @@ function PageLoader() {
   )
 }
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    {/* initialize auth listener */}
-    {initAuthListener()}
+function AppRoutes() {
+  useEffect(() => {
+    initAuthListener()
+  }, [])
+
+  return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Suspense fallback={<PageLoader />}>
         <Routes>
@@ -75,5 +77,11 @@ createRoot(document.getElementById('root')).render(
         </Routes>
       </Suspense>
     </BrowserRouter>
+  )
+}
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <AppRoutes />
   </StrictMode>,
 )
