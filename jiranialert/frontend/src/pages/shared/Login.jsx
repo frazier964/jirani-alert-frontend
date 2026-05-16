@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   AlertCircle,
@@ -44,6 +45,17 @@ export default function Login() {
   const [forgotSuccess, setForgotSuccess] = useState(false)
 
   const navigate = useNavigate()
+  const location = useLocation()
+
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(location.search)
+      const pre = params.get('prefillEmail')
+      if (pre) setEmail(pre)
+    } catch (e) {
+      // ignore
+    }
+  }, [location.search])
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)

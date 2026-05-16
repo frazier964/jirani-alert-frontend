@@ -16,6 +16,12 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /profiles/{userId} {
+      allow create: if ownsUserDocument(userId);
+      allow read, update: if ownsUserDocument(userId);
+      allow delete: if false;
+    }
+
     match /reports/{reportId} {
       allow create: if signedIn()
         && request.resource.data.reporterId == request.auth.uid;
@@ -40,6 +46,41 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.auth.token.role in ['admin', 'responder'];
       allow delete: if false;
+    }
+
+    // Community Posts
+    match /communityPosts/{postId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.authorId == request.auth.uid;
+      allow update: if signedIn()
+        && resource.data.authorId == request.auth.uid;
+      allow delete: if signedIn()
+        && (resource.data.authorId == request.auth.uid || request.auth.token.role == 'admin');
+
+      // Likes
+      match /likes/{userId} {
+        allow read: if signedIn();
+        allow create, delete: if signedIn() && userId == request.auth.uid;
+      }
+
+      // Comments
+      match /comments/{commentId} {
+        allow read: if signedIn();
+        allow create: if signedIn()
+          && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if signedIn()
+          && resource.data.userId == request.auth.uid;
+      }
+
+      // Shares
+      match /shares/{shareId} {
+        allow read: if signedIn();
+        allow create: if signedIn()
+          && request.resource.data.userId == request.auth.uid;
+        allow delete: if signedIn()
+          && resource.data.userId == request.auth.uid;
+      }
     }
   }
 }

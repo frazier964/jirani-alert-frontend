@@ -200,9 +200,11 @@ export default function Support() {
           { label: 'Contact', to: '/contact' },
           { label: 'Support', to: '/support' },
         ]}
-        initialBg="transparent"
-        scrolledBg="rgba(255,255,255,0.96)"
-        primaryColor="#B91C1C"
+        initialBg="rgba(10,16,35,0.96)"
+        scrolledBg="rgba(10,16,35,0.98)"
+        primaryColor="#ef4444"
+        textColor="text-white/90"
+        theme="dark"
       />
       <motion.div
         className="fixed inset-x-0 top-0 z-50 h-1 origin-left bg-[#B91C1C]"
@@ -220,21 +222,21 @@ export default function Support() {
           <div className="relative mx-auto grid max-w-7xl gap-10 sm:gap-12 px-4 py-16 sm:py-20 md:py-28 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
             <Reveal>
               <p className="text-sm font-semibold uppercase tracking-[0.4em] text-red-300">Support Center</p>
-              <h1 className="mt-4 text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold leading-tight">
+              <h1 className="mt-4 text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold leading-tight text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.28)]">
                 How Can We Help You Today?
               </h1>
-              <p className="mt-6 max-w-2xl text-base sm:text-lg leading-8 text-slate-200">
+              <p className="mt-6 max-w-2xl text-base sm:text-lg leading-8 text-slate-100">
                 Find answers, report issues, and get assistance quickly.
               </p>
 
               <div className="mt-8 flex max-w-2xl items-center gap-2 sm:gap-3 rounded-2xl border border-white/10 bg-white/10 px-3 sm:px-4 py-2 sm:py-3 backdrop-blur-sm">
-                <Search className="h-4 sm:h-5 w-4 sm:w-5 text-slate-300 flex-shrink-0" />
+                <Search className="h-4 sm:h-5 w-4 sm:w-5 text-slate-200 flex-shrink-0" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="Search articles or topics..."
-                  className="w-full bg-transparent text-xs sm:text-sm outline-none placeholder:text-slate-300"
+                  className="w-full bg-transparent text-xs sm:text-sm text-white outline-none placeholder:text-slate-300"
                   aria-label="Search support topics"
                 />
               </div>
@@ -663,7 +665,7 @@ export default function Support() {
           <div className="flex flex-wrap items-center gap-4 text-sm font-semibold text-slate-600">
             <Link to="/contact" className="transition-colors hover:text-[#153b82]">Contact</Link>
             <Link to="/privacy" className="transition-colors hover:text-[#153b82]">Privacy Policy</Link>
-            <span>Terms</span>
+              <Link to="/terms" className="transition-colors hover:text-[#153b82]">Terms</Link>
             <Link to="/about" className="transition-colors hover:text-[#153b82]">About</Link>
           </div>
         </div>

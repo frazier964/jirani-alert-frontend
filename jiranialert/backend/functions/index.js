@@ -284,3 +284,175 @@ exports.updateUserProfile = onRequest({ region: 'us-central1' }, async (req, res
     sendError(res, error)
   }
 })
+
+// Community Feed - Get all posts with interaction counts
+exports.getCommunityFeed = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'GET')
+    const user = await requireUser(req)
+    const limit = Math.min(Number(req.query.limit || 50), 100)
+
+    const snapshot = await db
+      .collection('communityPosts')
+      .orderBy('createdAt', 'desc')
+      .limit(limit)
+      .get()
+
+    const posts = await Promise.all(
+      snapshot.docs.map(async (doc) => {
+        const data = doc.data()
+        const likesSnap = await db
+          .collection('communityPosts')
+          .doc(doc.id)
+          .collection('likes')
+          .get()
+        const commentsSnap = await db
+          .collection('communityPosts')
+          .doc(doc.id)
+          .collection('comments')
+          .get()
+        const userLiked = await db
+          .collection('communityPosts')
+          .doc(doc.id)
+          .collection('likes')
+          .doc(user.uid)
+          .get()
+
+        return {
+          id: doc.id,
+          ...data,
+          likeCount: likesSnap.size,
+          commentCount: commentsSnap.size,
+          userLiked: userLiked.exists,
+          likes: likesSnap.docs.map((d) => ({ userId: d.id, ...d.data() })),
+          comments: commentsSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
+        }
+      }),
+    )
+
+    res.json({ posts })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+// Community Feed - Like/Unlike a post
+exports.toggleLikePost = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireUser(req)
+    const postId = requiredString(req.body && req.body.postId, 'postId')
+
+    const postRef = db.collection('communityPosts').doc(postId)
+    const postExists = await postRef.get()
+
+    if (!postExists.exists) {
+      const error = new Error('Post not found')
+      error.status = 404
+      throw error
+    }
+
+    const likeRef = postRef.collection('likes').doc(user.uid)
+    const likeExists = await likeRef.get()
+
+    if (likeExists.exists) {
+      await likeRef.delete()
+    } else {
+      await likeRef.set({
+        userId: user.uid,
+        createdAt: FieldValue.serverTimestamp(),
+      })
+    }
+
+    const likesSnap = await postRef.collection('likes').get()
+    res.json({
+      ok: true,
+      postId,
+      liked: !likeExists.exists,
+      likeCount: likesSnap.size,
+    })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+// Community Feed - Add comment to post
+exports.commentOnPost = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireUser(req)
+    const postId = requiredString(req.body && req.body.postId, 'postId')
+    const text = requiredString(req.body && req.body.text, 'text')
+
+    const postRef = db.collection('communityPosts').doc(postId)
+    const postExists = await postRef.get()
+
+    if (!postExists.exists) {
+      const error = new Error('Post not found')
+      error.status = 404
+      throw error
+    }
+
+    const commentRef = postRef.collection('comments').doc()
+    await commentRef.set({
+      userId: user.uid,
+      text,
+      createdAt: FieldValue.serverTimestamp(),
+    })
+
+    const commentsSnap = await postRef.collection('comments').get()
+    res.json({
+      ok: true,
+      postId,
+      commentId: commentRef.id,
+      commentCount: commentsSnap.size,
+    })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+// Community Feed - Track shares
+exports.sharePost = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireUser(req)
+    const postId = requiredString(req.body && req.body.postId, 'postId')
+
+    const postRef = db.collection('communityPosts').doc(postId)
+    const postExists = await postRef.get()
+
+    if (!postExists.exists) {
+      const error = new Error('Post not found')
+      error.status = 404
+      throw error
+    }
+
+    const shareRef = postRef.collection('shares').doc()
+    await shareRef.set({
+      userId: user.uid,
+      createdAt: FieldValue.serverTimestamp(),
+    })
+
+    const sharesSnap = await postRef.collection('shares').get()
+    res.json({
+      ok: true,
+      postId,
+      shareCount: sharesSnap.size,
+    })
+  } catch (error) {
+    sendError(res, error)
+  }
+})

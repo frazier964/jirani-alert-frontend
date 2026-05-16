@@ -69,7 +69,13 @@ export default function SignUp() {
       })
       navigate(`/${formData.role}/dashboard`)
     } catch (err) {
-      setErrors({ submit: err.message })
+      const msg = String(err.message || err)
+      // if the email is already in use, redirect user to login with email prefilled
+      if (msg.startsWith('auth/email-already-in-use')) {
+        navigate(`/login?prefillEmail=${encodeURIComponent(formData.email)}`)
+        return
+      }
+      setErrors({ submit: msg })
     } finally {
       setLoading(false)
     }
@@ -141,6 +147,7 @@ export default function SignUp() {
                   <input
                     type="text"
                     name="fullName"
+                    autoComplete="name"
                     value={formData.fullName}
                     onChange={handleChange}
                     placeholder="Full Name"
@@ -162,6 +169,7 @@ export default function SignUp() {
                   <input
                     type="email"
                     name="email"
+                    autoComplete="email"
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="Email Address"

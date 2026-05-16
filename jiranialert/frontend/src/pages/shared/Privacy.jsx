@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import Header from '../../components/Header'
 import {
   Shield,
   FileText,
@@ -323,9 +324,24 @@ We recommend reviewing this policy periodically to stay informed about how we pr
 
   return (
     <div className="min-h-screen bg-white">
+      <Header
+        navItems={[
+          { label: 'Home', to: '/home' },
+          { label: 'Features', to: '/features' },
+          { label: 'How It Works', id: 'how-it-works' },
+          { label: 'About', to: '/about' },
+          { label: 'Contact', to: '/contact' },
+          { label: 'Support', to: '/support' },
+        ]}
+        initialBg="rgba(7,19,41,0.96)"
+        scrolledBg="rgba(7,19,41,0.98)"
+        primaryColor="#dc2626"
+        textColor="text-white/90"
+        theme="dark"
+      />
       {/* Hero Section */}
       <motion.section
-        className="relative overflow-hidden bg-[linear-gradient(135deg,#071329_0%,#10264d_52%,#153b82_100%)] text-white py-20 lg:py-28"
+        className="relative overflow-hidden bg-[linear-gradient(135deg,#071329_0%,#10264d_52%,#153b82_100%)] text-white pt-28 py-20 lg:pt-32 lg:py-28"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6 }}

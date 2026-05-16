@@ -309,7 +309,7 @@ export default function Features() {
           </div>
         </section>
 
-        <section className="px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+        <section id="how-it-works" className="scroll-mt-24 px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="mx-auto max-w-7xl">
             <SectionTitle
               eyebrow="How It Works"

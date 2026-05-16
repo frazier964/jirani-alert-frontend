@@ -34,7 +34,28 @@ export function getCurrentUser() {
 
 export async function registerUser({ email, password, role = 'resident', displayName = '' }) {
   if (!auth) throw new Error('Firebase not configured')
-  const cred = await createUserWithEmailAndPassword(auth, email, password)
+  let cred
+  try {
+    cred = await createUserWithEmailAndPassword(auth, email, password)
+  } catch (e) {
+    const code = e?.code || 'auth/unknown'
+    const message = e?.message || String(e)
+    const err = new Error(`${code}: ${message}`)
+    err.original = e
+    // log original Firebase error for debugging in dev only
+    try {
+      if (import.meta.env.DEV || import.meta.env.VITE_DEBUG_AUTH === 'true') {
+        // eslint-disable-next-line no-console
+        console.error('Firebase registerUser error:', e)
+        // also log identity toolkit token/server response when available
+        // eslint-disable-next-line no-console
+        console.error('tokenResponse:', e?._tokenResponse || e?.customData || null)
+      }
+    } catch (logErr) {
+      // ignore logging failures
+    }
+    throw err
+  }
   const user = cred.user
 
   // create profile doc
@@ -54,7 +75,27 @@ export async function registerUser({ email, password, role = 'resident', display
 
 export async function loginUser({ email, password }) {
   if (!auth) throw new Error('Firebase not configured')
-  const cred = await signInWithEmailAndPassword(auth, email, password)
+  let cred
+  try {
+    cred = await signInWithEmailAndPassword(auth, email, password)
+  } catch (e) {
+    const code = e?.code || 'auth/unknown'
+    const message = e?.message || String(e)
+    const err = new Error(`${code}: ${message}`)
+    err.original = e
+    // log original Firebase error for debugging in dev only
+    try {
+      if (import.meta.env.DEV || import.meta.env.VITE_DEBUG_AUTH === 'true') {
+        // eslint-disable-next-line no-console
+        console.error('Firebase loginUser error:', e)
+        // eslint-disable-next-line no-console
+        console.error('tokenResponse:', e?._tokenResponse || e?.customData || null)
+      }
+    } catch (logErr) {
+      // ignore logging failures
+    }
+    throw err
+  }
   const user = cred.user
 
   // fetch profile

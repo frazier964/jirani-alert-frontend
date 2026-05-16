@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { getCurrentUser } from '../../lib/auth'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
+import CommunityFeed from '../../components/Dashboard/CommunityFeed'
 import {
   Activity,
   AlertTriangle,
@@ -67,29 +68,41 @@ const quickStats = [
 const nearbyAlertsSeed = [
   {
     id: 'fire-westlands',
-    type: 'Fire Alert',
+    type: 'Fire',
     title: 'Smoke reported near Skyline Apartments',
+    description: 'Multiple residents reported seeing smoke coming from the Skyline Apartments building. Emergency services have been alerted.',
     location: 'Westlands, Nairobi',
-    time: '2 minutes ago',
     severity: 'Critical',
+    anonymous: false,
+    status: 'active',
+    createdAt: new Date(Date.now() - 2 * 60000).toISOString(),
+    comments: [],
     icon: Flame,
   },
   {
     id: 'medical-kilimani',
-    type: 'Medical Alert',
+    type: 'Medical',
     title: 'Resident needs urgent assistance',
+    description: 'A resident at Kilimani Estate requires immediate medical attention. Responders are en route.',
     location: 'Kilimani, Nairobi',
-    time: '7 minutes ago',
     severity: 'High',
+    anonymous: false,
+    status: 'active',
+    createdAt: new Date(Date.now() - 7 * 60000).toISOString(),
+    comments: [],
     icon: HeartPulse,
   },
   {
     id: 'crime-southb',
-    type: 'Crime Alert',
+    type: 'Security',
     title: 'Suspicious movement reported',
+    description: 'Community watch reported suspicious activity near the south gate. Security personnel have been notified.',
     location: 'South B, Nairobi',
-    time: '18 minutes ago',
     severity: 'Medium',
+    anonymous: true,
+    status: 'active',
+    createdAt: new Date(Date.now() - 18 * 60000).toISOString(),
+    comments: [],
     icon: ShieldAlert,
   },
 ]
@@ -189,7 +202,21 @@ export default function ResidentDashboard() {
 
   useEffect(() => {
     const stored = getAlerts()
-    if (stored.length) {
+    // Initialize localStorage with seed data on first load
+    if (stored.length === 0) {
+      localStorage.setItem('jiranialert_alerts', JSON.stringify(nearbyAlertsSeed))
+      setAlerts(
+        nearbyAlertsSeed.map((item) => ({
+          id: item.id,
+          type: `${item.type} Alert`,
+          title: item.title,
+          location: item.location,
+          time: 'just now',
+          severity: item.severity,
+          icon: item.icon,
+        })),
+      )
+    } else {
       setAlerts(
         stored.slice(0, 3).map((item, index) => ({
           id: item.id || String(index),
@@ -198,7 +225,7 @@ export default function ResidentDashboard() {
           location: item.location || 'Community Area',
           time: 'just now',
           severity: item.severity || 'High',
-          icon: item.type === 'Medical' ? HeartPulse : item.type === 'Crime' ? ShieldAlert : item.type === 'Accident' ? Car : Flame,
+          icon: item.type === 'Medical' ? HeartPulse : item.type === 'Security' ? ShieldAlert : item.type === 'Accident' ? Car : Flame,
         })),
       )
     }
@@ -528,49 +555,8 @@ export default function ResidentDashboard() {
                   </Link>
                 </div>
 
-                <div className="mt-5 space-y-4">
-                  {communityFeed.map((item, index) => (
-                    <motion.article
-                      key={item.name}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.08 }}
-                      className="rounded-3xl border border-slate-200 bg-white p-4"
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#1E3A5F] to-[#2563EB] text-sm font-black text-white">
-                          {item.initials}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <p className="font-black text-slate-900">{item.name}</p>
-                              <p className="text-xs text-slate-500">{item.time}</p>
-                            </div>
-                            <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                              Verified
-                            </span>
-                          </div>
-                          <p className="mt-3 text-sm leading-6 text-slate-600">{item.post}</p>
-
-                          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-500">
-                            <button type="button" className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-3 py-1.5 hover:bg-slate-100">
-                              <ThumbsUp className="h-3.5 w-3.5" />
-                              Like
-                            </button>
-                            <button type="button" className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-3 py-1.5 hover:bg-slate-100">
-                              <MessageSquare className="h-3.5 w-3.5" />
-                              Comment
-                            </button>
-                            <button type="button" className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-3 py-1.5 hover:bg-slate-100">
-                              <Share2 className="h-3.5 w-3.5" />
-                              Share
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.article>
-                  ))}
+                <div className="mt-5">
+                  <CommunityFeed />
                 </div>
               </motion.section>
 

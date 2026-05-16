@@ -14,6 +14,8 @@ export default function Header({
   const [mobileOpen, setMobileOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const isDarkTheme = theme === 'dark'
+  const resolvedInitialBg = initialBg === 'transparent' ? 'rgba(0,0,0,0)' : initialBg
+  const resolvedScrolledBg = scrolledBg === 'transparent' ? 'rgba(0,0,0,0)' : scrolledBg
   const navTextClass = isDarkTheme ? 'text-white/90' : textColor
   const navButtonClass = isDarkTheme ? 'border-white/30 text-white/90 bg-white/10 hover:bg-white/15' : 'border-slate-300 text-slate-700 hover:bg-slate-50'
   const navToggleClass = isDarkTheme ? 'border-white/30 text-white/90' : 'border-slate-300 text-slate-700'
@@ -40,12 +42,12 @@ export default function Header({
     <motion.div
       className="fixed inset-x-0 top-0 z-50"
       animate={{
-        backgroundColor: scrolled ? scrolledBg : initialBg,
+        backgroundColor: scrolled ? resolvedScrolledBg : resolvedInitialBg,
         boxShadow: scrolled ? '0 8px 28px rgba(15,23,42,0.1)' : '0 0 0 rgba(0,0,0,0)',
         backdropFilter: scrolled ? 'blur(10px)' : 'blur(0px)',
       }}
       transition={{ duration: 0.25 }}
-      initial={{ backgroundColor: initialBg }}
+      initial={{ backgroundColor: resolvedInitialBg }}
     >
       {/* Mobile background overlay for visibility */}
       <div className={`lg:hidden absolute inset-0 pointer-events-none ${isDarkTheme ? 'bg-slate-950/35' : 'bg-gradient-to-r from-slate-900/40 to-slate-900/20'}`}></div>
