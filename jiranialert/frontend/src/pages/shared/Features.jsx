@@ -167,6 +167,7 @@ export default function Features() {
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-100">Interactive Dashboard</p>
                       <h3 className="mt-2 text-2xl font-extrabold">Emergency awareness in motion</h3>
+                        <h3 className="mt-2 text-2xl font-extrabold text-white">Emergency awareness in motion</h3>
                     </div>
                     <div className="rounded-2xl bg-white/12 p-3 backdrop-blur">
                       <ShieldCheck className="h-6 w-6 text-white" />
@@ -251,9 +252,11 @@ export default function Features() {
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-100">Demo Mode</p>
                       <h3 className="mt-2 text-2xl font-extrabold">Mock app dashboard animation</h3>
+                        <h3 className="mt-2 text-2xl font-extrabold text-white">Mock app dashboard animation</h3>
                     </div>
                     <div className="rounded-2xl bg-white/12 p-3 backdrop-blur">
                       <Smartphone className="h-6 w-6" />
+                        <Smartphone className="h-6 w-6 text-white" />
                     </div>
                   </div>
 
@@ -276,6 +279,7 @@ export default function Features() {
                           </div>
                           <div>
                             <p className="text-sm font-bold">{title}</p>
+                              <p className="text-sm font-bold text-white">{title}</p>
                             <p className="text-xs text-blue-50/80">{text}</p>
                           </div>
                         </div>
