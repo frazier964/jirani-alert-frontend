@@ -532,6 +532,7 @@ export default function Home() {
 
           <div className="mt-10 pt-6 border-t border-slate-800 text-sm text-slate-500 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
             <p>&copy; {new Date().getFullYear()} Jirani Alert. All rights reserved.</p>
+            <p className="text-sm">Creator: Hillary Ocharo</p>
             <p className="inline-flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-400" />
               Real-time verified emergency reporting

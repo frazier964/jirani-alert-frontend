@@ -15,9 +15,12 @@ export default function Avatar({ src = '/images/default-avatar.png', alt = 'User
         <img
           src={src}
           alt={alt}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover object-center"
           style={{ width: size, height: size }}
           onError={() => setImageError(true)}
+          loading="eager"
+          decoding="auto"
+          fetchpriority="high"
         />
       ) : (
         <User className="text-slate-400" size={Math.max(size - 12, 16)} />

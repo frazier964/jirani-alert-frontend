@@ -196,6 +196,38 @@ export default function About() {
         <section className="px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="mx-auto max-w-7xl">
             <SectionTitle
+              eyebrow="Creator"
+              title="About the Creator"
+              description="Meet the person who built Jirani Alert."
+              align="center"
+            />
+
+            <div className="mt-10 grid gap-6 md:grid-cols-3 items-center">
+              <div className="md:col-span-1 flex justify-center">
+                <div className="h-36 w-36 rounded-full border border-slate-200 bg-white p-1 shadow-lg sm:h-40 sm:w-40">
+                  <img
+                    src="/creator-photo.jpg"
+                    alt="Hillary Ocharo"
+                    loading="eager"
+                    decoding="async"
+                    className="h-full w-full rounded-full object-cover object-center"
+                  />
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <h3 className="text-xl font-extrabold text-slate-900">Hillary Ocharo</h3>
+                <p className="mt-2 text-sm text-slate-600">Creator & Lead Engineer</p>
+                <p className="mt-4 text-sm text-slate-700">Hillary Ocharo is the creator of Jirani Alert — a community-first emergency notification platform focused on timely, trustworthy communication during critical events. For inquiries or collaboration, reach out via email.</p>
+                <p className="mt-4 text-sm font-semibold text-[#153b82]">Email: mablaryyvisuals@gmail.com</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+          <div className="mx-auto max-w-7xl">
+            <SectionTitle
               eyebrow="Our Story"
               title="Why Jirani Alert Was Created"
               description="Jirani Alert was built to bridge the communication gap during emergencies. In many communities, delays in sharing emergency information can lead to preventable harm. Our platform ensures residents can instantly notify nearby people and responders when urgent situations arise."
