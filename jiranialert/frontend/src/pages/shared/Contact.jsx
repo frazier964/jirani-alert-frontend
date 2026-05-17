@@ -127,7 +127,7 @@ export default function Contact() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb] text-slate-900">
+    <div className="min-h-screen pt-16 sm:pt-20 bg-[#f4f7fb] text-slate-900">
       <Header
         navItems={[
           { label: 'Home', to: '/home' },

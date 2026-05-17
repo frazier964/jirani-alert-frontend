@@ -92,6 +92,8 @@ exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req,
     const description = requiredString(body.description, 'description')
     const severity = typeof body.severity === 'string' ? body.severity.trim() : 'Medium'
     const anonymous = Boolean(body.anonymous)
+    const evidenceUrl = typeof body.evidenceUrl === 'string' && body.evidenceUrl.trim() !== '' ? body.evidenceUrl.trim() : null
+    const notify = Array.isArray(body.notify) ? body.notify : []
 
     const now = FieldValue.serverTimestamp()
     const reportRef = db.collection('reports').doc()
@@ -107,6 +109,8 @@ exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req,
         severity,
         anonymous,
         status: 'Pending',
+        evidenceUrl: evidenceUrl || null,
+        notify: notify || [],
         reporterId: user.uid,
         reporterEmail: anonymous ? null : user.email || null,
         createdAt: now,
@@ -121,6 +125,7 @@ exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req,
         description,
         severity,
         status: 'Active',
+        evidenceUrl: evidenceUrl || null,
         createdAt: now,
         updatedAt: now,
       })

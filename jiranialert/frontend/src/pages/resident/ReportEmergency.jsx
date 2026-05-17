@@ -24,6 +24,7 @@ import {
   Siren,
   FileText,
 } from 'lucide-react'
+import reportApi from '../../lib/reportApi'
 
 const emergencyTypes = [
   { label: 'Fire Emergency', value: 'Fire', icon: Flame, tone: 'from-red-500 to-orange-500', helper: 'Evacuate and notify responders immediately.' },
@@ -102,17 +103,19 @@ export default function ReportEmergency() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    const stored = getAlerts()
-    if (stored.length) {
-      setRecentReports(
-        stored.slice(0, 3).map((item) => ({
-          type: item.type,
-          location: item.location || 'Community Area',
-          time: 'just now',
-          severity: item.severity,
-        })),
-      )
+    let mounted = true
+    async function loadReports() {
+      try {
+        const data = await reportApi.listReports(3)
+        if (!mounted) return
+        const items = (data.reports || []).map((r) => ({ type: r.type, location: r.location || 'Community Area', time: 'just now', severity: r.severity }))
+        if (items.length) setRecentReports(items)
+      } catch (e) {
+        // fallback to seed
+      }
     }
+    loadReports()
+    return () => { mounted = false }
   }, [])
 
   const selectedEmergency = useMemo(
@@ -149,8 +152,14 @@ export default function ReportEmergency() {
   }
 
   const handleEvidenceChange = (file) => {
-    if (file) setEvidenceName(file.name)
+    if (file) {
+      setEvidenceName(file.name)
+      setEvidenceFile(file)
+    }
   }
+
+  // local state for chosen file
+  const [evidenceFile, setEvidenceFile] = useState(null)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -160,39 +169,43 @@ export default function ReportEmergency() {
       setError('Please complete the emergency type, title, description, and location.')
       return
     }
-
     setSubmitting(true)
-    await new Promise((resolve) => setTimeout(resolve, 1200))
+    try {
+      // upload evidence if present
+      let evidenceUrl = null
+      if (evidenceFile) {
+        const uploaded = await reportApi.uploadEvidenceFile(evidenceFile)
+        evidenceUrl = uploaded.url
+      }
 
-    const alert = {
-      id: Date.now().toString(),
-      type: selectedType,
-      title: title.trim(),
-      description: description.trim(),
-      location: location.trim(),
-      severity,
-      anonymous,
-      notify,
-      evidenceName,
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      comments: [],
+      // create report on backend
+      const payload = {
+        type: selectedType,
+        title: title.trim(),
+        description: description.trim(),
+        location: location.trim(),
+        severity,
+        anonymous,
+        notify,
+        evidenceUrl,
+      }
+
+      const res = await reportApi.createReport(payload)
+
+      // update recent reports UI
+      const newReport = { type: selectedType, location: location.trim(), time: 'just now', severity }
+      setRecentReports((prev) => [newReport, ...prev].slice(0, 3))
+
+      setSuccess({
+        id: res.reportId,
+        responseTime: '3-7 minutes',
+        responders: 'Nearby responders and community members notified',
+      })
+    } catch (err) {
+      setError(err.message || 'Failed to send report')
+    } finally {
+      setSubmitting(false)
     }
-
-    const alerts = getAlerts()
-    alerts.unshift(alert)
-    saveAlerts(alerts)
-    setRecentReports([
-      { type: alert.type, location: alert.location, time: 'just now', severity: alert.severity },
-      ...recentReports,
-    ].slice(0, 3))
-
-    setSuccess({
-      id: alert.id,
-      responseTime: '3-7 minutes',
-      responders: 'Nearby responders and community members notified',
-    })
-    setSubmitting(false)
   }
 
   const resetForm = () => {
@@ -223,14 +236,6 @@ export default function ReportEmergency() {
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
             />
             <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <button
-                type="button"
-                onClick={() => navigate(-1)}
-                className="self-start mb-2 inline-flex items-center gap-2 text-white/80 hover:text-white transition-colors"
-              >
-                <ArrowLeft className="h-5 w-5" />
-                <span className="text-sm font-semibold">Back</span>
-              </button>
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em]">
                   <Siren className="h-4 w-4 animate-pulse" />

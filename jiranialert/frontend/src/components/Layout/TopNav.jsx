@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { NavLink, Link, useNavigate } from 'react-router-dom'
 import { AlertTriangle, Bell, Search, ShieldCheck, UserCircle2, ChevronRight, LogOut, LayoutDashboard, Siren, Navigation2, MessageSquare, FileText, LifeBuoy, Settings2, X } from 'lucide-react'
@@ -43,6 +43,8 @@ export default function TopNav() {
   const [profileOpen, setProfileOpen] = useState(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
   const [profileImage, setProfileImage] = useState(null)
+  const notificationsRef = useRef(null)
+  const profileRef = useRef(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -58,6 +60,20 @@ export default function TopNav() {
     }
     window.addEventListener('jiranialert_profile_updated', handler)
     return () => window.removeEventListener('jiranialert_profile_updated', handler)
+  }, [])
+
+  useEffect(() => {
+    const onPointerDown = (e) => {
+      const path = e.composedPath && e.composedPath()
+      const clickedNotifications = notificationsRef.current && (path ? path.includes(notificationsRef.current) : notificationsRef.current.contains(e.target))
+      const clickedProfile = profileRef.current && (path ? path.includes(profileRef.current) : profileRef.current.contains(e.target))
+
+      if (!clickedNotifications) setNotificationsOpen(false)
+      if (!clickedProfile) setProfileOpen(false)
+    }
+
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
   }, [])
 
   const handleProfileImageUpload = (imageUrl) => {
@@ -101,11 +117,13 @@ export default function TopNav() {
             <div className="ml-auto flex items-center gap-2">
               <div
                 className="relative"
+                ref={notificationsRef}
                 onMouseEnter={() => setNotificationsOpen(true)}
                 onMouseLeave={() => setNotificationsOpen(false)}
               >
                 <button
                   type="button"
+                  onClick={() => setNotificationsOpen((s) => !s)}
                   className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition-colors hover:border-[#E53935]/30 hover:text-[#E53935]"
                   aria-haspopup="menu"
                   aria-expanded={notificationsOpen}
@@ -167,11 +185,13 @@ export default function TopNav() {
               </div>
               <div
                 className="relative"
+                ref={profileRef}
                 onMouseEnter={() => setProfileOpen(true)}
                 onMouseLeave={() => setProfileOpen(false)}
               >
                 <button
                   type="button"
+                  onClick={() => setProfileOpen((s) => !s)}
                   className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-2 py-1.5 shadow-sm transition-colors hover:border-[#E53935]/30"
                   aria-haspopup="menu"
                   aria-expanded={profileOpen}
