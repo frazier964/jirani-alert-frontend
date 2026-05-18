@@ -203,7 +203,7 @@ export default function Home() {
                   <ShieldCheck className="h-4 w-4" />
                   Trusted Emergency Network
                 </span>
-                <h1 className="mt-4 text-xl sm:text-3xl md:text-4xl lg:text-6xl leading-snug sm:leading-tight font-extrabold text-slate-900">
+                <h1 className="mt-4 max-w-xl text-balance text-3xl sm:text-4xl md:text-5xl lg:text-6xl leading-tight font-extrabold tracking-tight text-slate-900">
                   Instant Emergency Alerts for Safer Communities
                 </h1>
                 <p className="mt-5 text-base sm:text-lg text-slate-600 max-w-xl">

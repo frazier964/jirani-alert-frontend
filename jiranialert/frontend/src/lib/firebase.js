@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app'
-import { getAuth, signInAnonymously } from 'firebase/auth'
+import { getAuth, signInAnonymously, connectAuthEmulator } from 'firebase/auth'
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
-import { getFirestore } from 'firebase/firestore'
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -33,6 +33,24 @@ if (hasFirebaseConfig) {
 const auth = app ? getAuth(app) : null
 const storage = app ? getStorage(app) : null
 const firestore = app ? getFirestore(app) : null
+
+const shouldUseEmulators =
+  (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATORS !== 'false') ||
+  import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true'
+
+if (app && shouldUseEmulators) {
+  try {
+    if (auth) {
+      // Disable emulator warnings in the browser console.
+      connectAuthEmulator(auth, 'http://127.0.0.1:9098', { disableWarnings: true })
+    }
+    if (firestore) {
+      connectFirestoreEmulator(firestore, '127.0.0.1', 8081)
+    }
+  } catch (e) {
+    // ignore (connect*Emulator can throw if called twice)
+  }
+}
 
 async function ensureAnonymous() {
   if (!auth) return null

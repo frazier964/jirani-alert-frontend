@@ -39,7 +39,13 @@ async function requireUser(req) {
     throw error
   }
 
-  return admin.auth().verifyIdToken(match[1])
+  try {
+    return await admin.auth().verifyIdToken(match[1])
+  } catch (e) {
+    const error = new Error('Invalid or expired Firebase ID token')
+    error.status = 401
+    throw error
+  }
 }
 
 function sendError(res, error) {
@@ -278,13 +284,121 @@ exports.updateUserProfile = onRequest({ region: 'us-central1' }, async (req, res
     const body = req.body || {}
     const updates = {}
     if (typeof body.displayName === 'string') updates.displayName = body.displayName.trim()
+    if (typeof body.phoneNumber === 'string') updates.phoneNumber = body.phoneNumber.trim()
+    if (typeof body.residentialArea === 'string') updates.residentialArea = body.residentialArea.trim()
     if (typeof body.profileImageUrl === 'string') updates.profileImageUrl = body.profileImageUrl
+    if (typeof body.theme === 'string') updates.theme = body.theme.trim()
+    if (typeof body.highContrast === 'boolean') updates.highContrast = body.highContrast
+    if (typeof body.textSize === 'string') updates.textSize = body.textSize.trim()
+    if (typeof body.alertTone === 'string') updates.alertTone = body.alertTone.trim()
     updates.updatedAt = FieldValue.serverTimestamp()
 
     await db.collection('profiles').doc(userId).set(updates, { merge: true })
 
     const saved = await db.collection('profiles').doc(userId).get()
     res.json({ ok: true, profile: saved.data() })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+// Contacts
+function sanitizeContact(payload) {
+  const body = payload || {}
+  const contact = {}
+  contact.fullName = requiredString(body.fullName, 'fullName')
+  contact.phoneNumber = requiredString(body.phoneNumber, 'phoneNumber')
+
+  if (typeof body.email === 'string') contact.email = body.email.trim()
+  if (typeof body.category === 'string') contact.category = body.category.trim()
+  if (typeof body.location === 'string') contact.location = body.location.trim()
+  if (typeof body.emergencyLevel === 'string') contact.emergencyLevel = body.emergencyLevel.trim()
+  if (typeof body.notes === 'string') contact.notes = body.notes.trim()
+  if (typeof body.profileImageUrl === 'string') contact.profileImageUrl = body.profileImageUrl
+  if (typeof body.favorite === 'boolean') contact.favorite = body.favorite
+
+  // defaults
+  if (!contact.email) contact.email = ''
+  if (!contact.category) contact.category = 'Family'
+  if (!contact.location) contact.location = ''
+  if (!contact.emergencyLevel) contact.emergencyLevel = 'Normal'
+  if (!contact.notes) contact.notes = ''
+  if (!contact.profileImageUrl) contact.profileImageUrl = ''
+  if (typeof contact.favorite !== 'boolean') contact.favorite = false
+
+  return contact
+}
+
+exports.listContacts = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'GET')
+    const user = await requireUser(req)
+    const snapshot = await db
+      .collection('profiles')
+      .doc(user.uid)
+      .collection('contacts')
+      .orderBy('updatedAt', 'desc')
+      .limit(200)
+      .get()
+
+    res.json({
+      contacts: snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
+    })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.upsertContact = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireUser(req)
+
+    const body = req.body || {}
+    const contactId = typeof body.contactId === 'string' && body.contactId.trim() !== '' ? body.contactId.trim() : null
+    const contact = sanitizeContact(body)
+
+    const now = FieldValue.serverTimestamp()
+    const ref = contactId
+      ? db.collection('profiles').doc(user.uid).collection('contacts').doc(contactId)
+      : db.collection('profiles').doc(user.uid).collection('contacts').doc()
+
+    const existing = await ref.get()
+    const isNew = !existing.exists
+
+    await ref.set(
+      {
+        ...contact,
+        updatedAt: now,
+        ...(isNew ? { createdAt: now } : {}),
+      },
+      { merge: true },
+    )
+
+    const saved = await ref.get()
+    res.json({ ok: true, contact: { id: ref.id, ...saved.data() } })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.deleteContact = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireUser(req)
+    const contactId = requiredString(req.body && req.body.contactId, 'contactId')
+    const ref = db.collection('profiles').doc(user.uid).collection('contacts').doc(contactId)
+    await ref.delete()
+    res.json({ ok: true })
   } catch (error) {
     sendError(res, error)
   }

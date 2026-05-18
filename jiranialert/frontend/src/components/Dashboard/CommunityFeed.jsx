@@ -73,6 +73,7 @@ export default function CommunityFeedComponent() {
   // Real-time Firestore listener (if Firestore configured)
   useEffect(() => {
     if (!firestore) return
+    if (!auth?.currentUser) return
     // Listen to likes subcollection for each post to get real-time like counts
     const listeners = new Map()
     try {

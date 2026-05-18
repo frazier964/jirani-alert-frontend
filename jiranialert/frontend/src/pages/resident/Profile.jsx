@@ -35,6 +35,7 @@ import {
 import ProfileImageUpload from '../../components/UI/ProfileImageUpload'
 import Avatar from '../../components/UI/Avatar'
 import { getCurrentUser, updateCurrentUserProfile } from '../../lib/auth'
+import { listContacts, upsertContact } from '../../lib/contactsApi'
 
 const sidebarItems = [
   { label: 'Dashboard', to: '/resident/dashboard', icon: LayoutDashboard },
@@ -47,12 +48,10 @@ const sidebarItems = [
   { label: 'Settings', to: '/resident/profile', icon: Settings2 },
 ]
 
-const emergencyContactsSeed = [
-  { label: 'Family Member', value: 'Amina W.', phone: '+254 700 000 111' },
-  { label: 'Trusted Neighbor', value: 'Brian K.', phone: '+254 700 000 222' },
-  { label: 'Personal Doctor', value: 'Dr. Njeri', phone: '+254 700 000 333' },
-  { label: 'Local Emergency Contact', value: 'Estate Security', phone: '+254 700 000 444' },
-]
+const TEXT_SIZE_OPTIONS = ['Small', 'Medium', 'Large']
+const ALERT_TONE_OPTIONS = ['Gentle', 'Loud', 'Siren']
+const CONTACT_CATEGORY_OPTIONS = ['Family', 'Medical', 'Security', 'Emergency', 'Neighbors', 'Friends', 'Other']
+const CONTACT_EMERGENCY_LEVEL_OPTIONS = ['Critical', 'High', 'Normal', 'Low']
 
 const previewTips = [
   { title: 'Fire safety', description: 'Keep exits clear and avoid elevators during smoke or fire.', icon: Flame },
@@ -69,8 +68,14 @@ export default function Profile() {
   const [profileOpen, setProfileOpen] = useState(false)
   const [profileImage, setProfileImage] = useState(null)
   const [fullName, setFullName] = useState('')
+  const [emailAddress, setEmailAddress] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [residentialArea, setResidentialArea] = useState('')
   const [darkMode, setDarkMode] = useState(false)
   const [highContrast, setHighContrast] = useState(false)
+  const [textSize, setTextSize] = useState('Medium')
+  const [alertTone, setAlertTone] = useState('Gentle')
+  const [toneMenuOpen, setToneMenuOpen] = useState(false)
   const [autoDetect, setAutoDetect] = useState(true)
   const [shareLiveLocation, setShareLiveLocation] = useState(true)
   const [anonymousReporting, setAnonymousReporting] = useState(true)
@@ -86,7 +91,28 @@ export default function Profile() {
   const [radius, setRadius] = useState(2500)
   const [selectedTip, setSelectedTip] = useState(0)
   const [toastVisible, setToastVisible] = useState(false)
+  const [toastContent, setToastContent] = useState({
+    tone: 'success',
+    title: 'Settings saved',
+    message: 'Your resident preferences are up to date.',
+  })
   const [saving, setSaving] = useState(false)
+  const [contacts, setContacts] = useState([])
+  const [contactsLoading, setContactsLoading] = useState(false)
+  const [contactsError, setContactsError] = useState('')
+  const [contactModalOpen, setContactModalOpen] = useState(false)
+  const [contactSaving, setContactSaving] = useState(false)
+  const [contactFormError, setContactFormError] = useState('')
+  const [contactForm, setContactForm] = useState({
+    fullName: '',
+    phoneNumber: '',
+    email: '',
+    category: 'Family',
+    location: '',
+    emergencyLevel: 'Normal',
+    notes: '',
+    favorite: false,
+  })
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -96,15 +122,58 @@ export default function Profile() {
       setProfileImage(currentUser.profileImageUrl)
     }
     if (currentUser?.displayName) setFullName(currentUser.displayName)
+    if (currentUser?.email) setEmailAddress(currentUser.email)
+    if (currentUser?.phoneNumber) setPhoneNumber(currentUser.phoneNumber)
+    if (currentUser?.residentialArea) setResidentialArea(currentUser.residentialArea)
+    if (typeof currentUser?.theme === 'string') setDarkMode(currentUser.theme === 'dark')
+    if (typeof currentUser?.highContrast === 'boolean') setHighContrast(currentUser.highContrast)
+    if (typeof currentUser?.textSize === 'string' && TEXT_SIZE_OPTIONS.includes(currentUser.textSize)) {
+      setTextSize(currentUser.textSize)
+    }
+    if (typeof currentUser?.alertTone === 'string' && ALERT_TONE_OPTIONS.includes(currentUser.alertTone)) {
+      setAlertTone(currentUser.alertTone)
+    }
     // respond to server-confirmed profile updates
     const handler = (e) => {
       const profile = e?.detail || null
       if (!profile) return
       if (profile.profileImageUrl) setProfileImage(profile.profileImageUrl)
       if (profile.displayName) setFullName(profile.displayName)
+      if (profile.email) setEmailAddress(profile.email)
+      if (typeof profile.phoneNumber === 'string') setPhoneNumber(profile.phoneNumber)
+      if (typeof profile.residentialArea === 'string') setResidentialArea(profile.residentialArea)
+      if (typeof profile.theme === 'string') setDarkMode(profile.theme === 'dark')
+      if (typeof profile.highContrast === 'boolean') setHighContrast(profile.highContrast)
+      if (typeof profile.textSize === 'string' && TEXT_SIZE_OPTIONS.includes(profile.textSize)) {
+        setTextSize(profile.textSize)
+      }
+      if (typeof profile.alertTone === 'string' && ALERT_TONE_OPTIONS.includes(profile.alertTone)) {
+        setAlertTone(profile.alertTone)
+      }
     }
     window.addEventListener('jiranialert_profile_updated', handler)
     return () => window.removeEventListener('jiranialert_profile_updated', handler)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      setContactsLoading(true)
+      setContactsError('')
+      try {
+        const data = await listContacts()
+        if (cancelled) return
+        setContacts(Array.isArray(data?.contacts) ? data.contacts : [])
+      } catch (e) {
+        if (cancelled) return
+        setContactsError(e?.message || 'Failed to load contacts')
+      } finally {
+        if (!cancelled) setContactsLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
@@ -139,11 +208,27 @@ export default function Profile() {
         const payload = {
           displayName: fullName,
           profileImageUrl: current.profileImageUrl || profileImage || '',
+          phoneNumber: phoneNumber,
+          residentialArea: residentialArea,
+          theme: darkMode ? 'dark' : 'light',
+          highContrast: highContrast,
+          textSize: textSize,
+          alertTone: alertTone,
           updatedAt: new Date().toISOString(),
         }
         await updateCurrentUserProfile(payload)
+        setToastContent({
+          tone: 'success',
+          title: 'Settings saved',
+          message: 'Your resident preferences are up to date.',
+        })
         setToastVisible(true)
       } catch (e) {
+        setToastContent({
+          tone: 'error',
+          title: 'Save failed',
+          message: e?.message || 'Could not save your settings. Please sign in and try again.',
+        })
         setToastVisible(true)
       } finally {
         setSaving(false)
@@ -151,8 +236,67 @@ export default function Profile() {
     })()
   }
 
+  const themeWrapperClass = [
+    darkMode ? 'profile-theme-dark bg-slate-950 text-slate-100' : 'bg-[#F8FAFC] text-slate-900',
+    highContrast ? 'profile-theme-contrast' : '',
+    textSize === 'Small' ? 'profile-text-small' : textSize === 'Large' ? 'profile-text-large' : 'profile-text-medium',
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  const visibleContacts = useMemo(() => {
+    const items = Array.isArray(contacts) ? contacts : []
+    return items.slice(0, 4)
+  }, [contacts])
+
+  const openContactModal = () => {
+    setContactFormError('')
+    setContactForm({
+      fullName: '',
+      phoneNumber: '',
+      email: '',
+      category: 'Family',
+      location: '',
+      emergencyLevel: 'Normal',
+      notes: '',
+      favorite: false,
+    })
+    setContactModalOpen(true)
+  }
+
+  const saveContact = async () => {
+    setContactSaving(true)
+    setContactFormError('')
+    try {
+      await upsertContact({
+        fullName: contactForm.fullName,
+        phoneNumber: contactForm.phoneNumber,
+        email: contactForm.email,
+        category: contactForm.category,
+        location: contactForm.location,
+        emergencyLevel: contactForm.emergencyLevel,
+        notes: contactForm.notes,
+        favorite: contactForm.favorite,
+      })
+
+      const data = await listContacts()
+      setContacts(Array.isArray(data?.contacts) ? data.contacts : [])
+      setContactModalOpen(false)
+      setToastContent({
+        tone: 'success',
+        title: 'Contact saved',
+        message: 'Your emergency contact is now saved.',
+      })
+      setToastVisible(true)
+    } catch (e) {
+      setContactFormError(e?.message || 'Failed to save contact')
+    } finally {
+      setContactSaving(false)
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 overflow-hidden">
+    <div className={`min-h-screen overflow-hidden ${themeWrapperClass}`}>
 
       <div className="mx-auto grid max-w-[1700px] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:px-8 lg:py-8">
         <aside className="hidden lg:block">
@@ -241,27 +385,50 @@ export default function Profile() {
                 </div>
 
                 <div className="mt-5 grid gap-4 md:grid-cols-2">
-                  {['Full Name', 'Email Address', 'Phone Number', 'Residential Area / Estate'].map((label, index) => (
-                    <label key={label} className={index === 3 ? 'md:col-span-2' : ''}>
-                      <span className="text-sm font-semibold text-slate-700">{label}</span>
-                      {index === 0 ? (
-                        <input
-                          type="text"
-                          value={fullName}
-                          onChange={(e) => setFullName(e.target.value)}
-                          placeholder={label}
-                          className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition-all placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
-                        />
-                      ) : (
-                        <input
-                          type="text"
-                          defaultValue={''}
-                          placeholder={label}
-                          className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition-all placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
-                        />
-                      )}
-                    </label>
-                  ))}
+                  <label>
+                    <span className="text-sm font-semibold text-slate-700">Full Name</span>
+                    <input
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Full Name"
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition-all placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
+                    />
+                  </label>
+
+                  <label>
+                    <span className="text-sm font-semibold text-slate-700">Email Address</span>
+                    <input
+                      type="text"
+                      value={emailAddress}
+                      onChange={(e) => setEmailAddress(e.target.value)}
+                      placeholder="Email Address"
+                      disabled
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition-all placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
+                    />
+                  </label>
+
+                  <label>
+                    <span className="text-sm font-semibold text-slate-700">Phone Number</span>
+                    <input
+                      type="text"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="Phone Number"
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition-all placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
+                    />
+                  </label>
+
+                  <label className="md:col-span-2">
+                    <span className="text-sm font-semibold text-slate-700">Residential Area / Estate</span>
+                    <input
+                      type="text"
+                      value={residentialArea}
+                      onChange={(e) => setResidentialArea(e.target.value)}
+                      placeholder="Residential Area / Estate"
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition-all placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
+                    />
+                  </label>
 
                   <label className="md:col-span-2">
                     <span className="text-sm font-semibold text-slate-700">Profile Picture</span>
@@ -447,23 +614,67 @@ export default function Profile() {
                         <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-all ${highContrast ? 'left-5' : 'left-0.5'}`} />
                       </button>
                     </label>
-                    <label className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                       <span className="text-sm font-semibold text-slate-700">Text size</span>
-                      <div className="mt-3 flex gap-2">
-                        {['Small', 'Medium', 'Large'].map((item, index) => (
-                          <button key={item} type="button" className={`rounded-full px-3 py-2 text-xs font-bold ${index === 1 ? 'bg-[#1E3A5F] text-white' : 'bg-white text-slate-500'}`}>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {TEXT_SIZE_OPTIONS.map((item) => (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => setTextSize(item)}
+                            className={`rounded-full px-3 py-2 text-xs font-bold transition-colors ${
+                              textSize === item ? 'bg-[#1E3A5F] text-white' : 'bg-white text-slate-600 hover:bg-slate-100'
+                            }`}
+                          >
                             {item}
                           </button>
                         ))}
                       </div>
-                    </label>
-                    <label className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                       <span className="text-sm font-semibold text-slate-700">Sound alert customization</span>
-                      <div className="mt-3 flex items-center gap-3 text-sm text-slate-500">
-                        <Sparkles className="h-4 w-4 text-[#E53935]" />
-                        Gentle alert tone selected
+                      <div className="mt-3 relative">
+                        <button
+                          type="button"
+                          onClick={() => setToneMenuOpen((v) => !v)}
+                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                        >
+                          <span className="inline-flex items-center gap-2">
+                            <Sparkles className="h-4 w-4 text-[#E53935]" />
+                            {alertTone} alert tone
+                          </span>
+                        </button>
+                        <AnimatePresence>
+                          {toneMenuOpen && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                              className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.12)]"
+                            >
+                              {ALERT_TONE_OPTIONS.map((tone) => (
+                                <button
+                                  key={tone}
+                                  type="button"
+                                  onClick={() => {
+                                    setAlertTone(tone)
+                                    setToneMenuOpen(false)
+                                  }}
+                                  className={`flex w-full items-center justify-between px-4 py-3 text-sm font-semibold transition-colors ${
+                                    alertTone === tone ? 'bg-slate-50 text-slate-900' : 'text-slate-700 hover:bg-slate-50'
+                                  }`}
+                                >
+                                  <span>{tone}</span>
+                                  {alertTone === tone ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : null}
+                                </button>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
-                    </label>
+                      <p className="mt-2 text-xs text-slate-500">Saved when you click Save Changes.</p>
+                    </div>
                   </div>
                 </motion.section>
               </div>
@@ -477,19 +688,43 @@ export default function Profile() {
                   <PhoneCall className="h-6 w-6 text-[#2563EB]" />
                 </div>
                 <div className="mt-5 grid gap-3 lg:grid-cols-2">
-                  {emergencyContactsSeed.map((item) => (
-                    <div key={item.label} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-xs uppercase tracking-[0.22em] text-slate-400">{item.label}</p>
-                      <p className="mt-2 font-black text-slate-900">{item.value}</p>
-                      <p className="mt-1 text-sm text-slate-500">{item.phone}</p>
+                  {contactsLoading ? (
+                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 lg:col-span-2">Loading contacts…</div>
+                  ) : null}
+
+                  {!contactsLoading && contactsError ? (
+                    <div className="rounded-3xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 lg:col-span-2">{contactsError}</div>
+                  ) : null}
+
+                  {!contactsLoading && !contactsError && visibleContacts.length === 0 ? (
+                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 lg:col-span-2">
+                      No contacts saved yet. Add one to keep responders informed.
                     </div>
-                  ))}
+                  ) : null}
+
+                  {!contactsLoading && !contactsError
+                    ? visibleContacts.map((item) => (
+                        <div key={item.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                          <p className="text-xs uppercase tracking-[0.22em] text-slate-400">{item.category || 'Contact'}</p>
+                          <p className="mt-2 font-black text-slate-900">{item.fullName || 'Unnamed contact'}</p>
+                          <p className="mt-1 text-sm text-slate-500">{item.phoneNumber || ''}</p>
+                        </div>
+                      ))
+                    : null}
                 </div>
                 <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                  <button type="button" className="rounded-2xl bg-[#1E3A5F] px-5 py-3 text-sm font-bold text-white hover:bg-[#14304d]">
+                  <button
+                    type="button"
+                    onClick={openContactModal}
+                    className="rounded-2xl bg-[#1E3A5F] px-5 py-3 text-sm font-bold text-white hover:bg-[#14304d]"
+                  >
                     Add Contact
                   </button>
-                  <button type="button" className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/resident/contacts')}
+                    className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                  >
                     Manage Contacts
                   </button>
                 </div>
@@ -634,20 +869,155 @@ export default function Profile() {
       </AnimatePresence>
 
       <AnimatePresence>
+        {contactModalOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[85] bg-slate-950/45 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ opacity: 0, y: 14, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.98 }}
+              className="mx-auto w-full max-w-lg rounded-[28px] border border-white/70 bg-white p-6 shadow-[0_24px_60px_rgba(15,23,42,0.22)]"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#E53935]">Emergency contact</p>
+                  <h3 className="mt-2 text-xl font-black text-slate-900">Add Contact</h3>
+                  <p className="mt-2 text-sm text-slate-600">Saved to your account so it stays after refresh.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setContactModalOpen(false)}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-700"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {contactFormError ? (
+                <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                  {contactFormError}
+                </div>
+              ) : null}
+
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <label className="sm:col-span-2">
+                  <span className="text-sm font-semibold text-slate-700">Full Name</span>
+                  <input
+                    value={contactForm.fullName}
+                    onChange={(e) => setContactForm((f) => ({ ...f, fullName: e.target.value }))}
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition-all placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
+                    placeholder="e.g., Estate Security"
+                  />
+                </label>
+
+                <label>
+                  <span className="text-sm font-semibold text-slate-700">Phone Number</span>
+                  <input
+                    value={contactForm.phoneNumber}
+                    onChange={(e) => setContactForm((f) => ({ ...f, phoneNumber: e.target.value }))}
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition-all placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
+                    placeholder="e.g., +254 700 123 456"
+                  />
+                </label>
+
+                <label>
+                  <span className="text-sm font-semibold text-slate-700">Email (optional)</span>
+                  <input
+                    value={contactForm.email}
+                    onChange={(e) => setContactForm((f) => ({ ...f, email: e.target.value }))}
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition-all placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
+                    placeholder="e.g., security@estate.com"
+                  />
+                </label>
+
+                <label>
+                  <span className="text-sm font-semibold text-slate-700">Category</span>
+                  <select
+                    value={contactForm.category}
+                    onChange={(e) => setContactForm((f) => ({ ...f, category: e.target.value }))}
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
+                  >
+                    {CONTACT_CATEGORY_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  <span className="text-sm font-semibold text-slate-700">Emergency Level</span>
+                  <select
+                    value={contactForm.emergencyLevel}
+                    onChange={(e) => setContactForm((f) => ({ ...f, emergencyLevel: e.target.value }))}
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
+                  >
+                    {CONTACT_EMERGENCY_LEVEL_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="sm:col-span-2">
+                  <span className="text-sm font-semibold text-slate-700">Location (optional)</span>
+                  <input
+                    value={contactForm.location}
+                    onChange={(e) => setContactForm((f) => ({ ...f, location: e.target.value }))}
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition-all placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
+                    placeholder="e.g., Main Gate"
+                  />
+                </label>
+
+                <label className="sm:col-span-2">
+                  <span className="text-sm font-semibold text-slate-700">Notes (optional)</span>
+                  <textarea
+                    value={contactForm.notes}
+                    onChange={(e) => setContactForm((f) => ({ ...f, notes: e.target.value }))}
+                    className="mt-2 w-full min-h-[96px] rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition-all placeholder:text-slate-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
+                    placeholder="Any special instructions"
+                  />
+                </label>
+              </div>
+
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => setContactModalOpen(false)}
+                  className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 sm:flex-1"
+                  disabled={contactSaving}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={saveContact}
+                  className="rounded-2xl bg-[#E53935] px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-white shadow-[0_0_24px_rgba(229,57,53,0.25)] hover:shadow-[0_0_36px_rgba(229,57,53,0.38)] disabled:opacity-60 disabled:cursor-not-allowed sm:flex-1"
+                  disabled={contactSaving}
+                >
+                  {contactSaving ? 'Saving...' : 'Save Contact'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {toastVisible && (
           <motion.div
             initial={{ opacity: 0, y: 16, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.98 }}
-            className="fixed bottom-24 right-4 z-[90] max-w-sm rounded-3xl border border-emerald-200 bg-white p-4 shadow-[0_24px_60px_rgba(15,23,42,0.18)]"
+            className={`fixed bottom-24 right-4 z-[90] max-w-sm rounded-3xl border bg-white p-4 shadow-[0_24px_60px_rgba(15,23,42,0.18)] ${toastContent.tone === 'error' ? 'border-rose-200' : 'border-emerald-200'}`}
           >
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+              <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${toastContent.tone === 'error' ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
                 <CheckCircle2 className="h-5 w-5" />
               </div>
               <div>
-                <p className="font-black text-slate-900">Settings saved</p>
-                <p className="mt-1 text-sm text-slate-500">Your resident preferences are up to date.</p>
+                <p className="font-black text-slate-900">{toastContent.title}</p>
+                <p className="mt-1 text-sm text-slate-500">{toastContent.message}</p>
               </div>
             </div>
           </motion.div>

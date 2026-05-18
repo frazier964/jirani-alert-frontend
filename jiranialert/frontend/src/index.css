@@ -149,3 +149,68 @@ code {
 .scrollbar-custom:hover::-webkit-scrollbar-thumb {
   background: rgba(30,58,95,0.22);
 }
+
+/* Profile accessibility theme helpers */
+.profile-text-small {
+  font-size: 14px;
+}
+
+.profile-text-medium {
+  font-size: 16px;
+}
+
+.profile-text-large {
+  font-size: 18px;
+}
+
+.profile-theme-contrast {
+  filter: contrast(1.15) saturate(1.05);
+}
+
+/* Scoped dark-mode overrides for the Profile page.
+   The UI uses many fixed Tailwind colors; these overrides keep changes local to the page wrapper. */
+.profile-theme-dark .bg-white {
+  background-color: rgba(15, 23, 42, 0.92) !important;
+}
+
+.profile-theme-dark .bg-white\/90 {
+  background-color: rgba(15, 23, 42, 0.92) !important;
+}
+
+.profile-theme-dark .bg-slate-50 {
+  background-color: rgba(2, 6, 23, 0.72) !important;
+}
+
+.profile-theme-dark .bg-slate-900 {
+  background-color: rgb(2, 6, 23) !important;
+}
+
+.profile-theme-dark .text-slate-900 {
+  color: rgb(241, 245, 249) !important;
+}
+
+.profile-theme-dark .text-slate-700,
+.profile-theme-dark .text-slate-600 {
+  color: rgb(226, 232, 240) !important;
+}
+
+.profile-theme-dark .text-slate-500,
+.profile-theme-dark .text-slate-400 {
+  color: rgba(226, 232, 240, 0.78) !important;
+}
+
+.profile-theme-dark .border-slate-200 {
+  border-color: rgba(148, 163, 184, 0.25) !important;
+}
+
+.profile-theme-dark .border-white\/80,
+.profile-theme-dark .border-white\/70 {
+  border-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+.profile-theme-dark input,
+.profile-theme-dark textarea,
+.profile-theme-dark select {
+  background-color: rgba(2, 6, 23, 0.55) !important;
+  color: rgb(241, 245, 249) !important;
+}

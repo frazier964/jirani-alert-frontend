@@ -17,11 +17,12 @@ export default function Header({
   const resolvedInitialBg = initialBg === 'transparent' ? 'rgba(0,0,0,0)' : initialBg
   const resolvedScrolledBg = scrolledBg === 'transparent' ? 'rgba(0,0,0,0)' : scrolledBg
   const navTextClass = isDarkTheme ? 'text-white/90' : textColor
+  const prefersDarkMobileMenu = isDarkTheme || /text-white/.test(navTextClass)
   const navButtonClass = isDarkTheme ? 'border-white/30 text-white/90 bg-white/10 hover:bg-white/15' : 'border-slate-300 text-slate-700 hover:bg-slate-50'
   const navToggleClass = isDarkTheme ? 'border-white/30 text-white/90' : 'border-slate-300 text-slate-700'
-  const mobilePanelClass = isDarkTheme ? 'bg-slate-950/95 border-white/10' : 'bg-white/95 border-slate-200'
-  const mobileLinkHoverClass = isDarkTheme ? 'hover:bg-white/10' : 'hover:bg-slate-100'
-  const mobileLoginClass = isDarkTheme ? 'border-white/20 text-white/90 hover:bg-white/10' : 'border-slate-300 text-slate-700 hover:bg-slate-50'
+  const mobilePanelClass = prefersDarkMobileMenu ? 'bg-slate-950/95 border-white/10' : 'bg-white/95 border-slate-200'
+  const mobileLinkHoverClass = prefersDarkMobileMenu ? 'hover:bg-white/10' : 'hover:bg-slate-100'
+  const mobileLoginClass = prefersDarkMobileMenu ? 'border-white/20 text-white/90 hover:bg-white/10' : 'border-slate-300 text-slate-700 hover:bg-slate-50'
 
   const goToSection = (id) => {
     const section = document.getElementById(id)

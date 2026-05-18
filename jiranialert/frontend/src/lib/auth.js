@@ -1,4 +1,4 @@
-import { auth, firestore } from './firebase'
+import { auth, firestore, ensureAnonymous } from './firebase'
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -8,6 +8,7 @@ import {
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 
 const CURRENT_KEY = 'jiranialert_current'
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || ''
 
 function setCurrentUserLocal(userObj) {
   if (!userObj) localStorage.removeItem(CURRENT_KEY)
@@ -126,9 +127,46 @@ export async function logout() {
 }
 
 export async function updateCurrentUserProfile(updates) {
+  if (auth && !auth.currentUser) {
+    try {
+      await ensureAnonymous()
+    } catch (e) {
+      // ignore
+    }
+  }
+
   const current = auth && auth.currentUser
   if (!current) throw new Error('Not authenticated')
   const uid = current.uid
+
+  // Prefer saving via backend functions when available so server becomes source of truth.
+  if (BACKEND_URL) {
+    try {
+      const token = await current.getIdToken()
+      const res = await fetch(`${BACKEND_URL}/updateUserProfile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updates || {}),
+      })
+
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data?.error || 'Backend error')
+      }
+      const profile = data?.profile ? { id: uid, email: current.email, ...(data.profile || {}) } : { id: uid, email: current.email }
+      setCurrentUserLocal(profile)
+      emitProfileUpdated(profile)
+      return profile
+    } catch (e) {
+      // If backend is unavailable in dev, fall back to direct Firestore update.
+      // This still persists data and keeps the UI consistent.
+      if (!firestore) throw e
+    }
+  }
+
   if (firestore) {
     await updateDoc(doc(firestore, 'profiles', uid), { ...updates, updatedAt: serverTimestamp() })
     const snap = await getDoc(doc(firestore, 'profiles', uid))
@@ -146,13 +184,49 @@ export async function updateCurrentUserProfile(updates) {
 
 export function initAuthListener() {
   if (!auth) return
+
+  // Ensure there is always a user session so profile persistence works even
+  // when routes are visited without explicitly logging in.
+  try {
+    ensureAnonymous()
+  } catch (e) {
+    // ignore
+  }
+
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
-      setCurrentUserLocal(null)
-      emitProfileUpdated(null)
+      // Don't clear cached profile here.
+      // On initial page load, Firebase auth can briefly report null before
+      // restoring the session; clearing would wipe the UI on refresh.
+      // Explicit logout() already clears local state.
       return
     }
-    // load profile
+
+    // Load profile from backend when available; fallback to Firestore; then to auth info.
+    if (BACKEND_URL) {
+      try {
+        const token = await user.getIdToken()
+        const res = await fetch(`${BACKEND_URL}/getUserProfile/${encodeURIComponent(user.uid)}`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        const data = await res.json().catch(() => ({}))
+        if (res.ok) {
+          const backendProfile = data?.profile || null
+          const profile = backendProfile
+            ? { id: user.uid, email: user.email, ...(backendProfile || {}) }
+            : { id: user.uid, email: user.email }
+          setCurrentUserLocal(profile)
+          emitProfileUpdated(profile)
+          return
+        }
+      } catch (e) {
+        // ignore and fallback
+      }
+    }
+
     try {
       if (firestore) {
         const snap = await getDoc(doc(firestore, 'profiles', user.uid))
