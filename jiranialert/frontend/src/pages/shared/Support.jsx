@@ -213,7 +213,7 @@ export default function Support() {
         transition={{ duration: 0.8 }}
       />
 
-      <main>
+      <main className="pt-16 sm:pt-20">
         <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white">
           <div className="absolute inset-0 opacity-20">
             <div className="absolute left-1/3 top-0 h-72 w-72 rounded-full bg-red-600 blur-3xl" />

@@ -104,7 +104,7 @@ export default function About() {
         primaryColor="#153b82"
         textColor="text-white"
       />
-      <main className="overflow-hidden">
+      <main className="overflow-hidden pt-16 sm:pt-20">
         <section className="relative isolate overflow-hidden bg-[linear-gradient(135deg,#0f2458_0%,#153b82_45%,#ffffff_45%,#ffffff_100%)] px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(229,57,53,0.18),transparent_26%),radial-gradient(circle_at_80%_10%,rgba(59,130,246,0.18),transparent_20%),radial-gradient(circle_at_20%_85%,rgba(255,255,255,0.18),transparent_18%)]" />
           <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-2 lg:items-center">
