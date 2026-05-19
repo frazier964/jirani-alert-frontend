@@ -8,7 +8,7 @@ import {
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 
 const CURRENT_KEY = 'jiranialert_current'
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || ''
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5002/jiranialert/us-central1'
 
 function setCurrentUserLocal(userObj) {
   if (!userObj) localStorage.removeItem(CURRENT_KEY)
@@ -73,16 +73,57 @@ export async function registerUser({ email, password, role = 'resident', display
   }
   const user = cred.user
 
-  // create profile doc
-  if (firestore) {
-    await setDoc(doc(firestore, 'profiles', user.uid), {
-      displayName: displayName || '',
-      role,
-      createdAt: serverTimestamp(),
-    })
+  let savedProfile = null
+  if (BACKEND_URL) {
+    try {
+      const token = await user.getIdToken()
+      const res = await fetch(`${BACKEND_URL}/createUserProfile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          displayName: displayName || '',
+          role,
+        }),
+      })
+
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data?.error || 'Backend profile creation failed')
+      }
+      savedProfile = data?.profile || null
+    } catch (e) {
+      // In local development the functions emulator may not be running.
+      // Fall back to direct Firestore so the account still has a durable profile.
+      if (!firestore) throw e
+    }
   }
 
-  const profile = { id: user.uid, email: user.email, displayName: displayName || '', profileImageUrl: '' }
+  // create profile doc fallback
+  if (firestore) {
+    await setDoc(
+      doc(firestore, 'profiles', user.uid),
+      {
+        uid: user.uid,
+        email: user.email,
+        displayName: displayName || '',
+        role,
+        accountStatus: 'active',
+        emailVerified: Boolean(user.emailVerified),
+        authProvider: 'password',
+        profileImageUrl: '',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    )
+  }
+
+  const profile = savedProfile
+    ? { id: user.uid, email: user.email, ...(savedProfile || {}) }
+    : { id: user.uid, uid: user.uid, email: user.email, displayName: displayName || '', role, profileImageUrl: '', accountStatus: 'active' }
   setCurrentUserLocal(profile)
   emitProfileUpdated(profile)
   return profile

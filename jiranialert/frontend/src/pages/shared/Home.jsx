@@ -3,7 +3,6 @@ import Header from '../../components/Header'
 import { Link } from 'react-router-dom'
 import { motion, useInView } from 'framer-motion'
 import {
-  ArrowRight,
   BadgeCheck,
   BellRing,
   CheckCircle2,
@@ -182,8 +181,8 @@ export default function Home() {
     <div className="bg-slate-50 text-slate-900">
       <Header navItems={navItems} initialBg="transparent" scrolledBg="rgba(255,255,255,0.88)" primaryColor="#2563EB" />
 
-      <main className="pt-16 sm:pt-20">
-        <section id="home" className="relative overflow-hidden pt-20 sm:pt-28 md:pt-32 pb-12 sm:pb-16 md:pb-20">
+      <main className="pt-14 sm:pt-16">
+        <section id="home" className="relative overflow-hidden pt-8 pb-8 sm:pt-10 sm:pb-10 lg:pt-12 lg:pb-12">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_15%,rgba(37,99,235,0.2),transparent_32%),radial-gradient(circle_at_85%_5%,rgba(220,38,38,0.16),transparent_28%),linear-gradient(180deg,#eff6ff_0%,#ffffff_45%,#f8fafc_100%)]" />
           <motion.div
             className="absolute top-20 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-[#2563EB]/20 blur-3xl"
@@ -191,8 +190,8 @@ export default function Home() {
             transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
           />
 
-          <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid lg:grid-cols-2 gap-8 lg:gap-14 items-center">
+          <div className="relative mx-auto max-w-[1500px] px-3 sm:px-5 lg:px-6">
+            <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)] lg:gap-8">
               <motion.div
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -203,14 +202,14 @@ export default function Home() {
                   <ShieldCheck className="h-4 w-4" />
                   Trusted Emergency Network
                 </span>
-                <h1 className="mt-4 max-w-xl text-balance text-3xl sm:text-4xl md:text-5xl lg:text-6xl leading-tight font-extrabold tracking-tight text-slate-900">
+                <h1 className="mt-4 max-w-2xl text-balance text-3xl sm:text-4xl md:text-5xl lg:text-[3.4rem] leading-tight font-extrabold tracking-tight text-slate-900">
                   Instant Emergency Alerts for Safer Communities
                 </h1>
-                <p className="mt-5 text-base sm:text-lg text-slate-600 max-w-xl">
+                <p className="mt-4 max-w-2xl text-base sm:text-lg text-slate-600">
                   Report emergencies, receive verified alerts, and protect your neighborhood in real time.
                 </p>
 
-                <div className="mt-8 flex flex-wrap gap-3">
+                <div className="mt-6 flex flex-wrap gap-3">
                   <Link to="/signup" className="px-4 sm:px-6 py-3 rounded-xl bg-[#2563EB] text-white font-bold text-sm sm:text-base shadow-[0_0_18px_rgba(37,99,235,0.45)] hover:shadow-[0_0_28px_rgba(37,99,235,0.6)] transition-all">
                     Get Started
                   </Link>
@@ -236,7 +235,7 @@ export default function Home() {
                     </span>
                   </div>
 
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-4 space-y-2.5">
                     {liveAlerts.map((alert) => {
                       const Icon = alert.icon
                       return (
@@ -269,8 +268,8 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="py-4 border-y border-blue-100 bg-white">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <section className="border-y border-blue-100 bg-white py-3">
+          <div className="mx-auto max-w-[1500px] px-3 sm:px-5 lg:px-6">
             <div className="rounded-2xl bg-gradient-to-r from-[#2563EB] to-[#1d4ed8] px-6 py-4 text-white shadow-lg flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-center">
               <span className="inline-flex items-center gap-2 font-bold text-base sm:text-lg">
                 <ShieldCheck className="h-5 w-5" />
@@ -281,14 +280,14 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="features" className="py-20 bg-slate-50">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <section id="features" className="bg-slate-50 py-12 sm:py-14">
+          <div className="mx-auto max-w-[1500px] px-3 sm:px-5 lg:px-6">
             <div className="text-center max-w-2xl mx-auto">
               <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900">Powerful Safety Features</h2>
               <p className="mt-3 text-slate-600">Built for speed, trust, and coordinated neighborhood response.</p>
             </div>
 
-            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {features.map((feature, index) => {
                 const Icon = feature.icon
                 return (
@@ -299,7 +298,7 @@ export default function Home() {
                     viewport={{ once: true }}
                     transition={{ duration: 0.45, delay: index * 0.05 }}
                     whileHover={{ y: -6 }}
-                    className="group rounded-2xl border border-white/70 bg-white/70 backdrop-blur p-6 shadow-[0_10px_30px_rgba(15,23,42,0.08)] hover:shadow-[0_20px_40px_rgba(37,99,235,0.18)] transition-all"
+                    className="group rounded-2xl border border-white/70 bg-white/80 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur transition-all hover:shadow-[0_20px_40px_rgba(37,99,235,0.18)]"
                   >
                     <div className="h-12 w-12 rounded-xl bg-blue-100 text-[#2563EB] flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Icon className="h-6 w-6" />
@@ -313,14 +312,14 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="how-it-works" className="py-20 bg-white">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <section id="how-it-works" className="bg-white py-12 sm:py-14">
+          <div className="mx-auto max-w-[1500px] px-3 sm:px-5 lg:px-6">
             <div className="text-center max-w-2xl mx-auto">
               <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900">How It Works</h2>
               <p className="mt-3 text-slate-600">A simple 3-step emergency response workflow.</p>
             </div>
 
-            <div className="relative mt-12 grid gap-6 lg:grid-cols-3">
+            <div className="relative mt-8 grid gap-4 lg:grid-cols-3">
               <div className="hidden lg:block absolute top-16 left-[17%] right-[17%] h-0.5 bg-gradient-to-r from-[#2563EB] via-[#60a5fa] to-[#DC2626]" />
               {steps.map((step, index) => {
                 const Icon = step.icon
@@ -331,7 +330,7 @@ export default function Home() {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.45, delay: index * 0.08 }}
-                    className="relative rounded-2xl border border-slate-200 bg-slate-50 p-6"
+                    className="relative rounded-2xl border border-slate-200 bg-slate-50 p-5"
                   >
                     <div className="flex items-center justify-between">
                       <div className="h-12 w-12 rounded-xl bg-[#2563EB] text-white flex items-center justify-center">
@@ -341,9 +340,6 @@ export default function Home() {
                     </div>
                     <h3 className="mt-4 text-xl font-bold text-slate-900">{step.title}</h3>
                     <p className="mt-2 text-slate-600 text-sm">{step.description}</p>
-                    {index < steps.length - 1 && (
-                      <ArrowRight className="hidden lg:block absolute -right-4 top-16 h-6 w-6 text-[#2563EB]" />
-                    )}
                   </motion.div>
                 )
               })}
@@ -351,9 +347,9 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="py-20 bg-slate-900">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-slate-800 to-slate-900 p-6 sm:p-8 shadow-2xl">
+        <section className="bg-slate-900 py-12 sm:py-14">
+          <div className="mx-auto max-w-[1500px] px-3 sm:px-5 lg:px-6">
+            <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-slate-800 to-slate-900 p-5 shadow-2xl sm:p-6">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <h2 className="text-3xl font-extrabold text-white">Live Alert Preview</h2>
                 <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-400/40 text-emerald-300 text-sm font-semibold">
@@ -362,7 +358,7 @@ export default function Home() {
                 </span>
               </div>
 
-              <div className="mt-7 grid gap-4 md:grid-cols-3">
+              <div className="mt-5 grid gap-4 md:grid-cols-3">
                 {liveAlerts.map((alert) => {
                   const Icon = alert.icon
                   return (
@@ -391,14 +387,14 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="about" className="py-20 bg-white">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <section id="about" className="bg-white py-12 sm:py-14">
+          <div className="mx-auto max-w-[1500px] px-3 sm:px-5 lg:px-6">
             <div className="text-center max-w-3xl mx-auto">
               <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900">Community Impact</h2>
               <p className="mt-3 text-slate-600">Measured outcomes from connected, prepared neighborhoods.</p>
             </div>
 
-            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {stats.map((stat) => (
                 <motion.div
                   key={stat.label}
@@ -406,7 +402,7 @@ export default function Home() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.45 }}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-center"
                 >
                   <div className="text-3xl font-extrabold text-[#2563EB]">
                     <Counter target={stat.value} suffix={stat.suffix} />
@@ -418,13 +414,13 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="py-20 bg-slate-50">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <section className="bg-slate-50 py-12 sm:py-14">
+          <div className="mx-auto max-w-[1500px] px-3 sm:px-5 lg:px-6">
             <div className="text-center max-w-2xl mx-auto">
               <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900">What Communities Say</h2>
               <p className="mt-3 text-slate-600">Trusted by residents, volunteers, and local responders.</p>
             </div>
-            <div className="mt-10 grid gap-5 lg:grid-cols-3">
+            <div className="mt-7 grid gap-4 lg:grid-cols-3">
               {testimonials.map((testimonial, idx) => (
                 <motion.article
                   key={testimonial.name}
@@ -432,7 +428,7 @@ export default function Home() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.45, delay: idx * 0.06 }}
-                  className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+                  className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
                 >
                   <div className="flex gap-1 text-amber-500">
                     {[...Array(5)].map((_, i) => (
@@ -450,14 +446,14 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="py-20 bg-white">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="rounded-3xl bg-gradient-to-r from-[#1d4ed8] to-[#2563EB] p-8 sm:p-12 text-white text-center shadow-[0_24px_60px_rgba(37,99,235,0.35)]">
+        <section className="bg-white py-12 sm:py-14">
+          <div className="mx-auto max-w-[1500px] px-3 sm:px-5 lg:px-6">
+            <div className="rounded-3xl bg-gradient-to-r from-[#1d4ed8] to-[#2563EB] p-6 text-center text-white shadow-[0_24px_60px_rgba(37,99,235,0.35)] sm:p-8">
               <h2 className="text-3xl sm:text-4xl font-extrabold">Protect Your Neighborhood Today</h2>
               <p className="mt-3 text-blue-100 max-w-2xl mx-auto">
                 Join a growing safety network where trusted reporting and rapid response keep communities secure.
               </p>
-              <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <Link to="/signup" className="px-6 py-3 rounded-xl bg-white text-[#2563EB] font-bold hover:translate-y-[-1px] transition-transform">
                   Join Jirani Alert
                 </Link>
@@ -471,8 +467,8 @@ export default function Home() {
       </main>
 
       <footer id="contact" className="bg-slate-950 text-slate-200">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mx-auto max-w-[1500px] px-3 py-8 sm:px-5 lg:px-6">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <div>
               <div className="flex items-center gap-3">
                 <img src="/jirani-alert-logo.svg" alt="Jirani Alert" className="h-10 w-10 rounded-full" />
@@ -530,7 +526,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mt-10 pt-6 border-t border-slate-800 text-sm text-slate-500 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
+          <div className="mt-7 flex flex-col gap-2 border-t border-slate-800 pt-5 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
             <p>&copy; {new Date().getFullYear()} Jirani Alert. All rights reserved.</p>
             <p className="text-sm">Creator: Hillary Ocharo</p>
             <p className="inline-flex items-center gap-2">

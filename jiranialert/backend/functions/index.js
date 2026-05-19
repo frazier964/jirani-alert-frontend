@@ -1,16 +1,115 @@
 const { onRequest } = require('firebase-functions/v2/https')
 const admin = require('firebase-admin')
+const { getFirestore, FieldValue } = require('firebase-admin/firestore')
+const nodemailer = require('nodemailer')
 
 admin.initializeApp()
 
-const db = admin.firestore()
-const FieldValue = admin.firestore.FieldValue
+const db = getFirestore()
 
 const allowedOrigins = new Set([
   'http://localhost:5173',
+  'http://localhost:5174',
   'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
   'https://jirani-alert-frontend.vercel.app',
 ])
+
+const allowedRoles = new Set(['resident', 'responder', 'admin'])
+let mailTransporter = null
+
+function getEnv(name) {
+  return process.env[name] || process.env[name.toLowerCase()] || ''
+}
+
+function getMailTransporter() {
+  const gmailUser = getEnv('GMAIL_USER')
+  const gmailPass = getEnv('GMAIL_APP_PASSWORD')
+  const smtpHost = getEnv('SMTP_HOST')
+  const smtpPort = Number(getEnv('SMTP_PORT') || 587)
+  const smtpUser = getEnv('SMTP_USER')
+  const smtpPass = getEnv('SMTP_PASS')
+
+  if (!gmailUser && !smtpHost) return null
+  if (mailTransporter) return mailTransporter
+
+  if (gmailUser && gmailPass) {
+    mailTransporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: gmailUser,
+        pass: gmailPass,
+      },
+    })
+    return mailTransporter
+  }
+
+  if (smtpHost && smtpUser && smtpPass) {
+    mailTransporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+    })
+    return mailTransporter
+  }
+
+  return null
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+async function sendSignupConfirmationEmail({ to, displayName, role }) {
+  const transporter = getMailTransporter()
+  if (!transporter || !to) return { sent: false, reason: 'Email is not configured' }
+
+  const mailFrom = getEnv('MAIL_FROM') || getEnv('GMAIL_USER') || getEnv('SMTP_USER')
+  const appUrl = getEnv('APP_URL') || 'https://jirani-alert-frontend.vercel.app'
+  const safeName = displayName || 'there'
+  const roleLabel = role === 'responder' ? 'Emergency Responder' : role === 'admin' ? 'Local Admin' : 'Resident'
+  const htmlName = escapeHtml(safeName)
+  const htmlRoleLabel = escapeHtml(roleLabel)
+  const htmlAppUrl = escapeHtml(appUrl)
+
+  await transporter.sendMail({
+    from: mailFrom,
+    to,
+    subject: 'Welcome to Jirani Alert',
+    text: [
+      `Hi ${safeName},`,
+      '',
+      `Your Jirani Alert ${roleLabel} account has been created successfully.`,
+      'You can now sign in, manage your profile, and use live emergency reporting features.',
+      '',
+      `Open Jirani Alert: ${appUrl}`,
+      '',
+      'Stay safe,',
+      'Jirani Alert Team',
+    ].join('\n'),
+    html: `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a">
+        <h2 style="color:#2563eb">Welcome to Jirani Alert</h2>
+        <p>Hi ${htmlName},</p>
+        <p>Your <strong>${htmlRoleLabel}</strong> account has been created successfully.</p>
+        <p>You can now sign in, manage your profile, and use live emergency reporting features.</p>
+        <p><a href="${htmlAppUrl}" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:700">Open Jirani Alert</a></p>
+        <p style="color:#64748b;font-size:13px">If you did not create this account, please contact Jirani Alert support.</p>
+      </div>
+    `,
+  })
+
+  return { sent: true }
+}
 
 function isAllowedOrigin(origin) {
   if (!origin) return false
@@ -57,6 +156,9 @@ async function requireUser(req) {
 
 function sendError(res, error) {
   const status = error.status || 500
+  if (status === 500) {
+    console.error(error)
+  }
   res.status(status).json({
     error: status === 500 ? 'Internal server error' : error.message,
   })
@@ -88,6 +190,76 @@ exports.health = onRequest({ region: 'us-central1' }, (req, res) => {
     service: 'jiranialert-firebase-backend',
     timestamp: new Date().toISOString(),
   })
+})
+
+exports.createUserProfile = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireUser(req)
+    const body = req.body || {}
+
+    const displayName = typeof body.displayName === 'string' ? body.displayName.trim() : ''
+    const requestedRole = typeof body.role === 'string' ? body.role.trim() : 'resident'
+    const role = allowedRoles.has(requestedRole) ? requestedRole : 'resident'
+    const now = FieldValue.serverTimestamp()
+    const profileRef = db.collection('profiles').doc(user.uid)
+    const notificationRef = db.collection('notifications').doc()
+    const email = user.email || ''
+    const emailVerified = Boolean(user.email_verified || user.emailVerified)
+
+    try {
+      await admin.auth().setCustomUserClaims(user.uid, { role })
+    } catch (claimsError) {
+      console.warn('Could not set custom user claims:', claimsError.message || claimsError)
+    }
+
+    await db.runTransaction(async (transaction) => {
+      transaction.set(
+        profileRef,
+        {
+          uid: user.uid,
+          email,
+          displayName,
+          role,
+          accountStatus: 'active',
+          emailVerified,
+          authProvider: 'password',
+          profileImageUrl: '',
+          createdAt: now,
+          updatedAt: now,
+        },
+        { merge: true },
+      )
+
+      transaction.set(notificationRef, {
+        recipientId: user.uid,
+        title: 'Account created',
+        message: 'Your Jirani Alert account is active and ready to use.',
+        read: false,
+        createdAt: now,
+      })
+    })
+
+    let confirmationEmail = { sent: false, reason: 'Email is not configured' }
+    try {
+      confirmationEmail = await sendSignupConfirmationEmail({ to: email, displayName, role })
+    } catch (emailError) {
+      confirmationEmail = { sent: false, reason: emailError.message || 'Email could not be sent' }
+    }
+
+    const saved = await profileRef.get()
+    res.status(201).json({
+      ok: true,
+      profile: saved.data(),
+      notificationId: notificationRef.id,
+      confirmationEmail,
+    })
+  } catch (error) {
+    sendError(res, error)
+  }
 })
 
 exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req, res) => {

@@ -81,14 +81,58 @@ http://localhost:5001/jiranialert/us-central1
 
 Frontend Vite env (`.env.local`):
 ```
-VITE_BACKEND_URL=http://localhost:5001/jiranialert/us-central1
+VITE_BACKEND_URL=http://localhost:5002/jiranialert/us-central1
+VITE_FUNCTIONS_BASE=http://localhost:5002/jiranialert/us-central1
 ```
 
 If not set, it defaults to the above.
 
+### Signup Confirmation Email
+
+The signup flow creates the Firebase Auth account, saves a real Firestore profile through the backend, and sends a welcome confirmation email when SMTP is configured.
+
+Create `backend/functions/.env` from `backend/functions/.env.example`:
+
+```
+APP_URL=https://jirani-alert-frontend.vercel.app
+MAIL_FROM="Jirani Alert <your-email@gmail.com>"
+GMAIL_USER=your-email@gmail.com
+GMAIL_APP_PASSWORD=your-16-character-app-password
+```
+
+For Gmail, use a Google App Password. Do not use your normal Gmail password.
+
 ## API Endpoints
 
 All endpoints require Firebase ID Token in `Authorization: Bearer {token}` header.
+
+### POST /createUserProfile
+Create or merge the authenticated user's profile after Firebase Auth signup, assign the selected role, create an account notification, and send a signup confirmation email when mail env vars are configured.
+
+**Body:**
+```json
+{
+  "displayName": "Resident Name",
+  "role": "resident"
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "profile": {
+    "uid": "firebase-user-id",
+    "email": "resident@example.com",
+    "displayName": "Resident Name",
+    "role": "resident",
+    "accountStatus": "active"
+  },
+  "confirmationEmail": {
+    "sent": true
+  }
+}
+```
 
 ### GET /getCommunityFeed
 Get all community posts with interaction counts.

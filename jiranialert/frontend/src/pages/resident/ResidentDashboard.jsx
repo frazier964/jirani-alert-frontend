@@ -254,16 +254,16 @@ export default function ResidentDashboard() {
   const displayName = currentUser?.displayName || 'Resident Name'
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 overflow-hidden">
+    <div className="min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#F8FAFC_0%,#EEF4FB_100%)] text-slate-900">
 
-      <div className="w-full px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px] 2xl:grid-cols-[minmax(0,1fr)_480px]">
+      <div className="mx-auto w-full max-w-[1780px] px-3 py-3 sm:px-5 lg:px-6 lg:py-5">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(340px,0.72fr)] 2xl:grid-cols-[minmax(0,1.75fr)_400px]">
           <main className="min-w-0 space-y-4 pb-24 lg:pb-0">
             <motion.section
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45 }}
-              className="relative overflow-hidden rounded-[32px] border border-white/80 bg-gradient-to-r from-[#1E3A5F] via-[#2563EB] to-[#0f172a] p-6 text-white shadow-[0_30px_80px_rgba(15,23,42,0.24)] sm:p-8"
+              className="relative overflow-hidden rounded-3xl border border-white/80 bg-gradient-to-r from-[#1E3A5F] via-[#2563EB] to-[#0f172a] p-5 text-white shadow-[0_22px_55px_rgba(15,23,42,0.2)] sm:p-6"
             >
               <motion.div
                 className="absolute right-6 top-6 h-28 w-28 rounded-full bg-white/10 blur-3xl"
@@ -271,16 +271,18 @@ export default function ResidentDashboard() {
                 transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
               />
 
-              <div className="relative grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.72fr)] xl:items-stretch">
-                <div>
+              <div className="relative grid gap-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(420px,1.08fr)] xl:items-stretch">
+                <div className="flex min-h-[250px] flex-col justify-between">
                   <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em]">
                     <Sparkles className="h-4 w-4" />
                     Welcome back
                   </div>
-                  <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl">Welcome back, {displayName} 👋</h1>
-                  <p className="mt-3 text-lg text-blue-100">Stay connected and help keep your neighborhood safe.</p>
+                  <div>
+                    <h1 className="mt-4 max-w-xl text-3xl font-black leading-tight tracking-tight text-white sm:text-4xl">Welcome back, {displayName}</h1>
+                    <p className="mt-2 max-w-lg text-base text-blue-100">Stay connected and help keep your neighborhood safe.</p>
+                  </div>
 
-                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
                     <span className={`rounded-full border px-4 py-2 text-sm font-bold ${dashboardStatus === 'Safe' ? 'border-emerald-300 bg-emerald-400/15 text-emerald-50' : dashboardStatus === 'Alert' ? 'border-amber-300 bg-amber-400/15 text-amber-50' : 'border-red-300 bg-red-400/15 text-red-50'}`}>
                       {dashboardStatus}
                     </span>
@@ -299,7 +301,7 @@ export default function ResidentDashboard() {
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: index * 0.08 }}
-                        className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur"
+                        className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur"
                       >
                         <div className="flex items-center justify-between">
                           <p className="text-xs uppercase tracking-[0.18em] text-white/70">{item.label}</p>
@@ -313,12 +315,12 @@ export default function ResidentDashboard() {
               </div>
             </motion.section>
 
-            <div className="grid gap-3 2xl:grid-cols-[minmax(0,1.35fr)_minmax(420px,0.9fr)]">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.28fr)_minmax(320px,0.72fr)]">
               <motion.section
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.04 }}
-                className="rounded-[30px] border border-white/80 bg-white/90 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-5"
+                className="rounded-3xl border border-white/80 bg-white/95 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-5"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                   <div>
@@ -330,7 +332,7 @@ export default function ResidentDashboard() {
                   <motion.button
                     type="button"
                     onClick={() => navigate('/resident/report')}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-[#E53935] px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-white shadow-[0_0_0_0_rgba(229,57,53,0.45)]"
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#E53935] px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-white shadow-[0_0_0_0_rgba(229,57,53,0.45)] sm:text-sm"
                     animate={{ boxShadow: ['0 0 0 0 rgba(229,57,53,0.45)', '0 0 0 12px rgba(229,57,53,0)', '0 0 0 0 rgba(229,57,53,0.45)'] }}
                     transition={{ duration: 2.2, repeat: Infinity }}
                   >
@@ -347,7 +349,7 @@ export default function ResidentDashboard() {
                         key={item.value}
                         type="button"
                         onClick={() => setSelectedEmergency(item.value)}
-                        className={`group rounded-2xl border p-4 text-left transition-all ${active ? 'border-[#E53935] bg-red-50 shadow-[0_0_0_4px_rgba(229,57,53,0.12)]' : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-[#2563EB]/30 hover:shadow-md'}`}
+                        className={`group rounded-2xl border p-3 text-left transition-all ${active ? 'border-[#E53935] bg-red-50 shadow-[0_0_0_4px_rgba(229,57,53,0.12)]' : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-[#2563EB]/30 hover:shadow-md'}`}
                       >
                         <div className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${item.tone} text-white shadow-lg`}>
                           <Icon className="h-5 w-5" />
@@ -359,7 +361,7 @@ export default function ResidentDashboard() {
                   })}
                 </div>
 
-                <div className="mt-3 rounded-3xl border border-slate-200 bg-slate-50 p-3">
+                <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">Selected type</p>
@@ -375,7 +377,7 @@ export default function ResidentDashboard() {
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.08 }}
-                className="rounded-[30px] border border-white/80 bg-white/90 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-6"
+                className="rounded-3xl border border-white/80 bg-white/95 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-5"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -409,12 +411,12 @@ export default function ResidentDashboard() {
               </motion.section>
             </div>
 
-            <div className="grid gap-3 2xl:grid-cols-[minmax(0,1.18fr)_minmax(420px,1fr)]">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.82fr)]">
               <motion.section
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.12 }}
-                className="rounded-[30px] border border-white/80 bg-white/90 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-5"
+                className="rounded-3xl border border-white/80 bg-white/95 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-5"
               >
                 <div className="flex items-center justify-between gap-2">
                   <div>
@@ -444,7 +446,7 @@ export default function ResidentDashboard() {
                   {alerts.map((item) => {
                     const Icon = item.icon
                     return (
-                      <div key={item.id} className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+                      <div key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
                         <div className="flex items-start gap-4">
                           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-900 to-[#2563EB] text-white">
                             <Icon className="h-5 w-5" />
@@ -493,7 +495,7 @@ export default function ResidentDashboard() {
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.16 }}
-                className="rounded-[30px] border border-white/80 bg-white/90 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-5"
+                className="rounded-3xl border border-white/80 bg-white/95 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-5"
               >
                 <div className="flex items-center justify-between gap-2">
                   <div>
@@ -537,12 +539,12 @@ export default function ResidentDashboard() {
               </motion.section>
             </div>
 
-            <div className="grid gap-3 2xl:grid-cols-[minmax(0,1.18fr)_minmax(420px,1fr)]">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.82fr)]">
               <motion.section
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.2 }}
-                className="rounded-[30px] border border-white/80 bg-white/90 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-5"
+                className="rounded-3xl border border-white/80 bg-white/95 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-5"
               >
                 <div className="flex items-center justify-between gap-2">
                   <div>
@@ -564,7 +566,7 @@ export default function ResidentDashboard() {
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.24 }}
-                className="rounded-[30px] border border-white/80 bg-white/90 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-5"
+                className="rounded-3xl border border-white/80 bg-white/95 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-5"
               >
                 <div className="flex items-center justify-between gap-2">
                   <div>
@@ -615,12 +617,12 @@ export default function ResidentDashboard() {
             </div>
           </main>
 
-          <aside className="grid gap-4 xl:sticky xl:top-24 xl:h-[calc(100vh-7rem)] xl:grid-rows-[auto_auto_minmax(0,1fr)] xl:overflow-hidden">
+          <aside className="space-y-4 xl:sticky xl:top-24 xl:max-h-[calc(100vh-7rem)] xl:overflow-y-auto xl:pr-1 scrollbar-custom">
             <motion.section
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="rounded-[30px] border border-white/80 bg-white/90 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl"
+              className="rounded-3xl border border-white/80 bg-white/95 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-xl"
             >
               <div className="flex items-center justify-between gap-2">
                 <div>
@@ -631,7 +633,7 @@ export default function ResidentDashboard() {
               </div>
               <div className="mt-3 grid gap-2">
                 {emergencyContacts.map((item) => (
-                  <a key={item.label} href={`tel:${item.value.replace(/\s/g, '')}`} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-[#2563EB]/30 hover:bg-white">
+                  <a key={item.label} href={`tel:${item.value.replace(/\s/g, '')}`} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 transition hover:border-[#2563EB]/30 hover:bg-white">
                     <div>
                       <p className="text-sm font-bold text-slate-900">{item.label}</p>
                       <p className="mt-1 text-sm text-slate-500">{item.value}</p>
@@ -648,7 +650,7 @@ export default function ResidentDashboard() {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.14 }}
-              className="rounded-[30px] border border-white/80 bg-white/90 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl"
+              className="rounded-3xl border border-white/80 bg-white/95 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-xl"
             >
               <div className="flex items-center justify-between gap-2">
                 <div>
@@ -671,7 +673,7 @@ export default function ResidentDashboard() {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.18 }}
-              className="flex min-h-0 flex-col rounded-[30px] border border-white/80 bg-white/90 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl"
+              className="rounded-3xl border border-white/80 bg-white/95 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-xl"
             >
               <div className="flex items-center justify-between gap-2">
                 <div>
@@ -680,7 +682,7 @@ export default function ResidentDashboard() {
                 </div>
                 <Star className="h-5 w-5 text-amber-500" />
               </div>
-              <div className="mt-3 flex min-h-[220px] flex-1 flex-col justify-between rounded-[28px] bg-[#1E3A5F] p-5 text-white">
+              <div className="mt-3 rounded-[24px] bg-[#1E3A5F] p-5 text-white">
                 <div>
                   <p className="text-sm text-white/70">Current safety score</p>
                   <div className="mt-3 flex items-end justify-between gap-4">

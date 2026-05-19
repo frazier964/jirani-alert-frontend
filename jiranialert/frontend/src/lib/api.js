@@ -1,7 +1,7 @@
 // Simple API client to talk to the functions backend when available.
 import { auth } from './firebase'
 
-const FUNCTIONS_BASE = import.meta.env.VITE_FUNCTIONS_BASE || ''
+const FUNCTIONS_BASE = import.meta.env.VITE_FUNCTIONS_BASE || import.meta.env.VITE_BACKEND_URL || 'http://localhost:5002/jiranialert/us-central1'
 
 async function fetchJson(url, opts = {}) {
   const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) }
