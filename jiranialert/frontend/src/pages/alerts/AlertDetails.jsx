@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeft, MessageSquare, CheckCircle2, Clock, User, MapPin, AlertCircle, Send } from 'lucide-react'
+import { getReport } from '../../lib/reportApi'
 
 function getAlerts() {
   try {
@@ -16,7 +17,9 @@ function saveAlerts(alerts) {
 }
 
 function formatDate(isoString) {
-  const date = new Date(isoString)
+  const value = isoString && typeof isoString._seconds === 'number' ? isoString._seconds * 1000 : isoString
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Recently'
   return date.toLocaleString()
 }
 
@@ -28,10 +31,29 @@ export default function AlertDetails() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const alerts = getAlerts()
-    const a = alerts.find((x) => x.id === id)
-    setAlert(a || null)
-    setLoading(false)
+    let cancelled = false
+    ;(async () => {
+      setLoading(true)
+      try {
+        const data = await getReport(id)
+        if (!cancelled && data?.report) {
+          setAlert(data.report)
+          return
+        }
+      } catch (e) {
+        // Fallback keeps older locally-created alerts readable.
+      } finally {
+        if (!cancelled) {
+          const alerts = getAlerts()
+          const a = alerts.find((x) => x.id === id)
+          setAlert((current) => current || a || null)
+          setLoading(false)
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [id])
 
   function addComment() {

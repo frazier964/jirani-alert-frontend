@@ -5,7 +5,7 @@ import {
   signOut as fbSignOut,
   onAuthStateChanged,
 } from 'firebase/auth'
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 
 const CURRENT_KEY = 'jiranialert_current'
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || ''
@@ -23,6 +23,20 @@ function emitProfileUpdated(profile) {
   } catch (e) {
     // ignore
   }
+}
+
+async function waitForAuthReady() {
+  if (!auth) return null
+  if (auth.currentUser) return auth.currentUser
+
+  await new Promise((resolve) => {
+    const unsubscribe = onAuthStateChanged(auth, () => {
+      unsubscribe()
+      resolve()
+    })
+  })
+
+  return auth.currentUser
 }
 
 export function getCurrentUser() {
@@ -127,6 +141,8 @@ export async function logout() {
 }
 
 export async function updateCurrentUserProfile(updates) {
+  await waitForAuthReady()
+
   if (auth && !auth.currentUser) {
     try {
       await ensureAnonymous()
@@ -168,7 +184,7 @@ export async function updateCurrentUserProfile(updates) {
   }
 
   if (firestore) {
-    await updateDoc(doc(firestore, 'profiles', uid), { ...updates, updatedAt: serverTimestamp() })
+    await setDoc(doc(firestore, 'profiles', uid), { ...updates, updatedAt: serverTimestamp() }, { merge: true })
     const snap = await getDoc(doc(firestore, 'profiles', uid))
     const profile = snap.exists() ? { id: uid, ...(snap.data() || {}) } : { id: uid }
     setCurrentUserLocal(profile)
@@ -185,20 +201,17 @@ export async function updateCurrentUserProfile(updates) {
 export function initAuthListener() {
   if (!auth) return
 
-  // Ensure there is always a user session so profile persistence works even
-  // when routes are visited without explicitly logging in.
-  try {
-    ensureAnonymous()
-  } catch (e) {
-    // ignore
-  }
-
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
       // Don't clear cached profile here.
       // On initial page load, Firebase auth can briefly report null before
       // restoring the session; clearing would wipe the UI on refresh.
       // Explicit logout() already clears local state.
+      try {
+        await ensureAnonymous()
+      } catch (e) {
+        // ignore
+      }
       return
     }
 

@@ -298,8 +298,8 @@ export default function Profile() {
   return (
     <div className={`min-h-screen overflow-hidden ${themeWrapperClass}`}>
 
-      <div className="mx-auto grid max-w-[1700px] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:px-8 lg:py-8">
-        <aside className="hidden lg:block">
+      <div className="w-full px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
+        <aside className="hidden">
           <div className="sticky top-28 rounded-[28px] border border-white/70 bg-white/90 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl">
             <div className="rounded-[22px] bg-gradient-to-br from-[#1E3A5F] to-[#2563EB] p-5 text-white">
               <div className="flex items-center justify-between">
@@ -341,7 +341,7 @@ export default function Profile() {
           </div>
         </aside>
 
-        <main className="min-w-0 space-y-6 pb-24 lg:pb-28">
+        <main className="min-w-0 space-y-4 pb-24 lg:pb-28">
           <motion.section
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
@@ -370,8 +370,8 @@ export default function Profile() {
             </div>
           </motion.section>
 
-          <section className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,0.95fr)]">
-            <div className="space-y-6">
+          <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px] 2xl:grid-cols-[minmax(0,1fr)_480px]">
+            <div className="space-y-4">
               <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-[30px] border border-white/80 bg-white/90 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -384,7 +384,7 @@ export default function Profile() {
                   </div>
                 </div>
 
-                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <div className="mt-5 grid gap-4 md:grid-cols-3">
                   <label>
                     <span className="text-sm font-semibold text-slate-700">Full Name</span>
                     <input
@@ -419,7 +419,7 @@ export default function Profile() {
                     />
                   </label>
 
-                  <label className="md:col-span-2">
+                  <label className="md:col-span-3">
                     <span className="text-sm font-semibold text-slate-700">Residential Area / Estate</span>
                     <input
                       type="text"
@@ -430,7 +430,7 @@ export default function Profile() {
                     />
                   </label>
 
-                  <label className="md:col-span-2">
+                  <label className="md:col-span-3">
                     <span className="text-sm font-semibold text-slate-700">Profile Picture</span>
                     <div className="mt-2 flex flex-col gap-4">
                       {profileImage && (
@@ -462,7 +462,7 @@ export default function Profile() {
                 </div>
               </motion.section>
 
-              <div className="grid gap-6 lg:grid-cols-2">
+              <div className="grid gap-4 lg:grid-cols-2">
                 <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-[30px] border border-white/80 bg-white/90 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -561,7 +561,7 @@ export default function Profile() {
                 </div>
               </motion.section>
 
-              <div className="grid gap-6 lg:grid-cols-2">
+              <div className="grid gap-4 lg:grid-cols-2">
                 <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-[30px] border border-white/80 bg-white/90 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -752,8 +752,8 @@ export default function Profile() {
               </motion.section>
             </div>
 
-            <aside className="space-y-6 xl:sticky xl:top-28 xl:h-[calc(100vh-8rem)] xl:overflow-y-auto xl:pr-1">
-              <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-[30px] border border-white/80 bg-white/90 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl">
+            <aside className="grid gap-4 xl:sticky xl:top-24 xl:h-[calc(100vh-7rem)] xl:grid-rows-[minmax(0,1.35fr)_minmax(0,0.85fr)] xl:overflow-hidden">
+              <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex min-h-0 flex-col rounded-[30px] border border-white/80 bg-white/90 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#E53935]">Location settings</p>
@@ -778,9 +778,9 @@ export default function Profile() {
                     <ChevronRight className="h-4 w-4 text-slate-400" />
                   </button>
                 </div>
-                <div className="mt-4 overflow-hidden rounded-[24px] bg-gradient-to-br from-[#1E3A5F] via-[#2563EB] to-[#0f172a] p-4 text-white">
+                <div className="mt-4 flex min-h-[280px] flex-1 flex-col overflow-hidden rounded-[24px] bg-gradient-to-br from-[#1E3A5F] via-[#2563EB] to-[#0f172a] p-4 text-white">
                   <p className="text-xs uppercase tracking-[0.24em] text-white/60">Map preview</p>
-                  <div className="mt-4 relative h-52 overflow-hidden rounded-[20px] border border-white/10 bg-[radial-gradient(circle_at_35%_35%,rgba(255,255,255,0.16),transparent_28%),linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))]">
+                  <div className="relative mt-4 min-h-[220px] flex-1 overflow-hidden rounded-[20px] border border-white/10 bg-[radial-gradient(circle_at_35%_35%,rgba(255,255,255,0.16),transparent_28%),linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))]">
                     <motion.div className="absolute left-8 top-8 rounded-2xl bg-white/90 px-3 py-2 text-xs font-bold text-slate-700" animate={{ y: [0, -4, 0] }} transition={{ duration: 3.5, repeat: Infinity }}>
                       Current location
                     </motion.div>
@@ -791,7 +791,7 @@ export default function Profile() {
                 </div>
               </motion.section>
 
-              <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-[30px] border border-white/80 bg-white/90 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl">
+              <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex min-h-0 flex-col rounded-[30px] border border-white/80 bg-white/90 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#2563EB]">Preview</p>
@@ -799,7 +799,7 @@ export default function Profile() {
                   </div>
                   <Star className="h-5 w-5 text-amber-500" />
                 </div>
-                <div className="mt-4 rounded-[26px] bg-slate-900 p-4 text-white">
+                <div className="mt-4 flex flex-1 flex-col justify-between rounded-[26px] bg-slate-900 p-5 text-white">
                   <p className="text-sm text-white/70">Selected safety guidance</p>
                   <h3 className="mt-2 text-lg font-black">{selectedTipItem.title}</h3>
                   <p className="mt-2 text-sm text-white/75">{selectedTipItem.description}</p>

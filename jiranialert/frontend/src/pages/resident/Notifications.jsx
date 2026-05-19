@@ -1,584 +1,417 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import {
-  Bell,
-  CalendarClock,
-  CheckCheck,
-  ChevronRight,
-  CloudSun,
-  Flame,
-  HeartPulse,
-  LayoutDashboard,
-  LifeBuoy,
-  LogOut,
-  MapPin,
-  Menu,
-  MessageSquare,
-  Navigation2,
-  PhoneCall,
-  Search,
-  Settings2,
-  ShieldAlert,
-  ShieldCheck,
-  Siren,
-  Sparkles,
-  UserCircle2,
-  Users,
-  X,
-  Clock3,
-  ArrowRight,
   AlertTriangle,
-  PanelRight,
-  Zap,
-  Star,
-  FileText,
+  Bell,
+  CheckCheck,
+  Clock3,
+  Loader2,
+  MapPin,
+  MessageSquare,
+  RefreshCw,
+  Search,
+  ShieldAlert,
+  Trash2,
 } from 'lucide-react'
+import {
+  clearNotifications,
+  deleteNotification,
+  listNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from '../../lib/notificationsApi'
 
-const sidebarItems = [
-  { label: 'Dashboard', to: '/resident/dashboard', icon: LayoutDashboard },
-  { label: 'Report Emergency', to: '/report', icon: Siren },
-  { label: 'Nearby Alerts', to: '/resident/map', icon: Navigation2 },
-  { label: 'Community Feed', to: '/resident/notifications', icon: MessageSquare },
-  { label: 'Messages', to: '/resident/notifications', icon: FileText },
-  { label: 'My Reports', to: '/resident/notifications', icon: FileText },
-  { label: 'Safety Tips', to: '/resident/contacts', icon: LifeBuoy },
-  { label: 'Settings', to: '/resident/profile', icon: Settings2 },
-]
+const FILTERS = ['All', 'Unread', 'Emergency', 'Messages', 'System']
 
-const tabs = [
-  'All',
-  'Emergency Alerts',
-  'Community Updates',
-  'Messages',
-  'Safety Tips',
-  'System Notifications',
-]
-
-const notificationsSeed = [
-  {
-    id: 'n-1',
-    category: 'Emergency Alerts',
-    type: 'Fire',
-    title: 'Emergency Alert',
-    description: 'Fire incident reported near South B Estate. Authorities have been notified.',
-    location: 'South B Estate',
-    time: '5 mins ago',
-    severity: 'High',
-    read: false,
-    icon: Flame,
-    actions: ['View Details', 'Acknowledge'],
-    urgent: true,
-  },
-  {
-    id: 'n-2',
-    category: 'Emergency Alerts',
-    type: 'Crime',
-    title: 'Road accident reported near Kilimani Roundabout',
-    description: 'Community members are advised to avoid the junction until responders clear the scene.',
-    location: 'Kilimani Roundabout',
-    time: '12 mins ago',
-    severity: 'High',
-    read: false,
-    icon: ShieldAlert,
-    actions: ['View Details', 'Respond'],
-    urgent: false,
-  },
-  {
-    id: 'n-3',
-    category: 'Community Updates',
-    type: 'Community',
-    title: 'Neighborhood watch meeting scheduled for tomorrow at 6 PM',
-    description: 'The estate committee will share safety improvements and patrol updates.',
-    location: 'Community Hall',
-    time: '30 mins ago',
-    severity: 'Medium',
-    read: true,
-    icon: Users,
-    actions: ['Acknowledge'],
-    urgent: false,
-  },
-  {
-    id: 'n-4',
-    category: 'Safety Tips',
-    type: 'Safety',
-    title: 'Avoid walking alone in poorly lit areas late at night',
-    description: 'Use the main gate, share your live location, and travel with a trusted neighbor when possible.',
-    location: 'Safety Reminder',
-    time: '1 hour ago',
-    severity: 'Low',
-    read: true,
-    icon: AlertTriangle,
-    actions: ['Dismiss'],
-    urgent: false,
-  },
-  {
-    id: 'n-5',
-    category: 'System Notifications',
-    type: 'System',
-    title: 'Your emergency contact settings were updated successfully',
-    description: 'Your account preferences have been synced across all connected devices.',
-    location: 'Account Activity',
-    time: '2 hours ago',
-    severity: 'Low',
-    read: true,
-    icon: CheckCheck,
-    actions: ['View Details'],
-    urgent: false,
-  },
-  {
-    id: 'n-6',
-    category: 'Messages',
-    type: 'Message',
-    title: 'Security Desk replied to your previous report',
-    description: 'The team confirmed patrol coverage around your block for the rest of the evening.',
-    location: 'Inbox',
-    time: '3 hours ago',
-    severity: 'Medium',
-    read: false,
-    icon: MessageSquare,
-    actions: ['Open Message'],
-    urgent: false,
-  },
-]
-
-const timeline = [
-  { time: '18:20', label: 'Incident reported', tone: 'bg-[#E53935]' },
-  { time: '18:22', label: 'Authority notified', tone: 'bg-amber-500' },
-  { time: '18:31', label: 'Community updates sent', tone: 'bg-[#2563EB]' },
-  { time: '19:05', label: 'Incident resolved', tone: 'bg-emerald-500' },
-]
-
-const quickContacts = [
-  { label: 'Police', value: '999', tone: 'bg-slate-900' },
-  { label: 'Ambulance', value: '911', tone: 'bg-emerald-500' },
-  { label: 'Fire Department', value: '998', tone: 'bg-[#E53935]' },
-]
-
-function severityTone(severity) {
-  if (severity === 'High') return 'bg-red-100 text-red-700 border-red-200'
-  if (severity === 'Medium') return 'bg-amber-100 text-amber-700 border-amber-200'
-  return 'bg-emerald-100 text-emerald-700 border-emerald-200'
+function timestampToDate(value) {
+  if (!value) return null
+  if (typeof value === 'string') return new Date(value)
+  if (typeof value === 'number') return new Date(value)
+  if (typeof value._seconds === 'number') return new Date(value._seconds * 1000)
+  if (typeof value.seconds === 'number') return new Date(value.seconds * 1000)
+  return null
 }
 
-function notificationIconTone(category) {
-  if (category === 'Emergency Alerts') return 'from-[#E53935] to-orange-500'
-  if (category === 'Community Updates') return 'from-[#1E3A5F] to-[#2563EB]'
-  if (category === 'Messages') return 'from-slate-700 to-slate-900'
-  if (category === 'Safety Tips') return 'from-amber-500 to-orange-500'
-  return 'from-emerald-500 to-green-500'
+function formatTime(value) {
+  const date = timestampToDate(value)
+  if (!date || Number.isNaN(date.getTime())) return 'Recently'
+
+  const diffMs = Date.now() - date.getTime()
+  const diffMinutes = Math.max(0, Math.floor(diffMs / 60000))
+  if (diffMinutes < 1) return 'Just now'
+  if (diffMinutes < 60) return `${diffMinutes} min ago`
+
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours < 24) return `${diffHours} hr ago`
+
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+function classifyNotification(item) {
+  const text = `${item.title || ''} ${item.message || ''}`.toLowerCase()
+  if (item.reportId || text.includes('report') || text.includes('emergency') || text.includes('alert')) return 'Emergency'
+  if (text.includes('message') || text.includes('reply')) return 'Messages'
+  return 'System'
+}
+
+function getIcon(category) {
+  if (category === 'Emergency') return ShieldAlert
+  if (category === 'Messages') return MessageSquare
+  return Bell
+}
+
+function categoryTone(category, read) {
+  if (category === 'Emergency') return read ? 'bg-red-50 text-red-700' : 'bg-red-600 text-white'
+  if (category === 'Messages') return read ? 'bg-blue-50 text-blue-700' : 'bg-blue-600 text-white'
+  return read ? 'bg-slate-100 text-slate-600' : 'bg-slate-900 text-white'
 }
 
 export default function Notifications() {
-  const [mobileNavOpen, setMobileNavOpen] = useState(false)
-  const [profileOpen, setProfileOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState('All')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [notifications, setNotifications] = useState(notificationsSeed)
-  const [toastVisible, setToastVisible] = useState(false)
   const navigate = useNavigate()
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState('')
+  const [activeFilter, setActiveFilter] = useState('All')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [busyId, setBusyId] = useState('')
+  const [bulkBusy, setBulkBusy] = useState('')
 
-  const unreadCount = notifications.filter((item) => !item.read).length
-  const totalCount = notifications.length
+  async function loadItems({ quiet = false } = {}) {
+    if (quiet) setRefreshing(true)
+    else setLoading(true)
+    setError('')
+
+    try {
+      const data = await listNotifications(100)
+      setItems(Array.isArray(data?.notifications) ? data.notifications : [])
+    } catch (e) {
+      setError(e?.message || 'Could not load notifications from the backend.')
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }
 
   useEffect(() => {
-    if (!toastVisible) return undefined
-    const timer = window.setTimeout(() => setToastVisible(false), 2200)
-    return () => window.clearTimeout(timer)
-  }, [toastVisible])
+    loadItems()
+  }, [])
 
-  const filteredNotifications = useMemo(() => {
-    return notifications.filter((item) => {
-      const matchesTab = activeTab === 'All' || item.category === activeTab
-      const haystack = `${item.title} ${item.description} ${item.location} ${item.category}`.toLowerCase()
-      const matchesSearch = haystack.includes(searchQuery.toLowerCase())
-      return matchesTab && matchesSearch
+  const enrichedItems = useMemo(() => {
+    return items.map((item) => ({
+      ...item,
+      category: classifyNotification(item),
+      timeLabel: formatTime(item.createdAt || item.updatedAt),
+    }))
+  }, [items])
+
+  const filteredItems = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase()
+    return enrichedItems.filter((item) => {
+      const matchesFilter =
+        activeFilter === 'All' ||
+        (activeFilter === 'Unread' ? !item.read : item.category === activeFilter)
+      const text = `${item.title || ''} ${item.message || ''} ${item.category}`.toLowerCase()
+      return matchesFilter && (!query || text.includes(query))
     })
-  }, [activeTab, notifications, searchQuery])
+  }, [activeFilter, enrichedItems, searchQuery])
 
-  const priorityAlert = useMemo(() => notifications.find((item) => item.urgent), [notifications])
+  const unreadCount = enrichedItems.filter((item) => !item.read).length
+  const emergencyCount = enrichedItems.filter((item) => item.category === 'Emergency').length
+  const latestItem = enrichedItems[0]
 
-  const summary = {
-    active: 2,
-    resolved: 4,
-    level: 'Moderate',
+  async function markRead(item) {
+    if (item.read) return
+    setBusyId(item.id)
+    try {
+      await markNotificationRead(item.id)
+      setItems((current) => current.map((entry) => (entry.id === item.id ? { ...entry, read: true } : entry)))
+    } catch (e) {
+      setError(e?.message || 'Could not mark notification as read.')
+    } finally {
+      setBusyId('')
+    }
   }
 
-  const markAllRead = () => {
-    setNotifications((current) => current.map((item) => ({ ...item, read: true })))
-    setToastVisible(true)
+  async function removeItem(item) {
+    setBusyId(item.id)
+    try {
+      await deleteNotification(item.id)
+      setItems((current) => current.filter((entry) => entry.id !== item.id))
+    } catch (e) {
+      setError(e?.message || 'Could not delete notification.')
+    } finally {
+      setBusyId('')
+    }
   }
 
-  const clearAll = () => {
-    setNotifications([])
-    setToastVisible(true)
+  async function markAllRead() {
+    setBulkBusy('read')
+    try {
+      await markAllNotificationsRead()
+      setItems((current) => current.map((entry) => ({ ...entry, read: true })))
+    } catch (e) {
+      setError(e?.message || 'Could not mark all notifications as read.')
+    } finally {
+      setBulkBusy('')
+    }
   }
 
-  const acknowledge = (id) => {
-    setNotifications((current) => current.map((item) => (item.id === id ? { ...item, read: true } : item)))
-    setToastVisible(true)
+  async function clearAll() {
+    setBulkBusy('clear')
+    try {
+      await clearNotifications()
+      setItems([])
+    } catch (e) {
+      setError(e?.message || 'Could not clear notifications.')
+    } finally {
+      setBulkBusy('')
+    }
+  }
+
+  function openNotification(item) {
+    markRead(item)
+    if (item.reportId) {
+      navigate(`/alerts/${item.reportId}`)
+    }
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 overflow-hidden">
-
-      <div className="mx-auto grid max-w-[1200px] gap-4 px-4 py-4 sm:px-6 lg:gap-6 xl:max-w-[1600px] xl:grid-cols-[240px_minmax(0,1fr)_280px] lg:px-6 lg:py-6 xl:px-8">
-        <aside className="hidden xl:block">
-          <div className="sticky top-28 rounded-[28px] border border-white/70 bg-white/90 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl">
-            <div className="rounded-[22px] bg-gradient-to-br from-[#1E3A5F] to-[#2563EB] p-5 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.22em] text-white/70">Notifications</p>
-                  <h2 className="mt-2 text-2xl font-black">{unreadCount} unread</h2>
-                </div>
-                <Bell className="h-10 w-10 text-white/80" />
-              </div>
-              <p className="mt-3 text-sm text-white/85">Stay updated with emergencies, safety alerts, and community activity near you.</p>
-            </div>
-
-            <nav className="mt-4 space-y-1">
-              {sidebarItems.map((item) => {
-                const Icon = item.icon
-                const active = item.label === 'Community Feed'
-                return (
-                  <NavLink
-                    key={item.to + item.label}
-                    to={item.to}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${isActive || active ? 'bg-[#E53935] text-white shadow-[0_14px_30px_rgba(229,57,53,0.22)]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`
-                    }
-                  >
-                    <Icon className="h-4.5 w-4.5" />
-                    <span>{item.label}</span>
-                  </NavLink>
-                )
-              })}
-            </nav>
-          </div>
-        </aside>
-
-        <main className="min-w-0 space-y-4 pb-12 lg:pb-0">
-          <motion.section
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45 }}
-            className="relative overflow-hidden rounded-[28px] border border-white/80 bg-gradient-to-r from-[#1E3A5F] via-[#2563EB] to-[#0f172a] p-5 text-white shadow-[0_30px_80px_rgba(15,23,42,0.24)] sm:p-6"
-          >
-            <motion.div
-              className="absolute right-6 top-6 h-28 w-28 rounded-full bg-white/10 blur-3xl"
-              animate={{ scale: [1, 1.15, 1], opacity: [0.25, 0.6, 0.25] }}
-              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            <div className="relative flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+    <div className="min-h-screen bg-slate-50 px-4 py-5 text-slate-950 sm:px-6 lg:px-8 lg:py-7">
+      <div className="mx-auto grid max-w-[1500px] gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <main className="min-w-0 space-y-5">
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em]">
-                  <Sparkles className="h-4 w-4" />
-                  Notifications center
-                </div>
-                <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl">Notifications</h1>
-                <p className="mt-3 text-lg text-blue-100">Stay updated with emergencies, safety alerts, and community activity near you.</p>
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-[#E53935]">Live backend data</p>
+                <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Notifications</h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                  Emergency alerts, report updates, and account messages saved in Firebase.
+                </p>
               </div>
 
-              <div className="grid gap-2 sm:grid-cols-3 xl:w-[430px]">
-                <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
-                  <p className="text-xs uppercase tracking-[0.18em] text-white/70">Total notifications</p>
-                  <p className="mt-2 text-3xl font-black">{totalCount}</p>
+              <div className="grid grid-cols-3 gap-2 sm:min-w-[360px]">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                  <p className="text-xs font-bold uppercase text-slate-500">Total</p>
+                  <p className="mt-1 text-2xl font-black">{enrichedItems.length}</p>
                 </div>
-                <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
-                  <p className="text-xs uppercase tracking-[0.18em] text-white/70">Unread</p>
-                  <p className="mt-2 text-3xl font-black text-amber-300">{unreadCount}</p>
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-xs font-bold uppercase text-amber-700">Unread</p>
+                  <p className="mt-1 text-2xl font-black text-amber-700">{unreadCount}</p>
                 </div>
-                <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
-                  <p className="text-xs uppercase tracking-[0.18em] text-white/70">Status</p>
-                  <p className="mt-2 text-3xl font-black text-emerald-300">Live</p>
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-3">
+                  <p className="text-xs font-bold uppercase text-red-700">Alerts</p>
+                  <p className="mt-1 text-2xl font-black text-red-700">{emergencyCount}</p>
                 </div>
               </div>
             </div>
-          </motion.section>
-
-          <section className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_280px]">
-              <div className="space-y-4 min-w-0">
-              <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-[26px] border border-white/80 bg-white/90 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-5">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#E53935]">Header actions</p>
-                    <h2 className="mt-2 text-2xl font-black text-slate-900">Notification Management</h2>
-                  </div>
-                  <div className="flex flex-col gap-3 sm:flex-row">
-                    <button type="button" onClick={markAllRead} className="rounded-2xl bg-[#1E3A5F] px-4 py-3 text-sm font-bold text-white hover:bg-[#14304d]">
-                      Mark All as Read
-                    </button>
-                    <button type="button" onClick={clearAll} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">
-                      Clear All
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
-                  {tabs.map((tab) => (
-                    <button
-                      key={tab}
-                      type="button"
-                      onClick={() => setActiveTab(tab)}
-                      className={`whitespace-nowrap rounded-full border px-4 py-2 text-xs font-bold transition-all ${activeTab === tab ? 'border-[#2563EB] bg-blue-50 text-[#2563EB]' : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'}`}
-                    >
-                      {tab}
-                    </button>
-                  ))}
-                </div>
-              </motion.section>
-
-              {priorityAlert && (
-                <motion.section
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4 }}
-                  className="relative overflow-hidden rounded-[26px] border border-red-200 bg-gradient-to-r from-red-600 to-[#E53935] p-4 text-white shadow-[0_24px_60px_rgba(229,57,53,0.22)]"
-                >
-                  <motion.div className="absolute right-4 top-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" animate={{ scale: [1, 1.12, 1], opacity: [0.25, 0.55, 0.25] }} transition={{ duration: 2.4, repeat: Infinity }} />
-                  <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="max-w-2xl">
-                      <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.22em]">
-                        <Zap className="h-4 w-4 animate-pulse" />
-                        Emergency Alert
-                      </div>
-                      <h3 className="mt-3 text-2xl font-black sm:text-3xl">{priorityAlert.title}</h3>
-                      <p className="mt-2 text-white/90">{priorityAlert.description}</p>
-                      <p className="mt-3 text-sm text-white/75">Authorities have been notified.</p>
-                    </div>
-                    <div className="flex flex-col gap-3 sm:flex-row">
-                      <button type="button" onClick={() => navigate('/alerts/priority')} className="rounded-2xl bg-white px-4 py-3 text-sm font-black text-[#E53935] shadow-sm">
-                        View Details
-                      </button>
-                      <button type="button" onClick={() => acknowledge(priorityAlert.id)} className="rounded-2xl border border-white/25 bg-white/10 px-4 py-3 text-sm font-black text-white backdrop-blur hover:bg-white/15">
-                        Acknowledge
-                      </button>
-                    </div>
-                  </div>
-                </motion.section>
-              )}
-
-              <section className="space-y-3">
-                {filteredNotifications.length === 0 ? (
-                  <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-[30px] border border-white/80 bg-white/90 p-8 text-center shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-10">
-                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-slate-100 text-slate-500">
-                      <Bell className="h-9 w-9" />
-                    </div>
-                    <h2 className="mt-5 text-3xl font-black text-slate-900">You're all caught up</h2>
-                    <p className="mt-3 text-slate-500">No new alerts or updates at the moment.</p>
-                    <button type="button" onClick={() => navigate('/resident/dashboard')} className="mt-6 rounded-2xl bg-[#1E3A5F] px-5 py-3 text-sm font-bold text-white">
-                      Return to Dashboard
-                    </button>
-                  </motion.div>
-                ) : (
-                  filteredNotifications.map((item, index) => {
-                    const Icon = item.icon
-                    const read = item.read
-                    return (
-                      <motion.article
-                        key={item.id}
-                        initial={{ opacity: 0, y: 14 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.35, delay: index * 0.05 }}
-                        className={`rounded-[26px] border p-4 shadow-[0_24px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-5 ${read ? 'border-white/80 bg-white/90' : 'border-blue-200 bg-blue-50/80'}`}
-                      >
-                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                          <div className="flex min-w-0 gap-4">
-                            <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-lg ${notificationIconTone(item.category)}`}>
-                              <Icon className="h-6 w-6" />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-white">
-                                  {item.category}
-                                </span>
-                                {!read && <span className="rounded-full bg-[#E53935] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-white animate-pulse">Unread</span>}
-                              </div>
-                              <h3 className="mt-3 text-xl font-black text-slate-900">{item.title}</h3>
-                              <p className="mt-2 text-sm leading-6 text-slate-600">{item.description}</p>
-                              <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                                <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{item.location}</span>
-                                <span className="inline-flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" />{item.time}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex shrink-0 flex-wrap items-center gap-2">
-                            <span className={`rounded-full border px-3 py-1 text-xs font-bold ${severityTone(item.severity)}`}>{item.severity}</span>
-                            {item.actions.map((action) => (
-                              <button
-                                key={action}
-                                type="button"
-                                onClick={() => acknowledge(item.id)}
-                                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50"
-                              >
-                                {action}
-                                <ArrowRight className="h-4 w-4" />
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </motion.article>
-                    )
-                  })
-                )}
-              </section>
-
-              <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-[30px] border border-white/80 bg-white/90 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl sm:p-6">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#2563EB]">Live alert timeline</p>
-                    <h2 className="mt-2 text-2xl font-black text-slate-900">Incident Progress</h2>
-                  </div>
-                  <PanelRight className="h-6 w-6 text-[#E53935]" />
-                </div>
-                <div className="mt-5 grid gap-4 lg:grid-cols-4">
-                  {timeline.map((item, index) => (
-                    <div key={item.label} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`h-3.5 w-3.5 rounded-full ${item.tone}`} />
-                        <span className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{item.time}</span>
-                      </div>
-                      <p className="mt-3 text-sm font-semibold text-slate-800">{item.label}</p>
-                    </div>
-                  ))}
-                </div>
-              </motion.section>
-            </div>
-
-            <aside className="space-y-6 xl:sticky xl:top-28 xl:h-[calc(100vh-8rem)] xl:overflow-y-auto xl:pr-1">
-              <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-[30px] border border-white/80 bg-white/90 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#E53935]">Quick action panel</p>
-                    <h2 className="mt-2 text-xl font-black text-slate-900">Emergency Contacts</h2>
-                  </div>
-                  <PhoneCall className="h-5 w-5 text-[#2563EB]" />
-                </div>
-                <div className="mt-4 space-y-3">
-                  {quickContacts.map((item) => (
-                    <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-bold text-slate-900">{item.label}</p>
-                          <p className="mt-1 text-xs text-slate-500">Emergency call shortcut</p>
-                        </div>
-                        <span className={`flex h-10 w-10 items-center justify-center rounded-2xl text-sm font-black text-white ${item.tone}`}>{item.value}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <button type="button" className="mt-4 w-full rounded-2xl bg-[#1E3A5F] px-4 py-3 text-sm font-bold text-white hover:bg-[#14304d]">
-                  Manage Alert Preferences
-                </button>
-              </motion.section>
-
-              <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-[30px] border border-white/80 bg-white/90 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.1)] backdrop-blur-xl">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#2563EB]">Smart summary</p>
-                    <h2 className="mt-2 text-xl font-black text-slate-900">Today's Community Status</h2>
-                  </div>
-                  <Star className="h-5 w-5 text-amber-500" />
-                </div>
-                <div className="mt-4 rounded-[26px] bg-slate-900 p-5 text-white">
-                  <div className="flex items-center justify-between text-sm text-white/70">
-                    <span>Active Alerts</span>
-                    <span className="font-black text-white">{summary.active}</span>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between text-sm text-white/70">
-                    <span>Resolved Incidents</span>
-                    <span className="font-black text-emerald-300">{summary.resolved}</span>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between text-sm text-white/70">
-                    <span>Safety Level</span>
-                    <span className="font-black text-amber-300">{summary.level}</span>
-                  </div>
-                  <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10">
-                    <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-amber-400 to-[#E53935]" style={{ width: '64%' }} />
-                  </div>
-                </div>
-              </motion.section>
-            </aside>
           </section>
-        </main>
-      </div>
 
-      <button
-        type="button"
-        onClick={() => navigate('/resident/report')}
-        className="fixed bottom-5 right-5 z-[70] inline-flex items-center gap-2 rounded-full bg-[#E53935] px-5 py-4 text-sm font-black uppercase tracking-[0.16em] text-white shadow-[0_18px_42px_rgba(229,57,53,0.35)] lg:hidden"
-      >
-        <motion.span
-          className="h-2.5 w-2.5 rounded-full bg-white"
-          animate={{ scale: [1, 1.35, 1], opacity: [0.6, 1, 0.6] }}
-          transition={{ duration: 1.4, repeat: Infinity }}
-        />
-        Report Now
-      </button>
-
-      <AnimatePresence>
-        {mobileNavOpen && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[80] bg-slate-950/45 backdrop-blur-sm lg:hidden">
-            <motion.aside
-              initial={{ x: -320 }}
-              animate={{ x: 0 }}
-              exit={{ x: -320 }}
-              transition={{ type: 'spring', stiffness: 280, damping: 28 }}
-              className="h-full w-[86%] max-w-sm border-r border-slate-200 bg-white p-4 shadow-2xl"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.24em] text-[#E53935]">Navigation</p>
-                  <h2 className="mt-1 text-xl font-black text-slate-900">Jirani Alert</h2>
-                </div>
-                <button type="button" onClick={() => setMobileNavOpen(false)} className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-700">
-                  <X className="h-5 w-5" />
-                </button>
+          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm outline-none focus:border-[#2563EB] focus:bg-white focus:ring-2 focus:ring-[#2563EB]/15"
+                  placeholder="Search backend notifications"
+                />
               </div>
-              <nav className="mt-5 space-y-1">
-                {sidebarItems.map((item) => {
-                  const Icon = item.icon
+
+              <div className="flex flex-wrap gap-2">
+                {FILTERS.map((filter) => (
+                  <button
+                    key={filter}
+                    type="button"
+                    onClick={() => setActiveFilter(filter)}
+                    className={`h-11 rounded-2xl border px-4 text-sm font-bold transition ${
+                      activeFilter === filter
+                        ? 'border-[#2563EB] bg-[#2563EB] text-white'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {filter}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {error ? (
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              {error}
+            </div>
+          ) : null}
+
+          <section className="min-h-[420px] rounded-3xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+            {loading ? (
+              <div className="flex min-h-[360px] items-center justify-center text-slate-500">
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Loading notifications from backend...
+              </div>
+            ) : filteredItems.length === 0 ? (
+              <div className="flex min-h-[360px] flex-col items-center justify-center px-4 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+                  <Bell className="h-7 w-7" />
+                </div>
+                <h2 className="mt-4 text-2xl font-black text-slate-950">No notifications found</h2>
+                <p className="mt-2 max-w-md text-sm text-slate-500">
+                  When the backend creates notifications for your account, they will appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {filteredItems.map((item, index) => {
+                  const Icon = getIcon(item.category)
+                  const isBusy = busyId === item.id
+
                   return (
-                    <NavLink
-                      key={item.to + item.label}
-                      to={item.to}
-                      onClick={() => setMobileNavOpen(false)}
-                      className={({ isActive }) =>
-                        `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold ${isActive || item.label === 'Community Feed' ? 'bg-[#E53935] text-white' : 'text-slate-700 hover:bg-slate-50'}`
-                      }
+                    <motion.article
+                      key={item.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.25, delay: index * 0.02 }}
+                      className={`grid gap-4 py-4 lg:grid-cols-[1fr_auto] lg:items-center ${
+                        item.read ? 'bg-white' : 'rounded-2xl bg-blue-50/70 px-3'
+                      }`}
                     >
-                      <Icon className="h-4.5 w-4.5" />
-                      {item.label}
-                    </NavLink>
+                      <button type="button" onClick={() => openNotification(item)} className="min-w-0 text-left">
+                        <div className="flex min-w-0 gap-3">
+                          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${categoryTone(item.category, item.read)}`}>
+                            <Icon className="h-5 w-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-slate-600">
+                                {item.category}
+                              </span>
+                              {!item.read ? (
+                                <span className="rounded-full bg-[#E53935] px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-white">
+                                  Unread
+                                </span>
+                              ) : null}
+                            </div>
+                            <h3 className="mt-2 truncate text-lg font-black text-slate-950">
+                              {item.title || 'Notification'}
+                            </h3>
+                            <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-600">
+                              {item.message || 'No message was provided for this notification.'}
+                            </p>
+                            <div className="mt-2 flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-500">
+                              <span className="inline-flex items-center gap-1">
+                                <Clock3 className="h-3.5 w-3.5" />
+                                {item.timeLabel}
+                              </span>
+                              {item.reportId ? (
+                                <span className="inline-flex items-center gap-1">
+                                  <MapPin className="h-3.5 w-3.5" />
+                                  Linked report
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+
+                      <div className="flex flex-wrap gap-2 lg:justify-end">
+                        {item.reportId ? (
+                          <button
+                            type="button"
+                            onClick={() => openNotification(item)}
+                            className="inline-flex h-10 items-center justify-center rounded-2xl bg-[#1E3A5F] px-4 text-sm font-bold text-white hover:bg-[#14304d]"
+                          >
+                            View report
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => markRead(item)}
+                          disabled={item.read || isBusy}
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45"
+                        >
+                          {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCheck className="h-4 w-4" />}
+                          Mark read
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item)}
+                          disabled={isBusy}
+                          className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-45"
+                          aria-label="Delete notification"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </motion.article>
                   )
                 })}
-              </nav>
-            </motion.aside>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              </div>
+            )}
+          </section>
+        </main>
 
-      <AnimatePresence>
-        {toastVisible && (
-          <motion.div
-            initial={{ opacity: 0, y: 16, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.98 }}
-            className="fixed bottom-24 right-4 z-[90] max-w-sm rounded-3xl border border-emerald-200 bg-white p-4 shadow-[0_24px_60px_rgba(15,23,42,0.18)]"
-          >
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
-                <CheckCheck className="h-5 w-5" />
-              </div>
+        <aside className="space-y-5 xl:sticky xl:top-24 xl:h-[calc(100vh-7rem)]">
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="font-black text-slate-900">Notifications updated</p>
-                <p className="mt-1 text-sm text-slate-500">Your notification state has been saved.</p>
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-[#2563EB]">Controls</p>
+                <h2 className="mt-2 text-xl font-black text-slate-950">Backend Actions</h2>
               </div>
+              <button
+                type="button"
+                onClick={() => loadItems({ quiet: true })}
+                disabled={refreshing}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-white disabled:opacity-50"
+                aria-label="Refresh notifications"
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+            <div className="mt-5 grid gap-3">
+              <button
+                type="button"
+                onClick={markAllRead}
+                disabled={bulkBusy !== '' || unreadCount === 0}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#1E3A5F] px-4 text-sm font-black text-white hover:bg-[#14304d] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {bulkBusy === 'read' ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCheck className="h-4 w-4" />}
+                Mark all as read
+              </button>
+              <button
+                type="button"
+                onClick={clearAll}
+                disabled={bulkBusy !== '' || enrichedItems.length === 0}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {bulkBusy === 'clear' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Clear notifications
+              </button>
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-[#E53935]">Latest</p>
+            {latestItem ? (
+              <div className="mt-4 rounded-2xl bg-slate-950 p-4 text-white">
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-white/80">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  {latestItem.category}
+                </div>
+                <h3 className="mt-3 text-lg font-black">{latestItem.title || 'Notification'}</h3>
+                <p className="mt-2 text-sm leading-6 text-white/70">{latestItem.message || 'No message provided.'}</p>
+                <p className="mt-3 text-xs font-bold text-white/50">{latestItem.timeLabel}</p>
+              </div>
+            ) : (
+              <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
+                No backend notifications are available for this account yet.
+              </p>
+            )}
+          </section>
+        </aside>
+      </div>
     </div>
   )
 }

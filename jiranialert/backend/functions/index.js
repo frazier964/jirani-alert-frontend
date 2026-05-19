@@ -9,11 +9,18 @@ const FieldValue = admin.firestore.FieldValue
 const allowedOrigins = new Set([
   'http://localhost:5173',
   'http://127.0.0.1:5173',
+  'https://jirani-alert-frontend.vercel.app',
 ])
+
+function isAllowedOrigin(origin) {
+  if (!origin) return false
+  if (allowedOrigins.has(origin)) return true
+  return /^https:\/\/jirani-alert-frontend(?:-[a-z0-9-]+)?\.vercel\.app$/i.test(origin)
+}
 
 function setCors(req, res) {
   const origin = req.get('origin')
-  if (allowedOrigins.has(origin)) {
+  if (isAllowedOrigin(origin)) {
     res.set('Access-Control-Allow-Origin', origin)
   }
   res.set('Vary', 'Origin')
@@ -187,6 +194,41 @@ exports.listEmergencyReports = onRequest({ region: 'us-central1' }, async (req, 
   }
 })
 
+exports.getEmergencyReport = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'GET')
+    const user = await requireUser(req)
+    const reportId = req.path.replace(/^\//, '') || req.query.reportId
+    if (!reportId) {
+      const error = new Error('reportId is required in path')
+      error.status = 400
+      throw error
+    }
+
+    const report = await db.collection('reports').doc(reportId).get()
+    if (!report.exists) {
+      const error = new Error('Report not found')
+      error.status = 404
+      throw error
+    }
+
+    const data = report.data()
+    const role = user.role || 'resident'
+    if (data.reporterId !== user.uid && !['admin', 'responder'].includes(role)) {
+      const error = new Error('You cannot view this report')
+      error.status = 403
+      throw error
+    }
+
+    res.json({ report: { id: report.id, ...data } })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
 exports.listNotifications = onRequest({ region: 'us-central1' }, async (req, res) => {
   setCors(req, res)
   if (handleOptions(req, res)) return
@@ -243,6 +285,92 @@ exports.markNotificationRead = onRequest({ region: 'us-central1' }, async (req, 
     })
 
     res.json({ ok: true })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.markAllNotificationsRead = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireUser(req)
+
+    const snapshot = await db
+      .collection('notifications')
+      .where('recipientId', '==', user.uid)
+      .where('read', '==', false)
+      .limit(200)
+      .get()
+
+    const batch = db.batch()
+    snapshot.docs.forEach((doc) => {
+      batch.update(doc.ref, {
+        read: true,
+        readAt: FieldValue.serverTimestamp(),
+      })
+    })
+    await batch.commit()
+
+    res.json({ ok: true, updatedCount: snapshot.size })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.deleteNotification = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireUser(req)
+    const notificationId = requiredString(req.body && req.body.notificationId, 'notificationId')
+    const notificationRef = db.collection('notifications').doc(notificationId)
+    const notification = await notificationRef.get()
+
+    if (!notification.exists) {
+      const error = new Error('Notification not found')
+      error.status = 404
+      throw error
+    }
+
+    if (notification.data().recipientId !== user.uid) {
+      const error = new Error('You cannot delete this notification')
+      error.status = 403
+      throw error
+    }
+
+    await notificationRef.delete()
+    res.json({ ok: true })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.clearNotifications = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireUser(req)
+
+    const snapshot = await db
+      .collection('notifications')
+      .where('recipientId', '==', user.uid)
+      .limit(200)
+      .get()
+
+    const batch = db.batch()
+    snapshot.docs.forEach((doc) => {
+      batch.delete(doc.ref)
+    })
+    await batch.commit()
+
+    res.json({ ok: true, deletedCount: snapshot.size })
   } catch (error) {
     sendError(res, error)
   }

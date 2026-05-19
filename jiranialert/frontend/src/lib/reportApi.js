@@ -48,4 +48,8 @@ export async function listReports(limit = 10) {
   return callBackend(`listEmergencyReports?limit=${limit}`, 'GET')
 }
 
-export default { uploadEvidenceFile, createReport, listReports }
+export async function getReport(reportId) {
+  return callBackend(`getEmergencyReport/${encodeURIComponent(reportId)}`, 'GET')
+}
+
+export default { uploadEvidenceFile, createReport, listReports, getReport }
