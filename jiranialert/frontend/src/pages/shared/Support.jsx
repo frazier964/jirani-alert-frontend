@@ -213,7 +213,7 @@ export default function Support() {
             <div className="absolute left-1/3 top-0 h-72 w-72 rounded-full bg-red-600 blur-3xl" />
             <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-blue-500 blur-3xl" />
           </div>
-          <div className="relative mx-auto grid max-w-7xl gap-10 sm:gap-12 px-4 pt-4 pb-14 sm:px-6 sm:pt-12 sm:pb-16 md:pt-16 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
+          <div className="relative mx-auto grid max-w-7xl gap-10 sm:gap-12 px-4 pt-0 pb-14 sm:px-6 sm:pt-12 sm:pb-16 md:pt-16 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
             <Reveal>
               <p className="text-sm font-semibold uppercase tracking-[0.4em] text-red-300">Support Center</p>
               <h1 className="mt-4 text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold leading-tight text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.28)]">

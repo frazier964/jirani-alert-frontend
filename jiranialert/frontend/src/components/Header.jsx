@@ -46,7 +46,7 @@ export default function Header({
   return (
     <motion.div
       className="fixed inset-x-0 z-50"
-      style={{ top: 'var(--announcement-bar-height)' }}
+      style={{ top: 'var(--announcement-bar-height)', height: 'var(--header-height)' }}
       animate={{
         backgroundColor: scrolled ? resolvedScrolledBg : resolvedInitialBg,
         boxShadow: scrolled ? '0 8px 28px rgba(15,23,42,0.1)' : '0 0 0 rgba(0,0,0,0)',
