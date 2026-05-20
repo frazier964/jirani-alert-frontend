@@ -115,7 +115,8 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 relative overflow-hidden">
       <motion.div
-        className="fixed inset-x-0 top-0 z-50"
+        className="fixed inset-x-0 z-50"
+        style={{ top: 'var(--announcement-bar-height)' }}
         animate={{
           backgroundColor: scrolled ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.72)',
           boxShadow: scrolled ? '0 10px 26px rgba(15,23,42,0.1)' : '0 0 0 rgba(0,0,0,0)',

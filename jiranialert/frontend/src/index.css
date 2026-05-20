@@ -17,6 +17,9 @@
   --border: #e6edf8;
   --code-bg: #eef6ff;
   --shadow: rgba(2,6,23,0.08) 0 6px 18px;
+  --announcement-bar-height: 36px;
+  --announcement-bar-gap: 6px;
+  --header-height: 56px;
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -43,6 +46,7 @@
 
 body {
   margin: 0;
+  padding-top: calc(var(--announcement-bar-height) + var(--header-height));
 }
 
 html {
@@ -213,4 +217,38 @@ code {
 .profile-theme-dark select {
   background-color: rgba(2, 6, 23, 0.55) !important;
   color: rgb(241, 245, 249) !important;
+}
+
+/* Announcement bar utilities */
+.announcement-scroll {
+  mask-image: linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%);
+}
+
+@keyframes announcementGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.16);
+  }
+  50% {
+    box-shadow: 0 0 0 16px rgba(56, 189, 248, 0.04);
+  }
+}
+
+@keyframes announcementShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+.announcement-background {
+  background-image: radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(220, 38, 38, 0.12), transparent 22%);
+}
+
+.announcement-pill {
+  animation: announcementGlow 2.6s ease-in-out infinite;
 }

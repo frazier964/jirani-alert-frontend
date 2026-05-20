@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
 
@@ -24,10 +24,14 @@ export default function Header({
   const mobileLinkHoverClass = prefersDarkMobileMenu ? 'hover:bg-white/10' : 'hover:bg-slate-100'
   const mobileLoginClass = prefersDarkMobileMenu ? 'border-white/20 text-white/90 hover:bg-white/10' : 'border-slate-300 text-slate-700 hover:bg-slate-50'
 
+  const navigate = useNavigate()
+
   const goToSection = (id) => {
     const section = document.getElementById(id)
     if (section) {
       section.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } else {
+      navigate(`/home#${id}`)
     }
     setMobileOpen(false)
   }
@@ -41,7 +45,8 @@ export default function Header({
 
   return (
     <motion.div
-      className="fixed inset-x-0 top-0 z-50"
+      className="fixed inset-x-0 z-50"
+      style={{ top: 'var(--announcement-bar-height)' }}
       animate={{
         backgroundColor: scrolled ? resolvedScrolledBg : resolvedInitialBg,
         boxShadow: scrolled ? '0 8px 28px rgba(15,23,42,0.1)' : '0 0 0 rgba(0,0,0,0)',
@@ -53,16 +58,16 @@ export default function Header({
       {/* Mobile background overlay for visibility */}
       <div className={`lg:hidden absolute inset-0 pointer-events-none ${isDarkTheme ? 'bg-slate-950/35' : 'bg-gradient-to-r from-slate-900/40 to-slate-900/20'}`}></div>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="flex h-16 sm:h-20 items-center justify-between gap-2 sm:gap-3">
-          <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-            <img src="/jirani-alert-logo.svg" alt="Jirani Alert" className="h-9 sm:h-11 w-9 sm:w-11 rounded-full bg-white" />
-            <span className="inline-block max-w-[9rem] truncate text-xs sm:max-w-none sm:text-sm font-bold tracking-wide" style={{ color: isDarkTheme ? '#FFFFFF' : primaryColor }}>JIRANI ALERT</span>
+        <div className="flex h-12 sm:h-14 items-center justify-between gap-2 sm:gap-3">
+          <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-2 sm:gap-3 flex-shrink-0 focus:outline-none focus:ring-0">
+            <img src="/jirani-alert-logo.svg" alt="Jirani Alert" className="h-7 sm:h-8 w-7 sm:w-8 rounded-full bg-white" />
+            <span className="inline-block max-w-[6.5rem] truncate text-sm sm:text-base font-semibold tracking-wide" style={{ color: isDarkTheme ? '#FFFFFF' : primaryColor }}>JIRANI ALERT</span>
           </button>
 
-          <nav className="hidden lg:flex items-center gap-8">
+          <nav className="hidden lg:flex items-center gap-3 sm:gap-4">
             {navItems.map((item) => (
               item.to ? (
-                <Link key={item.label} to={item.to} className={`text-sm font-semibold ${navTextClass} hover:opacity-100 transition-opacity`}>
+                <Link key={item.label} to={item.to} className={`text-base font-semibold ${navTextClass} hover:opacity-100 transition-opacity`}>
                   {item.label}
                 </Link>
               ) : (
@@ -70,7 +75,7 @@ export default function Header({
                   key={item.id}
                   type="button"
                   onClick={() => goToSection(item.id)}
-                  className={`text-sm font-semibold ${navTextClass} hover:opacity-100 transition-opacity`}
+                  className={`text-base font-semibold ${navTextClass} hover:opacity-100 transition-opacity`}
                 >
                   {item.label}
                 </button>
@@ -78,11 +83,11 @@ export default function Header({
             ))}
           </nav>
 
-          <div className="hidden lg:flex items-center gap-3">
-            <Link to="/login" className={`px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl border text-xs sm:text-sm font-semibold transition-colors ${navButtonClass}`}>
+          <div className="hidden lg:flex items-center gap-2 sm:gap-3">
+            <Link to="/login" className={`px-2.5 py-1.5 rounded-xl border text-sm font-semibold transition-colors ${navButtonClass}`}>
               Login
             </Link>
-            <Link to="/signup" className="px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl bg-[var(--primary,#2563EB)] text-xs sm:text-sm text-white font-semibold shadow-[0_0_18px_rgba(37,99,235,0.45)] transition-all" style={{ backgroundColor: primaryColor }}>
+            <Link to="/signup" className="px-3 py-1.5 rounded-xl bg-[var(--primary,#2563EB)] text-sm text-white font-semibold shadow-[0_0_18px_rgba(37,99,235,0.25)] transition-all" style={{ backgroundColor: primaryColor }}>
               Sign Up
             </Link>
           </div>

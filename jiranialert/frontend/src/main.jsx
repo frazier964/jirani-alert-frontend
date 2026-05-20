@@ -2,6 +2,7 @@ import { StrictMode, lazy, Suspense, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
+import AnnouncementBar from './components/AnnouncementBar'
 import Layout from './components/Layout'
 import { ensureAnonymous } from './lib/firebase'
 import { initAuthListener } from './lib/auth'
@@ -82,6 +83,7 @@ function AppRoutes() {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
+    <AnnouncementBar />
     <AppRoutes />
   </StrictMode>,
 )

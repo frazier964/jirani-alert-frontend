@@ -143,7 +143,7 @@ export default function Contact() {
         textColor="text-white/90"
         theme="dark"
       />
-      <main className="overflow-hidden pt-16 sm:pt-20">
+      <main className="overflow-hidden pt-2 sm:pt-3">
         <section className="relative isolate overflow-hidden bg-[linear-gradient(135deg,#0c1f49_0%,#113a7a_45%,#ffffff_45%,#ffffff_100%)] px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(229,57,53,0.18),transparent_24%),radial-gradient(circle_at_80%_15%,rgba(59,130,246,0.2),transparent_22%),radial-gradient(circle_at_18%_82%,rgba(255,255,255,0.15),transparent_16%)]" />
           <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-2 lg:items-center">

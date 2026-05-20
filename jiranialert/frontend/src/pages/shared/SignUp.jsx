@@ -95,7 +95,22 @@ export default function SignUp() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-400 via-purple-500 to-indigo-700 relative overflow-hidden flex items-center justify-center px-3 py-6 sm:px-4 md:px-8">
+    <div
+      className="relative min-h-screen bg-gradient-to-b from-blue-400 via-purple-500 to-indigo-700 overflow-hidden px-3 sm:px-4 md:px-8 pb-8"
+      style={{
+        marginTop: 'calc(-1 * (var(--announcement-bar-height) + var(--header-height)))',
+        paddingTop: 'calc(var(--announcement-bar-height) + 0.35rem)',
+      }}
+    >
+      <div className="mx-auto max-w-6xl py-3">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-3 rounded-full bg-white/15 px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-slate-950/10 transition hover:bg-white/25"
+        >
+          <img src="/jirani-alert-logo.svg" alt="Jirani Alert" className="h-10 w-10 rounded-full bg-white" />
+          <span>JIRANI ALERT</span>
+        </Link>
+      </div>
       {/* 3D Geometric Decorative Elements */}
       
       {/* Blue Cube - Top Right */}

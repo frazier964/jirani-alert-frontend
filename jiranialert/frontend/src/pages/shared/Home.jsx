@@ -181,7 +181,7 @@ export default function Home() {
     <div className="bg-slate-50 text-slate-900">
       <Header navItems={navItems} initialBg="transparent" scrolledBg="rgba(255,255,255,0.88)" primaryColor="#2563EB" />
 
-      <main className="pt-14 sm:pt-16">
+      <main className="pt-6 sm:pt-8">
         <section id="home" className="relative overflow-hidden pt-8 pb-8 sm:pt-10 sm:pb-10 lg:pt-12 lg:pb-12">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_15%,rgba(37,99,235,0.2),transparent_32%),radial-gradient(circle_at_85%_5%,rgba(220,38,38,0.16),transparent_28%),linear-gradient(180deg,#eff6ff_0%,#ffffff_45%,#f8fafc_100%)]" />
           <motion.div
