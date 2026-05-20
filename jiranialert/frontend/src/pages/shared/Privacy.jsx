@@ -341,7 +341,7 @@ We recommend reviewing this policy periodically to stay informed about how we pr
       />
       {/* Hero Section */}
       <motion.section
-        className="relative overflow-hidden bg-[linear-gradient(135deg,#071329_0%,#10264d_52%,#153b82_100%)] text-white pt-28 py-20 lg:pt-32 lg:py-28"
+        className="relative overflow-hidden bg-[linear-gradient(135deg,#071329_0%,#10264d_52%,#153b82_100%)] text-white pt-6 py-20 lg:pt-10 lg:py-28"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6 }}
