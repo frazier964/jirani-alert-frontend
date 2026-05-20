@@ -44,8 +44,8 @@ export default function Terms() {
         primaryColor="#2563EB"
       />
 
-      <main className="pt-32">
-        <section className="bg-[linear-gradient(135deg,#0f2458_0%,#163b82_58%,#2563eb_100%)] px-4 py-20 text-white sm:px-6 lg:px-8">
+      <main className="pt-0">
+        <section className="bg-[linear-gradient(135deg,#0f2458_0%,#163b82_58%,#2563eb_100%)] px-4 pt-10 pb-20 text-white sm:px-6 sm:pt-12 sm:pb-24 lg:px-8">
           <div className="mx-auto max-w-5xl">
             <p className="text-sm font-black uppercase tracking-[0.24em] text-blue-100">Legal</p>
             <h1 className="mt-4 max-w-3xl text-4xl font-black tracking-tight sm:text-5xl">

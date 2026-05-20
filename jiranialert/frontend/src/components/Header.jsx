@@ -61,7 +61,7 @@ export default function Header({
         <div className="flex h-12 sm:h-14 items-center justify-between gap-2 sm:gap-3">
           <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-2 sm:gap-3 flex-shrink-0 focus:outline-none focus:ring-0">
             <img src="/jirani-alert-logo.svg" alt="Jirani Alert" className="h-7 sm:h-8 w-7 sm:w-8 rounded-full bg-white" />
-            <span className="inline-block max-w-[6.5rem] truncate text-sm sm:text-base font-semibold tracking-wide" style={{ color: isDarkTheme ? '#FFFFFF' : primaryColor }}>JIRANI ALERT</span>
+            <span className="inline-block max-w-[10rem] truncate text-sm sm:text-base font-semibold tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]" style={{ color: isDarkTheme ? '#FFFFFF' : primaryColor }}>JIRANI ALERT</span>
           </button>
 
           <nav className="hidden lg:flex items-center gap-3 sm:gap-4">
