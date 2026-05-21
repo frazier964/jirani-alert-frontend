@@ -22,6 +22,8 @@ export default function SignUp() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
+  const [emailStatus, setEmailStatus] = useState(null)
   const navigate = useNavigate()
 
   const handleChange = (e) => {
@@ -60,14 +62,36 @@ export default function SignUp() {
     if (!validateForm()) return
 
     setLoading(true)
+    setSuccessMessage('')
+    setEmailStatus(null)
+
     try {
-      await registerUser({
+      const user = await registerUser({
         email: formData.email,
         password: formData.password,
         role: formData.role,
         displayName: formData.fullName,
       })
-      navigate(`/${formData.role}/dashboard`)
+
+      const emailInfo = user.confirmationEmail || { sent: false, reason: 'Welcome email status not available' }
+      const verificationInfo = user.verificationEmail || { sent: false, reason: 'Verification email status not available' }
+      const welcomeText = emailInfo.sent
+        ? `Account created. A welcome email was sent to ${formData.email}.`
+        : `Account created, but the welcome email could not be sent: ${emailInfo.reason}.`
+      const verifyText = verificationInfo.sent
+        ? `A verification email was sent to ${formData.email}. Check your inbox and spam folder.`
+        : `We could not send a verification email: ${verificationInfo.reason}.`
+
+      setSuccessMessage(`${welcomeText} ${verifyText}`)
+      setEmailStatus({
+        sent: emailInfo.sent && verificationInfo.sent,
+        confirmationEmail: emailInfo,
+        verificationEmail: verificationInfo,
+      })
+
+      window.setTimeout(() => {
+        navigate(`/${formData.role}/dashboard`)
+      }, 2600)
     } catch (err) {
       const msg = String(err.message || err)
       // if the email is already in use, redirect user to login with email prefilled
@@ -320,16 +344,15 @@ export default function SignUp() {
               >
                 {loading ? 'Creating Account...' : 'Sign Up'}
               </motion.button>
-
-              {/* Login Link */}
-              <motion.p className="text-gray-900 font-semibold text-center px-2" variants={itemVariants}>
-                Already have an account?{' '}
-                <Link to="/login" className="underline hover:text-blue-900 transition-colors">
-                  Log in
-                </Link>
-              </motion.p>
-
-              {/* Divider */}
+                {successMessage && (
+                  <motion.div
+                    className={`rounded-2xl border px-4 py-3 text-sm ${emailStatus?.sent ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    {successMessage}
+                  </motion.div>
+                )}
               <motion.div className="w-full flex items-center gap-3" variants={itemVariants}>
                 <div className="flex-1 h-px bg-gray-400 opacity-50" />
                 <span className="text-gray-700 text-sm font-medium">Or</span>

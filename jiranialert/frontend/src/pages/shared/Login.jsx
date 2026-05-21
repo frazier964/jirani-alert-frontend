@@ -87,10 +87,11 @@ export default function Login() {
 
     setSubmitting(true)
     try {
-      const user = await loginUser({ email, password })
+      const trimmedEmail = email.trim().toLowerCase()
+      const user = await loginUser({ email: trimmedEmail, password })
 
       if (remember) {
-        localStorage.setItem('jiranialert_remember_email', email)
+        localStorage.setItem('jiranialert_remember_email', trimmedEmail)
       } else {
         localStorage.removeItem('jiranialert_remember_email')
       }
@@ -100,7 +101,14 @@ export default function Login() {
       else if (role === 'responder') navigate('/responder/dashboard')
       else navigate('/admin/dashboard')
     } catch (err) {
-      setError(err.message || 'Unable to sign in. Please try again.')
+      const message = String(err.message || err || 'Unable to sign in. Please try again.')
+      if (message.includes('auth/user-not-found')) {
+        setError('No account found for that email. Please sign up first.')
+      } else if (message.includes('auth/wrong-password')) {
+        setError('Incorrect password. Please try again.')
+      } else {
+        setError(message)
+      }
     } finally {
       setSubmitting(false)
     }
@@ -175,7 +183,7 @@ export default function Login() {
         ))}
       </div>
 
-      <main className="pt-28 pb-16 relative z-10">
+      <main className="pt-12 sm:pt-16 pb-16 relative z-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 24 }}

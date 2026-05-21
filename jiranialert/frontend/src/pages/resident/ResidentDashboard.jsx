@@ -256,14 +256,14 @@ export default function ResidentDashboard() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#F8FAFC_0%,#EEF4FB_100%)] text-slate-900">
 
-      <div className="mx-auto w-full max-w-[1780px] px-3 py-3 sm:px-5 lg:px-6 lg:py-5">
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(340px,0.72fr)] 2xl:grid-cols-[minmax(0,1.75fr)_400px]">
-          <main className="min-w-0 space-y-4 pb-24 lg:pb-0">
+      <div className="mx-auto w-full max-w-[1780px] px-3 pt-6 pb-8 sm:px-5 sm:pt-8 lg:px-6 lg:pb-10">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(360px,0.85fr)] 2xl:grid-cols-[minmax(0,1.7fr)_420px]">
+          <main className="min-w-0 space-y-5 pb-24 lg:pb-0">
             <motion.section
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45 }}
-              className="relative overflow-hidden rounded-3xl border border-white/80 bg-gradient-to-r from-[#1E3A5F] via-[#2563EB] to-[#0f172a] p-5 text-white shadow-[0_22px_55px_rgba(15,23,42,0.2)] sm:p-6"
+              className="relative min-h-[280px] overflow-hidden rounded-3xl border border-white/80 bg-gradient-to-r from-[#1E3A5F] via-[#2563EB] to-[#0f172a] p-5 text-white shadow-[0_22px_55px_rgba(15,23,42,0.2)] sm:p-6"
             >
               <motion.div
                 className="absolute right-6 top-6 h-28 w-28 rounded-full bg-white/10 blur-3xl"
@@ -617,7 +617,7 @@ export default function ResidentDashboard() {
             </div>
           </main>
 
-          <aside className="space-y-4 xl:sticky xl:top-24 xl:max-h-[calc(100vh-7rem)] xl:overflow-y-auto xl:pr-1 scrollbar-custom">
+          <aside className="space-y-4 xl:sticky xl:top-28 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto xl:pr-1 scrollbar-custom">
             <motion.section
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}

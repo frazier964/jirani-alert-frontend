@@ -1,9 +1,10 @@
-import { auth, firestore, ensureAnonymous } from './firebase'
+import { auth, firestore, ensureAnonymous, waitForFirebaseReady } from './firebase'
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut as fbSignOut,
   onAuthStateChanged,
+  sendEmailVerification,
 } from 'firebase/auth'
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 
@@ -39,6 +40,19 @@ async function waitForAuthReady() {
   return auth.currentUser
 }
 
+async function sendVerificationEmailToUser(user) {
+  if (!auth || !user || !user.email) {
+    return { sent: false, reason: 'No authenticated user available' }
+  }
+
+  try {
+    await sendEmailVerification(user)
+    return { sent: true }
+  } catch (e) {
+    return { sent: false, reason: e?.message || 'Unable to send verification email' }
+  }
+}
+
 export function getCurrentUser() {
   try {
     return JSON.parse(localStorage.getItem(CURRENT_KEY) || 'null')
@@ -49,9 +63,13 @@ export function getCurrentUser() {
 
 export async function registerUser({ email, password, role = 'resident', displayName = '' }) {
   if (!auth) throw new Error('Firebase not configured')
+  await waitForFirebaseReady()
+  const normalizedEmail = String(email || '').trim().toLowerCase()
+  const normalizedPassword = String(password || '')
+
   let cred
   try {
-    cred = await createUserWithEmailAndPassword(auth, email, password)
+    cred = await createUserWithEmailAndPassword(auth, normalizedEmail, normalizedPassword)
   } catch (e) {
     const code = e?.code || 'auth/unknown'
     const message = e?.message || String(e)
@@ -73,7 +91,15 @@ export async function registerUser({ email, password, role = 'resident', display
   }
   const user = cred.user
 
+  let verificationEmail = { sent: false, reason: 'Verification email not sent' }
+  try {
+    verificationEmail = await sendVerificationEmailToUser(user)
+  } catch (e) {
+    verificationEmail = { sent: false, reason: e?.message || 'Unable to send verification email' }
+  }
+
   let savedProfile = null
+  let confirmationEmail = { sent: false, reason: 'Email not configured' }
   if (BACKEND_URL) {
     try {
       const token = await user.getIdToken()
@@ -94,6 +120,7 @@ export async function registerUser({ email, password, role = 'resident', display
         throw new Error(data?.error || 'Backend profile creation failed')
       }
       savedProfile = data?.profile || null
+      confirmationEmail = data?.confirmationEmail || confirmationEmail
     } catch (e) {
       // In local development the functions emulator may not be running.
       // Fall back to direct Firestore so the account still has a durable profile.
@@ -126,14 +153,17 @@ export async function registerUser({ email, password, role = 'resident', display
     : { id: user.uid, uid: user.uid, email: user.email, displayName: displayName || '', role, profileImageUrl: '', accountStatus: 'active' }
   setCurrentUserLocal(profile)
   emitProfileUpdated(profile)
-  return profile
+  return { ...profile, confirmationEmail, verificationEmail }
 }
 
 export async function loginUser({ email, password }) {
   if (!auth) throw new Error('Firebase not configured')
+  await waitForFirebaseReady()
+  const normalizedEmail = String(email || '').trim().toLowerCase()
+  const normalizedPassword = String(password || '')
   let cred
   try {
-    cred = await signInWithEmailAndPassword(auth, email, password)
+    cred = await signInWithEmailAndPassword(auth, normalizedEmail, normalizedPassword)
   } catch (e) {
     const code = e?.code || 'auth/unknown'
     const message = e?.message || String(e)
@@ -154,15 +184,36 @@ export async function loginUser({ email, password }) {
   }
   const user = cred.user
 
-  // fetch profile
+  // fetch persisted profile from backend first, then fallback to Firestore
   let profile = { id: user.uid, email: user.email }
   try {
-    if (firestore) {
-      const snap = await getDoc(doc(firestore, 'profiles', user.uid))
-      if (snap.exists()) profile = { id: user.uid, email: user.email, ...(snap.data() || {}) }
+    if (BACKEND_URL) {
+      const token = await user.getIdToken()
+      const res = await fetch(
+        `${BACKEND_URL}/getUserProfile/${encodeURIComponent(user.uid)}?userId=${encodeURIComponent(user.uid)}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      )
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data?.profile) {
+        profile = { id: user.uid, email: user.email, ...(data.profile || {}) }
+      }
     }
   } catch (e) {
-    // ignore
+    // ignore backend profile fetch failure and fallback to Firestore
+  }
+
+  if (profile.id === user.uid && profile.email === user.email && firestore) {
+    try {
+      const snap = await getDoc(doc(firestore, 'profiles', user.uid))
+      if (snap.exists()) profile = { id: user.uid, email: user.email, ...(snap.data() || {}) }
+    } catch (e) {
+      // ignore
+    }
   }
 
   setCurrentUserLocal(profile)
@@ -243,6 +294,8 @@ export function initAuthListener() {
   if (!auth) return
 
   onAuthStateChanged(auth, async (user) => {
+    await waitForFirebaseReady()
+
     if (!user) {
       // Don't clear cached profile here.
       // On initial page load, Firebase auth can briefly report null before
@@ -260,12 +313,15 @@ export function initAuthListener() {
     if (BACKEND_URL) {
       try {
         const token = await user.getIdToken()
-        const res = await fetch(`${BACKEND_URL}/getUserProfile/${encodeURIComponent(user.uid)}`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
+        const res = await fetch(
+          `${BACKEND_URL}/getUserProfile/${encodeURIComponent(user.uid)}?userId=${encodeURIComponent(user.uid)}`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           },
-        })
+        )
         const data = await res.json().catch(() => ({}))
         if (res.ok) {
           const backendProfile = data?.profile || null

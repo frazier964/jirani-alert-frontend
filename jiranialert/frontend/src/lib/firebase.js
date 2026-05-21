@@ -1,5 +1,11 @@
 import { initializeApp } from 'firebase/app'
-import { getAuth, signInAnonymously, connectAuthEmulator } from 'firebase/auth'
+import {
+  getAuth,
+  signInAnonymously,
+  connectAuthEmulator,
+  setPersistence,
+  browserLocalPersistence,
+} from 'firebase/auth'
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
 
@@ -34,22 +40,80 @@ const auth = app ? getAuth(app) : null
 const storage = app ? getStorage(app) : null
 const firestore = app ? getFirestore(app) : null
 
-const shouldUseEmulators =
-  (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATORS !== 'false') ||
-  import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true'
+const emulatorMode = String(import.meta.env.VITE_USE_FIREBASE_EMULATORS || '').trim().toLowerCase()
+const useEmulatorsFlag = emulatorMode === 'true' || emulatorMode === 'auto' || emulatorMode === ''
+const shouldUseEmulators = import.meta.env.DEV && useEmulatorsFlag
+let emulatorsConnected = false
 
-if (app && shouldUseEmulators) {
+async function isEmulatorAvailable(host, port, path = '/') {
+  try {
+    const response = await fetch(`http://${host}:${port}${path}`, {
+      method: 'GET',
+      mode: 'cors',
+      cache: 'no-store',
+    })
+    return response.ok || response.status === 404 || response.status === 401
+  } catch {
+    return false
+  }
+}
+
+async function connectEmulatorsIfAvailable() {
+  if (!app || !shouldUseEmulators) return false
+
+  const tryConnect = async () => {
+    const authAvailable = await isEmulatorAvailable('127.0.0.1', 9198, '/')
+    const firestoreAvailable = await isEmulatorAvailable('127.0.0.1', 8181, '/')
+    return authAvailable && firestoreAvailable
+  }
+
+  const available = emulatorMode === 'true' ? true : await tryConnect()
+  if (!available) {
+    console.warn('Firebase emulators not available, using production Firebase services instead.')
+    return false
+  }
+
   try {
     if (auth) {
-      // Disable emulator warnings in the browser console.
-      connectAuthEmulator(auth, 'http://127.0.0.1:9098', { disableWarnings: true })
+      connectAuthEmulator(auth, 'http://127.0.0.1:9198', { disableWarnings: true })
     }
     if (firestore) {
-      connectFirestoreEmulator(firestore, '127.0.0.1', 8081)
+      connectFirestoreEmulator(firestore, '127.0.0.1', 8181)
     }
+    emulatorsConnected = true
+    console.info('Firebase emulators connected for auth and firestore')
+    return true
   } catch (e) {
-    // ignore (connect*Emulator can throw if called twice)
+    console.warn('Firebase emulator connection failed:', e)
+    return false
   }
+}
+
+const firebaseReadyPromise = (async () => {
+  try {
+    await connectEmulatorsIfAvailable()
+  } catch (e) {
+    console.warn('Firebase emulator readiness check failed:', e)
+  }
+
+  if (auth) {
+    try {
+      await setPersistence(auth, browserLocalPersistence)
+    } catch (e) {
+      console.warn('Firebase auth persistence failed:', e)
+    }
+  }
+
+  return emulatorsConnected
+})()
+
+export async function waitForFirebaseReady() {
+  await firebaseReadyPromise
+  return emulatorsConnected
+}
+
+if (app) {
+  firebaseReadyPromise.catch(() => null)
 }
 
 async function ensureAnonymous() {

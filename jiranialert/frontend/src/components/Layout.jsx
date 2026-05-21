@@ -8,16 +8,20 @@ export default function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
   const isResident = location.pathname.startsWith('/resident')
+  const isProtectedRoute = ['/resident', '/responder', '/admin', '/alerts'].some((prefix) =>
+    location.pathname.startsWith(prefix),
+  )
   const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => {
-    if (!isResident) {
+    if (!isProtectedRoute) {
       setAuthChecked(true)
       return undefined
     }
 
     if (!auth) {
       setAuthChecked(true)
+      navigate('/login', { replace: true })
       return undefined
     }
 
@@ -27,12 +31,12 @@ export default function Layout() {
     })
 
     return () => unsubscribe()
-  }, [isResident, navigate])
+  }, [isProtectedRoute, navigate])
 
   return (
     <>
       {isResident && <TopNav />}
-      {isResident && !authChecked ? null : <Outlet />}
+      {isProtectedRoute && !authChecked ? null : <Outlet />}
     </>
   )
 }

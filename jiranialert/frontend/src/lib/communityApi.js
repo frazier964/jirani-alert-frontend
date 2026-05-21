@@ -1,9 +1,13 @@
-import { auth } from './firebase'
+import { auth, ensureAnonymous } from './firebase'
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5002/jiranialert/us-central1'
 
 async function callBackend(endpoint, method = 'GET', body = null) {
-  // Wait for auth to be ready
+  // Ensure we have an authenticated user before calling backend.
+  if (!auth.currentUser) {
+    await ensureAnonymous()
+  }
+
   await new Promise((resolve) => {
     if (auth.currentUser) {
       resolve()
