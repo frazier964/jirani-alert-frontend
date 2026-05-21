@@ -256,7 +256,7 @@ export default function ResidentDashboard() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#F8FAFC_0%,#EEF4FB_100%)] text-slate-900">
 
-      <div className="mx-auto w-full max-w-[1780px] px-3 pt-6 pb-8 sm:px-5 sm:pt-8 lg:px-6 lg:pb-10">
+      <div className="mx-auto w-full max-w-[1780px] px-3 pb-8 sm:px-5 lg:px-6 lg:pb-10">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(360px,0.85fr)] 2xl:grid-cols-[minmax(0,1.7fr)_420px]">
           <main className="min-w-0 space-y-5 pb-24 lg:pb-0">
             <motion.section

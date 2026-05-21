@@ -16,6 +16,7 @@ const Support = lazy(() => import('./pages/shared/Support'))
 const Terms = lazy(() => import('./pages/shared/Terms'))
 const Login = lazy(() => import('./pages/shared/Login'))
 const SignUp = lazy(() => import('./pages/shared/SignUp'))
+const VerifyEmail = lazy(() => import('./pages/shared/VerifyEmail'))
 const ResidentDashboard = lazy(() => import('./pages/resident/ResidentDashboard'))
 const ReportEmergency = lazy(() => import('./pages/resident/ReportEmergency'))
 const LiveMap = lazy(() => import('./pages/resident/LiveMap'))
@@ -58,6 +59,7 @@ function AppRoutes() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/register" element={<SignUp />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/report" element={<ReportEmergency />} />
 
           <Route element={<Layout />}>

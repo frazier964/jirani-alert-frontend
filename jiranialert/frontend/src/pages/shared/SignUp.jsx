@@ -24,6 +24,8 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [emailStatus, setEmailStatus] = useState(null)
+  const [accountCreated, setAccountCreated] = useState(false)
+  const [createdProfile, setCreatedProfile] = useState(null)
   const navigate = useNavigate()
 
   const handleChange = (e) => {
@@ -73,25 +75,22 @@ export default function SignUp() {
         displayName: formData.fullName,
       })
 
-      const emailInfo = user.confirmationEmail || { sent: false, reason: 'Welcome email status not available' }
       const verificationInfo = user.verificationEmail || { sent: false, reason: 'Verification email status not available' }
-      const welcomeText = emailInfo.sent
-        ? `Account created. A welcome email was sent to ${formData.email}.`
-        : `Account created, but the welcome email could not be sent: ${emailInfo.reason}.`
       const verifyText = verificationInfo.sent
         ? `A verification email was sent to ${formData.email}. Check your inbox and spam folder.`
         : `We could not send a verification email: ${verificationInfo.reason}.`
 
-      setSuccessMessage(`${welcomeText} ${verifyText}`)
+      setSuccessMessage(`Account created successfully. ${verifyText}`)
       setEmailStatus({
-        sent: emailInfo.sent && verificationInfo.sent,
-        confirmationEmail: emailInfo,
+        sent: verificationInfo.sent,
         verificationEmail: verificationInfo,
       })
-
-      window.setTimeout(() => {
-        navigate(`/${formData.role}/dashboard`)
-      }, 2600)
+      setAccountCreated(true)
+      setCreatedProfile({
+        fullName: formData.fullName,
+        email: formData.email,
+        role: formData.role,
+      })
     } catch (err) {
       const msg = String(err.message || err)
       // if the email is already in use, redirect user to login with email prefilled
@@ -344,6 +343,12 @@ export default function SignUp() {
               >
                 {loading ? 'Creating Account...' : 'Sign Up'}
               </motion.button>
+              <div className="text-sm text-slate-700 mt-2">
+                Already have an account?{' '}
+                <Link to="/login" className="font-semibold text-slate-900 hover:underline">
+                  Log in
+                </Link>
+              </div>
                 {successMessage && (
                   <motion.div
                     className={`rounded-2xl border px-4 py-3 text-sm ${emailStatus?.sent ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}
@@ -351,6 +356,43 @@ export default function SignUp() {
                     animate={{ opacity: 1, y: 0 }}
                   >
                     {successMessage}
+                  </motion.div>
+                )}
+                {accountCreated && createdProfile && (
+                  <motion.div
+                    className="mt-4 rounded-3xl border border-slate-200 bg-white/90 p-4 text-slate-800 shadow-sm"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    <p className="text-sm text-slate-600 mb-3">You have been invited to Jirani Alert. Verify your email using the link we sent, then sign in to access your assigned account type.</p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-2xl bg-slate-50 p-3">
+                        <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Full name</p>
+                        <p className="mt-2 text-sm font-semibold text-slate-900">{createdProfile.fullName}</p>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 p-3">
+                        <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Email</p>
+                        <p className="mt-2 text-sm font-semibold text-slate-900">{createdProfile.email}</p>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 p-3 sm:col-span-2">
+                        <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Account type</p>
+                        <p className="mt-2 text-sm font-semibold text-slate-900">{accountTypes.find((item) => item.value === createdProfile.role)?.label || createdProfile.role}</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <Link
+                        to="/login?verificationPending=true"
+                        className="inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                      >
+                        Go to login
+                      </Link>
+                      <Link
+                        to="/"
+                        className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+                      >
+                        Back to home
+                      </Link>
+                    </div>
                   </motion.div>
                 )}
               <motion.div className="w-full flex items-center gap-3" variants={itemVariants}>

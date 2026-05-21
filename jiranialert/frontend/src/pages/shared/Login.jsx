@@ -36,6 +36,7 @@ export default function Login() {
   const [remember, setRemember] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
+  const [infoMessage, setInfoMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -52,6 +53,12 @@ export default function Login() {
       const params = new URLSearchParams(location.search)
       const pre = params.get('prefillEmail')
       if (pre) setEmail(pre)
+      if (params.get('verified') === 'true') {
+        setInfoMessage('Your email is verified. Please sign in to continue.')
+      }
+      if (params.get('verificationPending') === 'true') {
+        setInfoMessage('Please verify your email before signing in. Check your inbox for the confirmation link.')
+      }
     } catch (e) {
       // ignore
     }
@@ -106,6 +113,8 @@ export default function Login() {
         setError('No account found for that email. Please sign up first.')
       } else if (message.includes('auth/wrong-password')) {
         setError('Incorrect password. Please try again.')
+      } else if (message.includes('auth/email-not-verified')) {
+        setError('Please verify your email address before signing in. Check your inbox for the confirmation link.')
       } else {
         setError(message)
       }
@@ -309,6 +318,17 @@ export default function Login() {
                     </button>
                   </div>
                 </div>
+
+                {infoMessage && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sky-700 text-sm flex items-center gap-2"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    {infoMessage}
+                  </motion.div>
+                )}
 
                 {error && (
                   <motion.div

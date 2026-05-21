@@ -91,15 +91,8 @@ export async function registerUser({ email, password, role = 'resident', display
   }
   const user = cred.user
 
-  let verificationEmail = { sent: false, reason: 'Verification email not sent' }
-  try {
-    verificationEmail = await sendVerificationEmailToUser(user)
-  } catch (e) {
-    verificationEmail = { sent: false, reason: e?.message || 'Unable to send verification email' }
-  }
-
   let savedProfile = null
-  let confirmationEmail = { sent: false, reason: 'Email not configured' }
+  let verificationEmail = { sent: false, reason: 'Email not configured' }
   if (BACKEND_URL) {
     try {
       const token = await user.getIdToken()
@@ -120,7 +113,7 @@ export async function registerUser({ email, password, role = 'resident', display
         throw new Error(data?.error || 'Backend profile creation failed')
       }
       savedProfile = data?.profile || null
-      confirmationEmail = data?.confirmationEmail || confirmationEmail
+      verificationEmail = data?.verificationEmail || verificationEmail
     } catch (e) {
       // In local development the functions emulator may not be running.
       // Fall back to direct Firestore so the account still has a durable profile.
@@ -137,7 +130,7 @@ export async function registerUser({ email, password, role = 'resident', display
         email: user.email,
         displayName: displayName || '',
         role,
-        accountStatus: 'active',
+        accountStatus: 'pending_verification',
         emailVerified: Boolean(user.emailVerified),
         authProvider: 'password',
         profileImageUrl: '',
@@ -150,10 +143,11 @@ export async function registerUser({ email, password, role = 'resident', display
 
   const profile = savedProfile
     ? { id: user.uid, email: user.email, ...(savedProfile || {}) }
-    : { id: user.uid, uid: user.uid, email: user.email, displayName: displayName || '', role, profileImageUrl: '', accountStatus: 'active' }
+    : { id: user.uid, uid: user.uid, email: user.email, displayName: displayName || '', role, profileImageUrl: '', accountStatus: 'pending_verification' }
+
   setCurrentUserLocal(profile)
   emitProfileUpdated(profile)
-  return { ...profile, confirmationEmail, verificationEmail }
+  return { ...profile, verificationEmail }
 }
 
 export async function loginUser({ email, password }) {
@@ -184,6 +178,16 @@ export async function loginUser({ email, password }) {
   }
   const user = cred.user
 
+  try {
+    await user.reload()
+  } catch (e) {
+    // ignore reload failures, continue with the latest available state
+  }
+
+  if (!user.emailVerified) {
+    throw new Error('auth/email-not-verified: Please verify your email before signing in.')
+  }
+
   // fetch persisted profile from backend first, then fallback to Firestore
   let profile = { id: user.uid, email: user.email }
   try {
@@ -201,6 +205,17 @@ export async function loginUser({ email, password }) {
       const data = await res.json().catch(() => ({}))
       if (res.ok && data?.profile) {
         profile = { id: user.uid, email: user.email, ...(data.profile || {}) }
+      }
+
+      if (profile.emailVerified === false) {
+        await fetch(`${BACKEND_URL}/updateUserProfile`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ emailVerified: true, accountStatus: 'active' }),
+        })
       }
     }
   } catch (e) {

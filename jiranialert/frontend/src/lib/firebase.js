@@ -84,7 +84,11 @@ async function connectEmulatorsIfAvailable() {
     console.info('Firebase emulators connected for auth and firestore')
     return true
   } catch (e) {
-    console.warn('Firebase emulator connection failed:', e)
+    if (e?.code === 'auth/emulator-config-failed') {
+      console.warn('Firebase auth emulator config failed; falling back to production Firebase services.', e)
+    } else {
+      console.warn('Firebase emulator connection failed:', e)
+    }
     return false
   }
 }

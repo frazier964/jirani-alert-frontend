@@ -93,7 +93,7 @@ export default function TopNav() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
+      <header className="sticky top-[var(--announcement-bar-height)] z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
         <div className="flex w-full items-center gap-3 px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E53935] text-white shadow-[0_14px_30px_rgba(229,57,53,0.28)]">

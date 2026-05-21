@@ -74,10 +74,14 @@ function getMailTransporter() {
   const smtpUser = getEnv('SMTP_USER')
   const smtpPass = getEnv('SMTP_PASS')
 
-  if (!gmailUser && !smtpHost) return null
+  if (!gmailUser && !smtpHost) {
+    console.warn('Email not configured: missing SMTP or Gmail credentials')
+    return null
+  }
   if (mailTransporter) return mailTransporter
 
   if (gmailUser && gmailPass) {
+    console.log(`Configuring Gmail mail transporter for ${gmailUser}`)
     mailTransporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -113,7 +117,22 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;')
 }
 
-async function sendSignupConfirmationEmail({ to, displayName, role }) {
+async function generateEmailVerificationLink(to) {
+  const appUrl = getEnv('APP_URL') || 'https://jirani-alert-frontend.vercel.app'
+  if (!to) {
+    throw new Error('Recipient email is required for verification link generation')
+  }
+
+  const link = await admin.auth().generateEmailVerificationLink(to, {
+    url: `${appUrl}/verify-email`,
+    handleCodeInApp: true,
+  })
+
+  console.log(`Generated verification link for ${to}`)
+  return link
+}
+
+async function sendSignupConfirmationEmail({ to, displayName, role, verificationLink }) {
   const transporter = getMailTransporter()
   if (!transporter || !to) return { sent: false, reason: 'Email is not configured' }
 
@@ -128,17 +147,25 @@ async function sendSignupConfirmationEmail({ to, displayName, role }) {
   const htmlName = escapeHtml(safeName)
   const htmlRoleLabel = escapeHtml(roleLabel)
   const htmlAppUrl = escapeHtml(appUrl)
+  const htmlVerificationLink = escapeHtml(verificationLink || `${htmlAppUrl}/verify-email`)
 
-  await transporter.sendMail({
+  const info = await transporter.sendMail({
     from: mailFrom,
     replyTo: mailFrom,
     to,
-    subject: 'Welcome to Jirani Alert',
+    subject: 'You are invited to Jirani Alert',
     text: [
       `Hi ${safeName},`,
       '',
-      `Your Jirani Alert ${roleLabel} account has been created successfully.`,
-      'You can now sign in, manage your profile, and use live emergency reporting features.',
+      `You have been invited to join Jirani Alert as a ${roleLabel}.`,
+      '',
+      'To verify your identity and activate your account, please click the link below:',
+      '',
+      verificationLink || `${appUrl}/verify-email`,
+      '',
+      'This link is a one-time use verification link that will grant you access to your assigned account type.',
+      '',
+      'After verifying your email, you can always access the system by logging in.',
       '',
       `Open Jirani Alert: ${appUrl}`,
       '',
@@ -147,17 +174,26 @@ async function sendSignupConfirmationEmail({ to, displayName, role }) {
     ].join('\n'),
     html: `
       <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a">
-        <h2 style="color:#2563eb">Welcome to Jirani Alert</h2>
+        <h2 style="color:#2563eb">You're invited to Jirani Alert</h2>
         <p>Hi ${htmlName},</p>
-        <p>Your <strong>${htmlRoleLabel}</strong> account has been created successfully.</p>
-        <p>You can now sign in, manage your profile, and use live emergency reporting features.</p>
-        <p><a href="${htmlAppUrl}" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:700">Open Jirani Alert</a></p>
-        <p style="color:#64748b;font-size:13px">If you did not create this account, please contact Jirani Alert support.</p>
+        <p>You have been invited to join Jirani Alert as a <strong>${htmlRoleLabel}</strong>.</p>
+        <p>To verify your identity and activate your account, click the button below:</p>
+        <p>
+          <a href="${htmlVerificationLink}" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:700">
+            Verify my account
+          </a>
+        </p>
+        <p>If the button does not work, paste this link into your browser:</p>
+        <p style="word-break:break-word"><a href="${htmlVerificationLink}" style="color:#2563eb">${htmlVerificationLink}</a></p>
+        <p style="margin-top:1rem;color:#64748b;font-size:13px">
+          This link can be used once to verify your email. After verification, sign in to access your account type anytime.
+        </p>
       </div>
     `,
   })
 
-  return { sent: true }
+  console.log(`Sent verification email to ${to}. messageId=${info.messageId || 'unknown'}`)
+  return { sent: true, messageId: info.messageId }
 }
 
 function getEmailTestSecret() {
@@ -180,7 +216,7 @@ function verifyTestEmailAccess(req) {
   }
 }
 
-async function sendTestEmail({ to, subject, message }) {
+async function sendTestEmail({ to, subject, message, verificationLink }) {
   const transporter = getMailTransporter()
   if (!transporter || !to) return { sent: false, reason: 'Email is not configured' }
 
@@ -189,19 +225,42 @@ async function sendTestEmail({ to, subject, message }) {
     getEnv('GMAIL_USER') ||
     getEnv('SMTP_USER') ||
     'Jirani Alert <officialmablaryyvisuals@gmail.com>'
+  const appUrl = getEnv('APP_URL') || 'https://jirani-alert-frontend.vercel.app'
+  const safeMessage = message || 'You have been invited to Jirani Alert. Click the link below to verify your account and sign in.'
+  const link = verificationLink || `${appUrl}/verify-email`
+  const safeLink = escapeHtml(link)
 
-  await transporter.sendMail({
+  const info = await transporter.sendMail({
     from: mailFrom,
     replyTo: mailFrom,
     to,
-    subject: subject || 'Jirani Alert test email',
-    text: message || 'This is a test email from the Jirani Alert backend.',
-    html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a"><p>${escapeHtml(
-      message || 'This is a test email from the Jirani Alert backend.',
-    )}</p></div>`,
+    subject: subject || 'You are invited to Jirani Alert',
+    text: [
+      safeMessage,
+      '',
+      `Verify your account: ${link}`,
+      '',
+      `If the button does not work, paste this link into your browser.`,
+    ].join('\n'),
+    html: `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a">
+        <h2 style="color:#2563eb">You are invited to Jirani Alert</h2>
+        <p>${escapeHtml(safeMessage)}</p>
+        <p>
+          <a href="${safeLink}" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:700">
+            Verify your account
+          </a>
+        </p>
+        <p style="margin-top:1rem;color:#64748b;font-size:13px">
+          If the button does not work, paste this link into your browser:
+        </p>
+        <p style="word-break:break-word"><a href="${safeLink}" style="color:#2563eb">${safeLink}</a></p>
+      </div>
+    `,
   })
 
-  return { sent: true }
+  console.log(`Sent backend test email to ${to}. messageId=${info.messageId || 'unknown'}`)
+  return { sent: true, messageId: info.messageId }
 }
 
 exports.sendTestEmail = onRequest({ region: 'us-central1' }, async (req, res) => {
@@ -214,10 +273,11 @@ exports.sendTestEmail = onRequest({ region: 'us-central1' }, async (req, res) =>
 
     const body = req.body || {}
     const to = String(body.to || req.query?.to || 'mabwogahillary@gmail.com').trim()
-    const subject = String(body.subject || req.query?.subject || 'Jirani Alert test email').trim()
+    const subject = String(body.subject || req.query?.subject || 'You are invited to Jirani Alert').trim()
     const message = String(
-      body.message || req.query?.message || 'This is a test email from the Jirani Alert backend.',
+      body.message || req.query?.message || 'You have been invited to Jirani Alert. Click the verification link below to verify your account and access your assigned account type.',
     ).trim()
+    const verificationLink = String(body.verificationLink || req.query?.verificationLink || '').trim()
 
     if (!to) {
       const error = new Error('Recipient email is required')
@@ -225,7 +285,7 @@ exports.sendTestEmail = onRequest({ region: 'us-central1' }, async (req, res) =>
       throw error
     }
 
-    const result = await sendTestEmail({ to, subject, message })
+    const result = await sendTestEmail({ to, subject, message, verificationLink })
     res.json({ ok: true, result })
   } catch (error) {
     sendError(res, error)
@@ -353,7 +413,7 @@ exports.createUserProfile = onRequest({ region: 'us-central1' }, async (req, res
           email,
           displayName,
           role,
-          accountStatus: 'active',
+          accountStatus: emailVerified ? 'active' : 'pending_verification',
           emailVerified,
           authProvider: 'password',
           profileImageUrl: '',
@@ -372,11 +432,12 @@ exports.createUserProfile = onRequest({ region: 'us-central1' }, async (req, res
       })
     })
 
-    let confirmationEmail = { sent: false, reason: 'Email is not configured' }
+    let verificationEmail = { sent: false, reason: 'Email is not configured' }
     try {
-      confirmationEmail = await sendSignupConfirmationEmail({ to: email, displayName, role })
+      const verificationLink = await generateEmailVerificationLink(email)
+      verificationEmail = await sendSignupConfirmationEmail({ to: email, displayName, role, verificationLink })
     } catch (emailError) {
-      confirmationEmail = { sent: false, reason: emailError.message || 'Email could not be sent' }
+      verificationEmail = { sent: false, reason: emailError.message || 'Verification email could not be sent' }
     }
 
     const saved = await profileRef.get()
@@ -384,7 +445,7 @@ exports.createUserProfile = onRequest({ region: 'us-central1' }, async (req, res
       ok: true,
       profile: saved.data(),
       notificationId: notificationRef.id,
-      confirmationEmail,
+      verificationEmail,
     })
   } catch (error) {
     sendError(res, error)
@@ -720,6 +781,8 @@ exports.updateUserProfile = onRequest({ region: 'us-central1' }, async (req, res
     if (typeof body.highContrast === 'boolean') updates.highContrast = body.highContrast
     if (typeof body.textSize === 'string') updates.textSize = body.textSize.trim()
     if (typeof body.alertTone === 'string') updates.alertTone = body.alertTone.trim()
+    if (typeof body.emailVerified === 'boolean') updates.emailVerified = body.emailVerified
+    if (typeof body.accountStatus === 'string') updates.accountStatus = body.accountStatus.trim()
     updates.updatedAt = FieldValue.serverTimestamp()
 
     await db.collection('profiles').doc(userId).set(updates, { merge: true })

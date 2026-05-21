@@ -27,7 +27,13 @@ export default function Layout() {
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setAuthChecked(true)
-      if (!user) navigate('/login', { replace: true })
+      if (!user) {
+        navigate('/login', { replace: true })
+        return
+      }
+      if (!user.emailVerified) {
+        navigate('/login?verificationPending=true', { replace: true })
+      }
     })
 
     return () => unsubscribe()

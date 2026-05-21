@@ -56,7 +56,7 @@
 
 body {
   margin: 0;
-  padding-top: calc(var(--announcement-bar-height) + var(--header-height));
+  padding-top: var(--announcement-bar-height);
 }
 
 html {
