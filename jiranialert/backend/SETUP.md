@@ -38,9 +38,9 @@ Or use the PowerShell script:
 ```
 
 **Default URLs:**
-- Firestore Emulator: http://localhost:8080
-- Functions Emulator: http://localhost:5001
-- Emulator UI: http://localhost:4000
+- Firestore Emulator: http://localhost:8181
+- Functions Emulator: http://localhost:5002
+- Emulator UI: http://localhost:4021
 
 ### 4. Seed Demo Data (Optional)
 
@@ -58,7 +58,7 @@ Or manually create posts via the Emulator UI at http://localhost:4000
 
 Check the health endpoint:
 ```bash
-curl http://localhost:5001/jiranialert/us-central1/health
+curl http://localhost:5002/jiranialert/us-central1/health
 ```
 
 Expected response:
@@ -95,12 +95,48 @@ Create `backend/functions/.env` from `backend/functions/.env.example`:
 
 ```
 APP_URL=https://jirani-alert-frontend.vercel.app
-MAIL_FROM="Jirani Alert <your-email@gmail.com>"
-GMAIL_USER=your-email@gmail.com
+MAIL_FROM="Jirani Alert <officialmablaryyvisuals@gmail.com>"
+GMAIL_USER=officialmablaryyvisuals@gmail.com
 GMAIL_APP_PASSWORD=your-16-character-app-password
 ```
 
-For Gmail, use a Google App Password. Do not use your normal Gmail password.
+For Gmail, use a Google App Password, not your normal Gmail password.
+A valid Gmail app password is 16 characters long and contains no spaces.
+If the value in your `.env` file has spaces, remove them before restarting the emulator.
+
+You can verify SMTP email delivery with a dedicated test endpoint.
+Set `EMAIL_TEST_SECRET` to a secret string in `backend/functions/.env` and then POST to:
+
+```bash
+http://localhost:5002/jiranialert/us-central1/sendTestEmail?secret=your-secret
+```
+
+Request body example:
+```json
+{
+  "to": "mabwogahillary@gmail.com",
+  "subject": "Jirani Alert Test Email",
+  "message": "This is a test email from the Jirani Alert backend."
+}
+```
+
+> Note: local Firebase emulators use separate auth and Firestore data from your live project.
+> If you want your local app to sign in with users from the deployed Firebase console,
+> set `VITE_USE_FIREBASE_EMULATORS=false` in `frontend/.env.local` and update
+> `VITE_BACKEND_URL` to the deployed functions base URL.
+>
+> For automatic emulator detection during local development, use:
+> `VITE_USE_FIREBASE_EMULATORS=auto`
+
+### Start the backend emulators
+Run from the `backend` directory so Firebase finds `firebase.json` correctly:
+
+```bash
+cd backend
+npm run emulators
+```
+
+If a previous emulator instance is still running, stop it first. Then refresh the frontend.
 
 ## API Endpoints
 
@@ -224,7 +260,7 @@ Track a share action on a post.
 
 1. **Check if emulator is running:**
    ```bash
-   curl http://localhost:5001/jiranialert/us-central1/health
+   curl http://localhost:5002/jiranialert/us-central1/health
    ```
 
 2. **Check CORS settings:** The backend allows:

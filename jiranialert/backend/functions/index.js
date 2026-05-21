@@ -2,6 +2,41 @@ const { onRequest } = require('firebase-functions/v2/https')
 const admin = require('firebase-admin')
 const { getFirestore, FieldValue } = require('firebase-admin/firestore')
 const nodemailer = require('nodemailer')
+const fs = require('fs')
+const path = require('path')
+
+function loadLocalEnv() {
+  const envFile = path.join(__dirname, '.env')
+  if (!fs.existsSync(envFile)) return
+
+  const data = fs.readFileSync(envFile, 'utf8')
+  data.split(/\r?\n/).forEach((line) => {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) return
+    const equalsIndex = trimmed.indexOf('=')
+    if (equalsIndex === -1) return
+
+    const key = trimmed.slice(0, equalsIndex).trim()
+    let value = trimmed.slice(equalsIndex + 1).trim()
+    if (value.startsWith('"') && value.endsWith('"')) {
+      value = value.slice(1, -1)
+    }
+    if (process.env[key] === undefined) {
+      process.env[key] = value
+    }
+  })
+}
+
+loadLocalEnv()
+
+if (process.env.NODE_ENV !== 'production') {
+  if (!process.env.FIREBASE_AUTH_EMULATOR_HOST) {
+    process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9198'
+  }
+  if (!process.env.FIRESTORE_EMULATOR_HOST) {
+    process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8181'
+  }
+}
 
 admin.initializeApp()
 
@@ -18,13 +53,22 @@ const allowedOrigins = new Set([
 const allowedRoles = new Set(['resident', 'responder', 'admin'])
 let mailTransporter = null
 
+function normalizeEnvValue(value) {
+  if (typeof value !== 'string') return ''
+  let normalized = value.trim()
+  if (normalized.startsWith('"') && normalized.endsWith('"')) {
+    normalized = normalized.slice(1, -1)
+  }
+  return normalized
+}
+
 function getEnv(name) {
-  return process.env[name] || process.env[name.toLowerCase()] || ''
+  return normalizeEnvValue(process.env[name] || process.env[name.toLowerCase()] || '')
 }
 
 function getMailTransporter() {
   const gmailUser = getEnv('GMAIL_USER')
-  const gmailPass = getEnv('GMAIL_APP_PASSWORD')
+  const gmailPass = getEnv('GMAIL_APP_PASSWORD').replace(/\s+/g, '')
   const smtpHost = getEnv('SMTP_HOST')
   const smtpPort = Number(getEnv('SMTP_PORT') || 587)
   const smtpUser = getEnv('SMTP_USER')
@@ -73,7 +117,11 @@ async function sendSignupConfirmationEmail({ to, displayName, role }) {
   const transporter = getMailTransporter()
   if (!transporter || !to) return { sent: false, reason: 'Email is not configured' }
 
-  const mailFrom = getEnv('MAIL_FROM') || getEnv('GMAIL_USER') || getEnv('SMTP_USER')
+  const mailFrom =
+    getEnv('MAIL_FROM') ||
+    getEnv('GMAIL_USER') ||
+    getEnv('SMTP_USER') ||
+    'Jirani Alert <officialmablaryyvisuals@gmail.com>'
   const appUrl = getEnv('APP_URL') || 'https://jirani-alert-frontend.vercel.app'
   const safeName = displayName || 'there'
   const roleLabel = role === 'responder' ? 'Emergency Responder' : role === 'admin' ? 'Local Admin' : 'Resident'
@@ -83,6 +131,7 @@ async function sendSignupConfirmationEmail({ to, displayName, role }) {
 
   await transporter.sendMail({
     from: mailFrom,
+    replyTo: mailFrom,
     to,
     subject: 'Welcome to Jirani Alert',
     text: [
@@ -111,9 +160,82 @@ async function sendSignupConfirmationEmail({ to, displayName, role }) {
   return { sent: true }
 }
 
+function getEmailTestSecret() {
+  return getEnv('EMAIL_TEST_SECRET')
+}
+
+function verifyTestEmailAccess(req) {
+  const secret = getEmailTestSecret()
+  if (secret) {
+    const token = String((req.query && req.query.secret) || (req.body && req.body.secret) || '').trim()
+    if (!token || token !== secret) {
+      const error = new Error('Invalid email test secret')
+      error.status = 401
+      throw error
+    }
+  } else if (process.env.NODE_ENV === 'production') {
+    const error = new Error('Email test endpoint is disabled in production')
+    error.status = 403
+    throw error
+  }
+}
+
+async function sendTestEmail({ to, subject, message }) {
+  const transporter = getMailTransporter()
+  if (!transporter || !to) return { sent: false, reason: 'Email is not configured' }
+
+  const mailFrom =
+    getEnv('MAIL_FROM') ||
+    getEnv('GMAIL_USER') ||
+    getEnv('SMTP_USER') ||
+    'Jirani Alert <officialmablaryyvisuals@gmail.com>'
+
+  await transporter.sendMail({
+    from: mailFrom,
+    replyTo: mailFrom,
+    to,
+    subject: subject || 'Jirani Alert test email',
+    text: message || 'This is a test email from the Jirani Alert backend.',
+    html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a"><p>${escapeHtml(
+      message || 'This is a test email from the Jirani Alert backend.',
+    )}</p></div>`,
+  })
+
+  return { sent: true }
+}
+
+exports.sendTestEmail = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    verifyTestEmailAccess(req)
+
+    const body = req.body || {}
+    const to = String(body.to || req.query?.to || 'mabwogahillary@gmail.com').trim()
+    const subject = String(body.subject || req.query?.subject || 'Jirani Alert test email').trim()
+    const message = String(
+      body.message || req.query?.message || 'This is a test email from the Jirani Alert backend.',
+    ).trim()
+
+    if (!to) {
+      const error = new Error('Recipient email is required')
+      error.status = 400
+      throw error
+    }
+
+    const result = await sendTestEmail({ to, subject, message })
+    res.json({ ok: true, result })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
 function isAllowedOrigin(origin) {
   if (!origin) return false
   if (allowedOrigins.has(origin)) return true
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return true
   return /^https:\/\/jirani-alert-frontend(?:-[a-z0-9-]+)?\.vercel\.app$/i.test(origin)
 }
 
@@ -121,10 +243,12 @@ function setCors(req, res) {
   const origin = req.get('origin')
   if (isAllowedOrigin(origin)) {
     res.set('Access-Control-Allow-Origin', origin)
+    res.set('Access-Control-Allow-Credentials', 'true')
   }
   res.set('Vary', 'Origin')
-  res.set('Access-Control-Allow-Headers', 'Authorization, Content-Type')
+  res.set('Access-Control-Allow-Headers', 'Authorization, Content-Type, Accept')
   res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+  res.set('Access-Control-Max-Age', '600')
 }
 
 function handleOptions(req, res) {
@@ -159,9 +283,14 @@ function sendError(res, error) {
   if (status === 500) {
     console.error(error)
   }
-  res.status(status).json({
+  const payload = {
     error: status === 500 ? 'Internal server error' : error.message,
-  })
+  }
+  if (status === 500 && process.env.NODE_ENV !== 'production') {
+    payload.error = error.message || 'Internal server error'
+    payload.stack = error.stack ? error.stack.split('\n') : []
+  }
+  res.status(status).json(payload)
 }
 
 function requireMethod(req, method) {

@@ -33,9 +33,11 @@ This project is organized into two main directories:
 **Key files:**
 - `firebase.json` - Firebase configuration
 - `firestore.rules` - Database access rules
-- `firestore.indexes.json` - Firestore indexes
+- `firestore.indexes.json` - Firestore composite index definitions
 - `functions/` - Cloud function implementations
 - `package.json` - Backend dependencies
+
+> When deploying, Firestore composite indexes defined in `backend/firestore.indexes.json` should be deployed with `npx firebase deploy --only firestore:indexes`.
 
 ## 🚀 Getting Started
 

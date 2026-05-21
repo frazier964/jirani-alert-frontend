@@ -3,8 +3,8 @@ const admin = require('firebase-admin')
 const { seedCommunityPosts } = require('./functions/seed')
 
 // Initialize Firebase Admin SDK with emulator
-process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8081'
-process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9098'
+process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8181'
+process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9198'
 
 admin.initializeApp({
   projectId: 'jiranialert',

@@ -38,6 +38,19 @@ On this Windows machine, you can also use the helper script that adds the instal
 npm run deploy
 ```
 
+### Firestore indexes
+If you add or update composite indexes, deploy them with:
+
+```bash
+npx firebase deploy --only firestore:indexes
+```
+
+Or deploy both functions and indexes together:
+
+```bash
+npx firebase deploy --only functions,firestore:indexes
+```
+
 ## Functions
 
 - `health`: checks that the backend is running.

@@ -12,6 +12,10 @@ dist
 dist-ssr
 .vite
 *.local
+.env
+.env.*
+backend/functions/.env
+frontend/.env.local
 
 # Editor directories and files
 .vscode/*
