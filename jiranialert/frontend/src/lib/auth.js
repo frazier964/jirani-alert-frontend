@@ -1,7 +1,8 @@
-import { auth, firestore, ensureAnonymous, waitForFirebaseReady } from './firebase'
+import { auth, prodAuth, firestore, ensureAnonymous, waitForFirebaseReady } from './firebase'
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
   signOut as fbSignOut,
   onAuthStateChanged,
   sendEmailVerification,
@@ -29,17 +30,55 @@ function emitProfileUpdated(profile) {
 }
 
 async function waitForAuthReady() {
-  if (!auth) return null
-  if (auth.currentUser) return auth.currentUser
+  if (!auth && !prodAuth) return null
+  if (auth?.currentUser) return auth.currentUser
+  if (prodAuth?.currentUser) return prodAuth.currentUser
 
   await new Promise((resolve) => {
-    const unsubscribe = onAuthStateChanged(auth, () => {
-      unsubscribe()
-      resolve()
-    })
+    let resolved = false
+    const tryResolve = () => {
+      if (resolved) return
+      if (auth?.currentUser || prodAuth?.currentUser) {
+        resolved = true
+        unsubscribeAuth?.()
+        unsubscribeProd?.()
+        resolve()
+      }
+    }
+
+    const unsubscribeAuth = auth
+      ? onAuthStateChanged(auth, () => {
+          tryResolve()
+        })
+      : null
+    const unsubscribeProd = prodAuth
+      ? onAuthStateChanged(prodAuth, () => {
+          tryResolve()
+        })
+      : null
+
+    // fallback if neither auth provider updates quickly
+    setTimeout(() => {
+      if (!resolved) {
+        resolved = true
+        unsubscribeAuth?.()
+        unsubscribeProd?.()
+        resolve()
+      }
+    }, 2000)
   })
 
-  return auth.currentUser
+  return auth?.currentUser || prodAuth?.currentUser || null
+}
+
+export function getActiveUser() {
+  return auth?.currentUser || prodAuth?.currentUser || null
+}
+
+export function getActiveAuth() {
+  if (auth?.currentUser) return auth
+  if (prodAuth?.currentUser) return prodAuth
+  return auth || prodAuth
 }
 
 async function sendVerificationEmailToUser(user) {
@@ -60,7 +99,36 @@ export async function resendVerificationEmail() {
   await waitForFirebaseReady()
   const user = auth.currentUser
   if (!user) throw new Error('Please sign in before requesting a new verification email.')
-  return sendVerificationEmailToUser(user)
+
+  let verificationEmail = { sent: false, reason: 'Unable to send verification email' }
+  if (BACKEND_URL) {
+    try {
+      const token = await user.getIdToken()
+      const res = await fetch(`${BACKEND_URL}/resendVerificationEmail`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data?.error || 'Backend resend failed')
+      }
+      verificationEmail = { sent: true, reason: data?.result?.messageId ? 'Email sent via backend' : 'Email sent' }
+    } catch (e) {
+      verificationEmail = { sent: false, reason: e?.message || 'Backend resend failed' }
+    }
+  }
+
+  if (!verificationEmail.sent) {
+    const fallback = await sendVerificationEmailToUser(user)
+    verificationEmail = fallback.sent
+      ? { sent: true, reason: 'Email sent via Firebase auth fallback' }
+      : { sent: false, reason: verificationEmail.reason || fallback.reason }
+  }
+
+  return verificationEmail
 }
 
 export function getCurrentUser() {
@@ -73,9 +141,23 @@ export function getCurrentUser() {
 
 export async function registerUser({ email, password, role = 'resident', displayName = '' }) {
   if (!auth) throw new Error('Firebase not configured')
-  await waitForFirebaseReady()
+  const usingEmulators = await waitForFirebaseReady()
   const normalizedEmail = String(email || '').trim().toLowerCase()
   const normalizedPassword = String(password || '')
+
+  if (usingEmulators && prodAuth) {
+    try {
+      const methods = await fetchSignInMethodsForEmail(prodAuth, normalizedEmail)
+      if (Array.isArray(methods) && methods.length > 0) {
+        const err = new Error('auth/email-already-in-use: This email is already registered with production Firebase. Please log in instead.')
+        err.code = 'auth/email-already-in-use'
+        throw err
+      }
+    } catch (prodCheckError) {
+      // Ignore production lookup failures and continue with emulator registration.
+      // We do not want a temporary network issue to block signup.
+    }
+  }
 
   let cred
   try {
@@ -124,7 +206,12 @@ export async function registerUser({ email, password, role = 'resident', display
       }
       savedProfile = data?.profile || null
       verificationEmail = data?.verificationEmail || verificationEmail
+      if (verificationEmail.sent) {
+        verificationEmail.source = 'backend'
+      }
     } catch (e) {
+      const errorMessage = e?.message || 'Backend profile creation failed'
+      verificationEmail = { sent: false, reason: errorMessage, source: 'backend' }
       // In local development the functions emulator may not be running.
       // Fall back to direct Firestore so the account still has a durable profile.
       if (!firestore) throw e
@@ -154,8 +241,8 @@ export async function registerUser({ email, password, role = 'resident', display
   if (!verificationEmail.sent) {
     const fallback = await sendVerificationEmailToUser(user)
     verificationEmail = fallback.sent
-      ? { sent: true }
-      : { sent: false, reason: verificationEmail.reason || fallback.reason }
+      ? { sent: true, source: 'firebase' }
+      : { sent: false, reason: verificationEmail.reason || fallback.reason, source: 'firebase' }
   }
 
   const profile = savedProfile
@@ -173,32 +260,59 @@ export async function loginUser({ email, password }) {
   const normalizedEmail = String(email || '').trim().toLowerCase()
   const normalizedPassword = String(password || '')
   let cred
+  let authError = null
+  let authSource = 'emulator'
   try {
     cred = await signInWithEmailAndPassword(auth, normalizedEmail, normalizedPassword)
   } catch (e) {
-    const code = e?.code || 'auth/unknown'
-    const message = e?.message || String(e)
+    authError = e
+    if (e?.code === 'auth/user-not-found' && prodAuth) {
+      try {
+        cred = await signInWithEmailAndPassword(prodAuth, normalizedEmail, normalizedPassword)
+        authSource = 'production'
+      } catch (prodError) {
+        authError = prodError
+      }
+    }
+  }
+
+  if (!cred) {
+    const code = authError?.code || 'auth/unknown'
+    const message = authError?.message || String(authError)
     const err = new Error(`${code}: ${message}`)
-    err.original = e
-    // log original Firebase error for debugging in dev only
+    err.original = authError
     try {
       if (import.meta.env.DEV || import.meta.env.VITE_DEBUG_AUTH === 'true') {
         // eslint-disable-next-line no-console
-        console.error('Firebase loginUser error:', e)
+        console.error('Firebase loginUser error:', authError)
         // eslint-disable-next-line no-console
-        console.error('tokenResponse:', e?._tokenResponse || e?.customData || null)
+        console.error('tokenResponse:', authError?._tokenResponse || authError?.customData || null)
       }
     } catch (logErr) {
       // ignore logging failures
     }
     throw err
   }
-  const user = cred.user
+  let user = cred.user
 
   try {
     await user.reload()
   } catch (e) {
     // ignore reload failures, continue with the latest available state
+  }
+
+  if (!user.emailVerified && authSource === 'emulator' && prodAuth) {
+    try {
+      const prodCred = await signInWithEmailAndPassword(prodAuth, normalizedEmail, normalizedPassword)
+      const prodUser = prodCred.user
+      await prodUser.reload()
+      if (prodUser.emailVerified) {
+        authSource = 'production'
+        user = prodUser
+      }
+    } catch (prodError) {
+      // ignore production fallback failures here, normal verification flow remains
+    }
   }
 
   if (!user.emailVerified) {
@@ -251,7 +365,7 @@ export async function loginUser({ email, password }) {
   setCurrentUserLocal(profile)
   emitProfileUpdated(profile)
 
-  return profile
+  return { ...profile, authSource }
 }
 
 export async function logout() {

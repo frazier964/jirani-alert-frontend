@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app'
+import { initializeApp, getApps } from 'firebase/app'
 import {
   getAuth,
   signInAnonymously,
@@ -37,6 +37,8 @@ if (hasFirebaseConfig) {
 }
 
 const auth = app ? getAuth(app) : null
+const prodApp = hasFirebaseConfig ? getApps().find((instance) => instance.name === 'prod') || initializeApp(firebaseConfig, 'prod') : null
+const prodAuth = prodApp ? getAuth(prodApp) : null
 const storage = app ? getStorage(app) : null
 const firestore = app ? getFirestore(app) : null
 
@@ -119,6 +121,8 @@ export async function waitForFirebaseReady() {
 if (app) {
   firebaseReadyPromise.catch(() => null)
 }
+
+export { prodAuth }
 
 async function ensureAnonymous() {
   if (!auth) return null

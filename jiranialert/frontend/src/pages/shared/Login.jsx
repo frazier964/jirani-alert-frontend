@@ -100,6 +100,14 @@ export default function Login() {
       const trimmedEmail = email.trim().toLowerCase()
       const user = await loginUser({ email: trimmedEmail, password })
 
+      if (user.authSource) {
+        setInfoMessage(
+          user.authSource === 'production'
+            ? 'Logged in using production Firebase auth.'
+            : 'Logged in using local emulator auth.',
+        )
+      }
+
       if (remember) {
         localStorage.setItem('jiranialert_remember_email', trimmedEmail)
       } else {

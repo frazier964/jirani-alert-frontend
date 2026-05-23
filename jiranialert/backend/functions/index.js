@@ -81,12 +81,17 @@ function getMailTransporter() {
   if (mailTransporter) return mailTransporter
 
   if (gmailUser && gmailPass) {
-    console.log(`Configuring Gmail mail transporter for ${gmailUser}`)
+    console.log(`Configuring Gmail SMTP transporter for ${gmailUser}`)
     mailTransporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
       auth: {
         user: gmailUser,
         pass: gmailPass,
+      },
+      tls: {
+        rejectUnauthorized: false,
       },
     })
     return mailTransporter
@@ -153,19 +158,19 @@ async function sendSignupConfirmationEmail({ to, displayName, role, verification
     from: mailFrom,
     replyTo: mailFrom,
     to,
-    subject: 'You are invited to Jirani Alert',
+    subject: 'Confirm your Jirani Alert account',
     text: [
       `Hi ${safeName},`,
       '',
-      `You have been invited to join Jirani Alert as a ${roleLabel}.`,
+      `Thanks for signing up for Jirani Alert as a ${roleLabel}.`,
       '',
-      'To verify your identity and activate your account, please click the link below:',
+      'Please verify your email address to activate your account and access the correct dashboard for your role.',
       '',
       verificationLink || `${appUrl}/verify-email`,
       '',
-      'This link is a one-time use verification link that will grant you access to your assigned account type.',
+      'This link is a one-time use verification link. After verification, sign in again to access your dashboard.',
       '',
-      'After verifying your email, you can always access the system by logging in.',
+      `If you did not sign up for Jirani Alert, please ignore this message.`,
       '',
       `Open Jirani Alert: ${appUrl}`,
       '',
@@ -234,7 +239,7 @@ async function sendTestEmail({ to, subject, message, verificationLink }) {
     from: mailFrom,
     replyTo: mailFrom,
     to,
-    subject: subject || 'You are invited to Jirani Alert',
+    subject: subject || 'Confirm your Jirani Alert account',
     text: [
       safeMessage,
       '',
@@ -286,6 +291,39 @@ exports.sendTestEmail = onRequest({ region: 'us-central1' }, async (req, res) =>
     }
 
     const result = await sendTestEmail({ to, subject, message, verificationLink })
+    res.json({ ok: true, result })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.resendVerificationEmail = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireUser(req)
+    const profileSnap = await db.collection('profiles').doc(user.uid).get()
+    const profile = profileSnap.exists ? profileSnap.data() : {}
+    const displayName = profile.displayName || user.displayName || ''
+    const role = typeof profile.role === 'string' && profile.role ? profile.role : 'resident'
+    const email = String(user.email || '').trim()
+
+    if (!email) {
+      const error = new Error('User email is missing')
+      error.status = 400
+      throw error
+    }
+
+    const verificationLink = await generateEmailVerificationLink(email)
+    const result = await sendSignupConfirmationEmail({ to: email, displayName, role, verificationLink })
+    if (!result.sent) {
+      const error = new Error(result.reason || 'Unable to send verification email')
+      error.status = 500
+      throw error
+    }
+
     res.json({ ok: true, result })
   } catch (error) {
     sendError(res, error)
@@ -403,6 +441,14 @@ exports.createUserProfile = onRequest({ region: 'us-central1' }, async (req, res
       await admin.auth().setCustomUserClaims(user.uid, { role })
     } catch (claimsError) {
       console.warn('Could not set custom user claims:', claimsError.message || claimsError)
+    }
+
+    try {
+      if (displayName) {
+        await admin.auth().updateUser(user.uid, { displayName })
+      }
+    } catch (displayNameError) {
+      console.warn('Could not set auth displayName:', displayNameError.message || displayNameError)
     }
 
     await db.runTransaction(async (transaction) => {

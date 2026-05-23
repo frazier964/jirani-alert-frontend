@@ -375,6 +375,11 @@ export default function SignUp() {
                     animate={{ opacity: 1, y: 0 }}
                   >
                     {successMessage}
+                    {emailStatus?.source && (
+                      <p className="mt-2 text-xs text-slate-700">
+                        Email path: {emailStatus.source === 'backend' ? 'Backend SMTP' : 'Firebase auth fallback'}
+                      </p>
+                    )}
                   </motion.div>
                 )}
                 {accountCreated && createdProfile && (

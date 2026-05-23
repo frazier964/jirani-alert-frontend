@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { applyActionCode, getIdTokenResult } from 'firebase/auth'
-import { auth } from '../../lib/firebase'
+import { auth, prodAuth } from '../../lib/firebase'
 import { resendVerificationEmail } from '../../lib/auth'
 
 export default function VerifyEmail() {
@@ -27,7 +27,8 @@ export default function VerifyEmail() {
 
     async function verify() {
       try {
-        if (auth.currentUser && auth.currentUser.emailVerified) {
+        const currentUser = auth.currentUser || prodAuth.currentUser
+        if (currentUser && currentUser.emailVerified) {
           setStatus('success')
           setMessage('Your email is already verified. Redirecting you to your dashboard...')
         } else {
@@ -36,9 +37,10 @@ export default function VerifyEmail() {
           setMessage('Email verified successfully. Redirecting you to your dashboard...')
         }
 
-        if (auth.currentUser) {
-          await auth.currentUser.reload()
-          const tokenResult = await getIdTokenResult(auth.currentUser, true)
+        const verifiedUser = auth.currentUser || prodAuth.currentUser
+        if (verifiedUser) {
+          await verifiedUser.reload()
+          const tokenResult = await getIdTokenResult(verifiedUser, true)
           const role = tokenResult.claims.role || 'resident'
           const dashboardRoute =
             role === 'admin'

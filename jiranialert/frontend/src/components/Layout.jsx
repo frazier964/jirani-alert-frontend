@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { onAuthStateChanged } from 'firebase/auth'
 import TopNav from './Layout/TopNav'
-import { auth } from '../lib/firebase'
+import { auth, prodAuth } from '../lib/firebase'
 
 export default function Layout() {
   const location = useLocation()
@@ -19,13 +19,14 @@ export default function Layout() {
       return undefined
     }
 
-    if (!auth) {
+    if (!auth && !prodAuth) {
       setAuthChecked(true)
       navigate('/login', { replace: true })
       return undefined
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const checkUser = () => {
+      const user = auth?.currentUser || prodAuth?.currentUser
       setAuthChecked(true)
       if (!user) {
         navigate('/login', { replace: true })
@@ -34,9 +35,16 @@ export default function Layout() {
       if (!user.emailVerified) {
         navigate('/login?verificationPending=true', { replace: true })
       }
-    })
+    }
 
-    return () => unsubscribe()
+    checkUser()
+    const unsubscribeAuth = auth ? onAuthStateChanged(auth, checkUser) : null
+    const unsubscribeProd = prodAuth ? onAuthStateChanged(prodAuth, checkUser) : null
+
+    return () => {
+      unsubscribeAuth?.()
+      unsubscribeProd?.()
+    }
   }, [isProtectedRoute, navigate])
 
   return (
