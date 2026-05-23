@@ -1,6 +1,8 @@
 import { auth, storage, storageRef, uploadBytesResumable, getDownloadURL, ensureAnonymous } from './firebase'
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5002/jiranialert/us-central1'
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL ||
+  (import.meta.env.DEV ? 'http://localhost:5002/jiranialert/us-central1' : 'https://us-central1-jiranialert.cloudfunctions.net')
 
 async function waitForAuthReady() {
   if (!auth) return null

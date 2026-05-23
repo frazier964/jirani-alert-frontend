@@ -9,7 +9,9 @@ import {
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 
 const CURRENT_KEY = 'jiranialert_current'
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5002/jiranialert/us-central1'
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL ||
+  (import.meta.env.DEV ? 'http://localhost:5002/jiranialert/us-central1' : 'https://us-central1-jiranialert.cloudfunctions.net')
 
 function setCurrentUserLocal(userObj) {
   if (!userObj) localStorage.removeItem(CURRENT_KEY)
@@ -51,6 +53,14 @@ async function sendVerificationEmailToUser(user) {
   } catch (e) {
     return { sent: false, reason: e?.message || 'Unable to send verification email' }
   }
+}
+
+export async function resendVerificationEmail() {
+  if (!auth) throw new Error('Firebase not configured')
+  await waitForFirebaseReady()
+  const user = auth.currentUser
+  if (!user) throw new Error('Please sign in before requesting a new verification email.')
+  return sendVerificationEmailToUser(user)
 }
 
 export function getCurrentUser() {
@@ -139,6 +149,13 @@ export async function registerUser({ email, password, role = 'resident', display
       },
       { merge: true },
     )
+  }
+
+  if (!verificationEmail.sent) {
+    const fallback = await sendVerificationEmailToUser(user)
+    verificationEmail = fallback.sent
+      ? { sent: true }
+      : { sent: false, reason: verificationEmail.reason || fallback.reason }
   }
 
   const profile = savedProfile

@@ -15,7 +15,7 @@ import {
   Shield,
   X,
 } from 'lucide-react'
-import { loginUser } from '../../lib/auth'
+import { loginUser, resendVerificationEmail } from '../../lib/auth'
 
 const trustItems = [
   { title: 'Real-Time Notifications', icon: Bell },
@@ -37,6 +37,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [infoMessage, setInfoMessage] = useState('')
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendResult, setResendResult] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -90,6 +92,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setResendResult('')
     if (!validate()) return
 
     setSubmitting(true)
@@ -120,6 +123,24 @@ export default function Login() {
       }
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleResendVerification = async () => {
+    setResendLoading(true)
+    setResendResult('')
+
+    try {
+      const result = await resendVerificationEmail()
+      if (result.sent) {
+        setResendResult('A fresh verification email has been sent. Please check your inbox and spam folder.')
+      } else {
+        setResendResult(result.reason || 'Unable to resend verification email.')
+      }
+    } catch (e) {
+      setResendResult(e?.message || 'Unable to resend verification email.')
+    } finally {
+      setResendLoading(false)
     }
   }
 
@@ -334,10 +355,27 @@ export default function Login() {
                   <motion.div
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-red-700 text-sm flex items-center gap-2"
+                    className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-red-700 text-sm flex flex-col gap-3"
                   >
-                    <AlertCircle className="h-4 w-4" />
-                    {error}
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4" />
+                      <span>{error}</span>
+                    </div>
+                    {error.includes('verify your email') && (
+                      <button
+                        type="button"
+                        onClick={handleResendVerification}
+                        disabled={resendLoading}
+                        className="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-70 disabled:cursor-not-allowed"
+                      >
+                        {resendLoading ? 'Sending new verification email...' : 'Resend verification email'}
+                      </button>
+                    )}
+                    {resendResult && (
+                      <p className="rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-700">
+                        {resendResult}
+                      </p>
+                    )}
                   </motion.div>
                 )}
 

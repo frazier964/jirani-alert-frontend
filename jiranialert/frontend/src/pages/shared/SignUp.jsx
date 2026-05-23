@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, AlertCircle } from 'lucide-react'
-import { registerUser } from '../../lib/auth'
+import { registerUser, resendVerificationEmail } from '../../lib/auth'
 
 const accountTypes = [
   { value: 'resident', label: 'Resident / Community Member' },
@@ -26,6 +26,8 @@ export default function SignUp() {
   const [emailStatus, setEmailStatus] = useState(null)
   const [accountCreated, setAccountCreated] = useState(false)
   const [createdProfile, setCreatedProfile] = useState(null)
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendResult, setResendResult] = useState('')
   const navigate = useNavigate()
 
   const handleChange = (e) => {
@@ -104,6 +106,23 @@ export default function SignUp() {
     }
   }
 
+  const handleResendVerification = async () => {
+    setResendLoading(true)
+    setResendResult('')
+    try {
+      const result = await resendVerificationEmail()
+      if (result.sent) {
+        setResendResult('A fresh verification email has been sent. Please check your inbox and spam folder.')
+      } else {
+        setResendResult(result.reason || 'Unable to resend verification email.')
+      }
+    } catch (e) {
+      setResendResult(e?.message || 'Unable to resend verification email.')
+    } finally {
+      setResendLoading(false)
+    }
+  }
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -121,8 +140,8 @@ export default function SignUp() {
     <div
       className="relative min-h-screen bg-gradient-to-b from-blue-400 via-purple-500 to-indigo-700 overflow-hidden px-3 sm:px-4 md:px-8 pb-8"
       style={{
-        marginTop: 'calc(-1 * (var(--announcement-bar-height) + var(--header-height)))',
-        paddingTop: 'calc(var(--announcement-bar-height) + 0.35rem)',
+        marginTop: 'calc(-1 * var(--announcement-bar-height))',
+        paddingTop: 'var(--announcement-bar-height)',
       }}
     >
       <div className="mx-auto max-w-6xl py-3">
@@ -379,6 +398,23 @@ export default function SignUp() {
                         <p className="mt-2 text-sm font-semibold text-slate-900">{accountTypes.find((item) => item.value === createdProfile.role)?.label || createdProfile.role}</p>
                       </div>
                     </div>
+                    {accountCreated && emailStatus && !emailStatus.sent && (
+                      <div className="mt-4">
+                        <button
+                          type="button"
+                          onClick={handleResendVerification}
+                          disabled={resendLoading}
+                          className="inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+                        >
+                          {resendLoading ? 'Resending verification email...' : 'Resend verification email'}
+                        </button>
+                        {resendResult && (
+                          <div className="mt-3 rounded-2xl bg-slate-100 p-3 text-sm text-slate-700">
+                            {resendResult}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
                       <Link
                         to="/login?verificationPending=true"

@@ -1,6 +1,8 @@
 import { auth, ensureAnonymous } from './firebase'
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5002/jiranialert/us-central1'
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL ||
+  (import.meta.env.DEV ? 'http://localhost:5002/jiranialert/us-central1' : 'https://us-central1-jiranialert.cloudfunctions.net')
 
 async function callBackend(endpoint, method = 'GET', body = null) {
   // Ensure we have an authenticated user before calling backend.
