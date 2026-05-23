@@ -12,7 +12,7 @@ import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 const CURRENT_KEY = 'jiranialert_current'
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV ? 'http://localhost:5002/jiranialert/us-central1' : 'https://us-central1-jiranialert.cloudfunctions.net')
+  (import.meta.env.DEV ? 'http://localhost:5004/jiranialert/us-central1' : 'https://us-central1-jiranialert.cloudfunctions.net')
 
 function setCurrentUserLocal(userObj) {
   if (!userObj) localStorage.removeItem(CURRENT_KEY)
@@ -94,11 +94,44 @@ async function sendVerificationEmailToUser(user) {
   }
 }
 
-export async function resendVerificationEmail() {
+export async function resendVerificationEmail(email, password) {
   if (!auth) throw new Error('Firebase not configured')
   await waitForFirebaseReady()
-  const user = auth.currentUser
-  if (!user) throw new Error('Please sign in before requesting a new verification email.')
+  
+  let user = auth.currentUser
+  let tempSignedIn = false
+  
+  // If email and password are provided but user is not logged in, sign in temporarily
+  if (!user && email && password) {
+    try {
+      const normalizedEmail = String(email || '').trim().toLowerCase()
+      const normalizedPassword = String(password || '')
+      
+      // Try emulator first, then production
+      try {
+        const cred = await signInWithEmailAndPassword(auth, normalizedEmail, normalizedPassword)
+        user = cred.user
+        tempSignedIn = true
+      } catch (e) {
+        // If emulator fails, try production
+        if (prodAuth) {
+          try {
+            const cred = await signInWithEmailAndPassword(prodAuth, normalizedEmail, normalizedPassword)
+            user = cred.user
+            tempSignedIn = true
+          } catch (prodError) {
+            // Both failed
+          }
+        }
+      }
+    } catch (e) {
+      // ignore sign in errors, will try other methods
+    }
+  }
+  
+  if (!user) {
+    throw new Error('Please provide valid credentials to resend verification email.')
+  }
 
   let verificationEmail = { sent: false, reason: 'Unable to send verification email' }
   if (BACKEND_URL) {
@@ -126,6 +159,15 @@ export async function resendVerificationEmail() {
     verificationEmail = fallback.sent
       ? { sent: true, reason: 'Email sent via Firebase auth fallback' }
       : { sent: false, reason: verificationEmail.reason || fallback.reason }
+  }
+
+  // Sign out if we temporarily signed in just to resend the verification
+  if (tempSignedIn) {
+    try {
+      await fbSignOut(auth)
+    } catch (e) {
+      // ignore sign out errors
+    }
   }
 
   return verificationEmail

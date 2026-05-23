@@ -64,12 +64,13 @@ async function connectEmulatorsIfAvailable() {
   if (!app || !shouldUseEmulators) return false
 
   const tryConnect = async () => {
-    const authAvailable = await isEmulatorAvailable('127.0.0.1', 9198, '/')
-    const firestoreAvailable = await isEmulatorAvailable('127.0.0.1', 8181, '/')
-    return authAvailable && firestoreAvailable
+    const authAvailable = await isEmulatorAvailable('127.0.0.1', 9098, '/')
+    const firestoreAvailable = await isEmulatorAvailable('127.0.0.1', 9000, '/')
+    const functionsAvailable = await isEmulatorAvailable('127.0.0.1', 5004, '/')
+    return authAvailable && firestoreAvailable && functionsAvailable
   }
 
-  const available = emulatorMode === 'true' ? true : await tryConnect()
+  const available = shouldUseEmulators ? true : (emulatorMode === 'true' ? true : await tryConnect())
   if (!available) {
     console.warn('Firebase emulators not available, using production Firebase services instead.')
     return false
@@ -77,10 +78,10 @@ async function connectEmulatorsIfAvailable() {
 
   try {
     if (auth) {
-      connectAuthEmulator(auth, 'http://127.0.0.1:9198', { disableWarnings: true })
+      connectAuthEmulator(auth, 'http://127.0.0.1:9098', { disableWarnings: true })
     }
     if (firestore) {
-      connectFirestoreEmulator(firestore, '127.0.0.1', 8181)
+      connectFirestoreEmulator(firestore, '127.0.0.1', 9000)
     }
     emulatorsConnected = true
     console.info('Firebase emulators connected for auth and firestore')

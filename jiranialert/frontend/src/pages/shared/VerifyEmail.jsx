@@ -3,14 +3,11 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { applyActionCode, getIdTokenResult } from 'firebase/auth'
 import { auth, prodAuth } from '../../lib/firebase'
-import { resendVerificationEmail } from '../../lib/auth'
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams()
   const [status, setStatus] = useState('pending')
   const [message, setMessage] = useState('Verifying your email now...')
-  const [resendLoading, setResendLoading] = useState(false)
-  const [resendResult, setResendResult] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -27,17 +24,40 @@ export default function VerifyEmail() {
 
     async function verify() {
       try {
-        const currentUser = auth.currentUser || prodAuth.currentUser
+        const currentUser = auth?.currentUser || prodAuth?.currentUser
         if (currentUser && currentUser.emailVerified) {
           setStatus('success')
           setMessage('Your email is already verified. Redirecting you to your dashboard...')
         } else {
-          await applyActionCode(auth, oobCode)
-          setStatus('success')
-          setMessage('Email verified successfully. Redirecting you to your dashboard...')
+          // Try emulator first, then production
+          let verified = false
+          if (auth) {
+            try {
+              await applyActionCode(auth, oobCode)
+              verified = true
+            } catch (e) {
+              // Try production if emulator fails
+              if (prodAuth) {
+                try {
+                  await applyActionCode(prodAuth, oobCode)
+                  verified = true
+                } catch (prodError) {
+                  // Both failed
+                }
+              }
+            }
+          } else if (prodAuth) {
+            await applyActionCode(prodAuth, oobCode)
+            verified = true
+          }
+          
+          if (verified) {
+            setStatus('success')
+            setMessage('Email verified successfully. Redirecting you to your dashboard...')
+          }
         }
 
-        const verifiedUser = auth.currentUser || prodAuth.currentUser
+        const verifiedUser = auth?.currentUser || prodAuth?.currentUser
         if (verifiedUser) {
           await verifiedUser.reload()
           const tokenResult = await getIdTokenResult(verifiedUser, true)
@@ -96,43 +116,22 @@ export default function VerifyEmail() {
                 Go to login
               </Link>
             )}
-            {status === 'error' && auth.currentUser && (
-              <button
-                type="button"
-                onClick={async () => {
-                  setResendLoading(true)
-                  setResendResult('')
-                  try {
-                    const result = await resendVerificationEmail()
-                    if (result.sent) {
-                      setResendResult('A fresh verification email has been sent. Please check your inbox.')
-                    } else {
-                      setResendResult(result.reason || 'Unable to resend verification email.')
-                    }
-                  } catch (e) {
-                    setResendResult(e?.message || 'Unable to resend verification email.')
-                  } finally {
-                    setResendLoading(false)
-                  }
-                }}
-                disabled={resendLoading}
-                className="inline-flex items-center justify-center rounded-full bg-slate-700 px-6 py-3 font-semibold text-white transition hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {resendLoading ? 'Resending...' : 'Resend verification email'}
-              </button>
-            )}
-            {resendResult && (
-              <p className="mt-3 rounded-2xl bg-slate-800/80 px-4 py-3 text-sm text-slate-100">
-                {resendResult}
-              </p>
-            )}
             {status === 'error' && (
-              <Link
-                to="/signup"
-                className="inline-flex items-center justify-center rounded-full bg-white/10 px-6 py-3 font-semibold text-white transition hover:bg-white/20"
-              >
-                Return to sign up
-              </Link>
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate('/login?verificationPending=true')}
+                  className="inline-flex items-center justify-center rounded-full bg-slate-700 px-6 py-3 font-semibold text-white transition hover:bg-slate-600"
+                >
+                  Back to login
+                </button>
+                <Link
+                  to="/signup"
+                  className="inline-flex items-center justify-center rounded-full bg-white/10 px-6 py-3 font-semibold text-white transition hover:bg-white/20"
+                >
+                  Return to sign up
+                </Link>
+              </>
             )}
           </div>
         </div>

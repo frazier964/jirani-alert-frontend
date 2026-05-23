@@ -39,6 +39,9 @@ export default function Login() {
   const [infoMessage, setInfoMessage] = useState('')
   const [resendLoading, setResendLoading] = useState(false)
   const [resendResult, setResendResult] = useState('')
+  const [showResendForm, setShowResendForm] = useState(false)
+  const [resendEmail, setResendEmail] = useState('')
+  const [resendPassword, setResendPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -139,7 +142,8 @@ export default function Login() {
     setResendResult('')
 
     try {
-      const result = await resendVerificationEmail()
+      // Pass email and password to allow resending without being logged in
+      const result = await resendVerificationEmail(email, password)
       if (result.sent) {
         setResendResult('A fresh verification email has been sent. Please check your inbox and spam folder.')
       } else {
