@@ -1,6 +1,6 @@
 const { onRequest } = require('firebase-functions/v2/https')
 const admin = require('firebase-admin')
-const { getFirestore, FieldValue } = require('firebase-admin/firestore')
+const { getFirestore } = require('firebase-admin/firestore')
 const nodemailer = require('nodemailer')
 const fs = require('fs')
 const path = require('path')
@@ -41,6 +41,7 @@ if (process.env.NODE_ENV !== 'production') {
 admin.initializeApp()
 
 const db = getFirestore()
+const FieldValue = admin.firestore.FieldValue
 
 const allowedOrigins = new Set([
   'http://localhost:5173',
@@ -139,7 +140,8 @@ async function generateEmailVerificationLink(to) {
 
 async function sendSignupConfirmationEmail({ to, displayName, role, verificationLink }) {
   const transporter = getMailTransporter()
-  if (!transporter || !to) return { sent: false, reason: 'Email is not configured' }
+  if (!to) return { sent: false, reason: 'Recipient email is required', verificationLink }
+  if (!transporter) return { sent: false, reason: 'Email is not configured', verificationLink }
 
   const mailFrom =
     getEnv('MAIL_FROM') ||
@@ -198,7 +200,7 @@ async function sendSignupConfirmationEmail({ to, displayName, role, verification
   })
 
   console.log(`Sent verification email to ${to}. messageId=${info.messageId || 'unknown'}`)
-  return { sent: true, messageId: info.messageId }
+  return { sent: true, messageId: info.messageId, verificationLink }
 }
 
 function getEmailTestSecret() {
@@ -463,6 +465,10 @@ exports.createUserProfile = onRequest({ region: 'us-central1' }, async (req, res
           emailVerified,
           authProvider: 'password',
           profileImageUrl: '',
+          theme: 'light',
+          highContrast: false,
+          textSize: 'Medium',
+          alertTone: 'Gentle',
           createdAt: now,
           updatedAt: now,
         },
@@ -561,10 +567,13 @@ exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req,
       })
     })
 
+      const savedReport = await reportRef.get()
+
     res.status(201).json({
       reportId: reportRef.id,
       alertId: alertRef.id,
       notificationId: notificationRef.id,
+         report: savedReport.exists ? { id: reportRef.id, ...savedReport.data() } : { id: reportRef.id, type, title, location, description, severity, anonymous, evidenceUrl, notify },
     })
   } catch (error) {
     sendError(res, error)
@@ -823,10 +832,30 @@ exports.updateUserProfile = onRequest({ region: 'us-central1' }, async (req, res
     if (typeof body.phoneNumber === 'string') updates.phoneNumber = body.phoneNumber.trim()
     if (typeof body.residentialArea === 'string') updates.residentialArea = body.residentialArea.trim()
     if (typeof body.profileImageUrl === 'string') updates.profileImageUrl = body.profileImageUrl
-    if (typeof body.theme === 'string') updates.theme = body.theme.trim()
+    if (typeof body.theme === 'string') {
+      const theme = body.theme.trim().toLowerCase()
+      if (theme === 'light' || theme === 'dark') updates.theme = theme
+    }
     if (typeof body.highContrast === 'boolean') updates.highContrast = body.highContrast
-    if (typeof body.textSize === 'string') updates.textSize = body.textSize.trim()
-    if (typeof body.alertTone === 'string') updates.alertTone = body.alertTone.trim()
+    if (typeof body.textSize === 'string') {
+      const textSize = body.textSize.trim()
+      if (['Small', 'Medium', 'Large'].includes(textSize)) updates.textSize = textSize
+    }
+    if (typeof body.alertTone === 'string') {
+      const alertTone = body.alertTone.trim()
+      if (['Gentle', 'Loud', 'Siren'].includes(alertTone)) updates.alertTone = alertTone
+    }
+    if (typeof body.role === 'string') {
+      const requestedRole = body.role.trim()
+      if (allowedRoles.has(requestedRole)) {
+        updates.role = requestedRole
+        try {
+          await admin.auth().setCustomUserClaims(userId, { role: requestedRole })
+        } catch (claimsError) {
+          console.warn('Could not update custom user claims:', claimsError.message || claimsError)
+        }
+      }
+    }
     if (typeof body.emailVerified === 'boolean') updates.emailVerified = body.emailVerified
     if (typeof body.accountStatus === 'string') updates.accountStatus = body.accountStatus.trim()
     updates.updatedAt = FieldValue.serverTimestamp()
@@ -835,6 +864,67 @@ exports.updateUserProfile = onRequest({ region: 'us-central1' }, async (req, res
 
     const saved = await db.collection('profiles').doc(userId).get()
     res.json({ ok: true, profile: saved.data() })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+async function deleteByQuery(query, batchSize = 200) {
+  const snapshot = await query.limit(batchSize).get()
+  if (snapshot.empty) return 0
+
+  const batch = db.batch()
+  snapshot.docs.forEach((docSnap) => batch.delete(docSnap.ref))
+  await batch.commit()
+
+  if (snapshot.size < batchSize) return snapshot.size
+  return snapshot.size + (await deleteByQuery(query, batchSize))
+}
+
+exports.deactivateUserAccount = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireUser(req)
+    const now = FieldValue.serverTimestamp()
+
+    await db.collection('profiles').doc(user.uid).set(
+      {
+        accountStatus: 'deactivated',
+        deactivatedAt: now,
+        updatedAt: now,
+      },
+      { merge: true },
+    )
+
+    res.json({ ok: true })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.deleteUserAccount = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireUser(req)
+    const profileRef = db.collection('profiles').doc(user.uid)
+
+    await deleteByQuery(profileRef.collection('contacts'))
+    await deleteByQuery(db.collection('notifications').where('recipientId', '==', user.uid))
+    await profileRef.delete().catch(() => null)
+
+    try {
+      await admin.auth().deleteUser(user.uid)
+    } catch (authDeleteError) {
+      console.warn('Could not delete auth user:', authDeleteError.message || authDeleteError)
+    }
+
+    res.json({ ok: true })
   } catch (error) {
     sendError(res, error)
   }

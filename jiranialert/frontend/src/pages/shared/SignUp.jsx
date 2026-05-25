@@ -2,7 +2,9 @@ import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, AlertCircle } from 'lucide-react'
-import { registerUser, resendVerificationEmail } from '../../lib/auth'
+import { signInWithEmailAndPassword } from 'firebase/auth'
+import { auth, prodAuth } from '../../lib/firebase'
+import { registerUser, resendVerificationEmail, updateCurrentUserProfile, normalizeAccountRole, cacheCurrentUserProfile, isBackendAvailable } from '../../lib/auth'
 
 const accountTypes = [
   { value: 'resident', label: 'Resident / Community Member' },
@@ -97,8 +99,59 @@ export default function SignUp() {
       const msg = String(err.message || err)
       // if the email is already in use, redirect user to login with email prefilled
       if (msg.startsWith('auth/email-already-in-use')) {
-        navigate(`/login?prefillEmail=${encodeURIComponent(formData.email)}`)
-        return
+        try {
+          const normalizedEmail = formData.email.trim().toLowerCase()
+          let signedInUser = null
+          const backendOnline = await isBackendAvailable()
+
+          if (auth) {
+            try {
+              const cred = await signInWithEmailAndPassword(auth, normalizedEmail, formData.password)
+              signedInUser = cred.user
+            } catch (signInError) {
+              if (prodAuth) {
+                const cred = await signInWithEmailAndPassword(prodAuth, normalizedEmail, formData.password)
+                signedInUser = cred.user
+              } else {
+                throw signInError
+              }
+            }
+          }
+
+          if (!signedInUser) {
+            navigate(`/login?prefillEmail=${encodeURIComponent(formData.email)}`)
+            return
+          }
+
+          const updatedProfile = backendOnline
+            ? await updateCurrentUserProfile({
+                displayName: formData.fullName,
+                role: formData.role,
+                accountStatus: 'active',
+                emailVerified: Boolean(signedInUser.emailVerified),
+              })
+            : cacheCurrentUserProfile({
+                id: signedInUser.uid,
+                email: signedInUser.email,
+                displayName: formData.fullName,
+                role: formData.role,
+                accountStatus: 'active',
+                emailVerified: Boolean(signedInUser.emailVerified),
+              })
+          const verificationInfo = await resendVerificationEmail(formData.email, formData.password)
+          const resolvedRole = normalizeAccountRole(updatedProfile.role) || formData.role
+          setSuccessMessage(
+            `This email already had an account. We updated it to ${accountTypes.find((item) => item.value === resolvedRole)?.label || resolvedRole} and ${verificationInfo.sent ? 'sent a fresh verification email.' : 'could not send the verification email automatically.'}`,
+          )
+          setEmailStatus({ sent: verificationInfo.sent, verificationEmail: verificationInfo })
+          if (resolvedRole === 'responder') navigate('/responder/dashboard')
+          else if (resolvedRole === 'admin') navigate('/admin/dashboard')
+          else navigate('/resident/dashboard')
+          return
+        } catch (fallbackError) {
+          setErrors({ submit: fallbackError?.message || msg })
+          return
+        }
       }
       setErrors({ submit: msg })
     } finally {

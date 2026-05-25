@@ -1,8 +1,8 @@
 import { auth, ensureAnonymous } from './firebase'
 
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV ? 'http://localhost:5002/jiranialert/us-central1' : 'https://us-central1-jiranialert.cloudfunctions.net')
+import { getFunctionsBaseUrl } from './backendBase'
+
+const BACKEND_URL = getFunctionsBaseUrl()
 
 async function waitForAuthReady() {
   if (!auth) return null

@@ -57,6 +57,40 @@
 body {
   margin: 0;
   padding-top: var(--announcement-bar-height);
+  background: var(--bg);
+  color: var(--text);
+}
+
+html[data-account-theme='dark'] {
+  --background: #020617;
+  --text: #e2e8f0;
+  --text-h: #f8fafc;
+  --bg: #020617;
+  --border: rgba(148, 163, 184, 0.18);
+  --code-bg: rgba(15, 23, 42, 0.78);
+  color-scheme: dark;
+  background: var(--bg);
+  color: var(--text);
+}
+
+html[data-account-theme='light'] {
+  color-scheme: light;
+}
+
+html[data-account-text-size='small'] {
+  font-size: 14px;
+}
+
+html[data-account-text-size='medium'] {
+  font-size: 16px;
+}
+
+html[data-account-text-size='large'] {
+  font-size: 18px;
+}
+
+html[data-account-contrast='true'] {
+  filter: contrast(1.15) saturate(1.05);
 }
 
 html {
@@ -181,50 +215,49 @@ code {
   filter: contrast(1.15) saturate(1.05);
 }
 
-/* Scoped dark-mode overrides for the Profile page.
-   The UI uses many fixed Tailwind colors; these overrides keep changes local to the page wrapper. */
-.profile-theme-dark .bg-white {
+/* Scoped dark-mode overrides for account surfaces. */
+:is(html[data-account-theme='dark'], .profile-theme-dark) .bg-white {
   background-color: rgba(15, 23, 42, 0.92) !important;
 }
 
-.profile-theme-dark .bg-white\/90 {
+:is(html[data-account-theme='dark'], .profile-theme-dark) .bg-white\/90 {
   background-color: rgba(15, 23, 42, 0.92) !important;
 }
 
-.profile-theme-dark .bg-slate-50 {
+:is(html[data-account-theme='dark'], .profile-theme-dark) .bg-slate-50 {
   background-color: rgba(2, 6, 23, 0.72) !important;
 }
 
-.profile-theme-dark .bg-slate-900 {
+:is(html[data-account-theme='dark'], .profile-theme-dark) .bg-slate-900 {
   background-color: rgb(2, 6, 23) !important;
 }
 
-.profile-theme-dark .text-slate-900 {
+:is(html[data-account-theme='dark'], .profile-theme-dark) .text-slate-900 {
   color: rgb(241, 245, 249) !important;
 }
 
-.profile-theme-dark .text-slate-700,
-.profile-theme-dark .text-slate-600 {
+:is(html[data-account-theme='dark'], .profile-theme-dark) .text-slate-700,
+:is(html[data-account-theme='dark'], .profile-theme-dark) .text-slate-600 {
   color: rgb(226, 232, 240) !important;
 }
 
-.profile-theme-dark .text-slate-500,
-.profile-theme-dark .text-slate-400 {
+:is(html[data-account-theme='dark'], .profile-theme-dark) .text-slate-500,
+:is(html[data-account-theme='dark'], .profile-theme-dark) .text-slate-400 {
   color: rgba(226, 232, 240, 0.78) !important;
 }
 
-.profile-theme-dark .border-slate-200 {
+:is(html[data-account-theme='dark'], .profile-theme-dark) .border-slate-200 {
   border-color: rgba(148, 163, 184, 0.25) !important;
 }
 
-.profile-theme-dark .border-white\/80,
-.profile-theme-dark .border-white\/70 {
+:is(html[data-account-theme='dark'], .profile-theme-dark) .border-white\/80,
+:is(html[data-account-theme='dark'], .profile-theme-dark) .border-white\/70 {
   border-color: rgba(148, 163, 184, 0.18) !important;
 }
 
-.profile-theme-dark input,
-.profile-theme-dark textarea,
-.profile-theme-dark select {
+:is(html[data-account-theme='dark'], .profile-theme-dark) input,
+:is(html[data-account-theme='dark'], .profile-theme-dark) textarea,
+:is(html[data-account-theme='dark'], .profile-theme-dark) select {
   background-color: rgba(2, 6, 23, 0.55) !important;
   color: rgb(241, 245, 249) !important;
 }

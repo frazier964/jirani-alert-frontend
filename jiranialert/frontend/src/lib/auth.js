@@ -8,11 +8,12 @@ import {
   sendEmailVerification,
 } from 'firebase/auth'
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { getFunctionsBaseUrl } from './backendBase'
 
 const CURRENT_KEY = 'jiranialert_current'
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV ? 'http://localhost:5004/jiranialert/us-central1' : 'https://us-central1-jiranialert.cloudfunctions.net')
+const BACKEND_URL = getFunctionsBaseUrl()
+const VALID_ACCOUNT_ROLES = new Set(['resident', 'responder', 'admin'])
+let backendAvailabilityPromise = null
 
 function setCurrentUserLocal(userObj) {
   if (!userObj) localStorage.removeItem(CURRENT_KEY)
@@ -27,6 +28,12 @@ function emitProfileUpdated(profile) {
   } catch (e) {
     // ignore
   }
+}
+
+export function cacheCurrentUserProfile(profile) {
+  setCurrentUserLocal(profile)
+  emitProfileUpdated(profile)
+  return profile
 }
 
 async function waitForAuthReady() {
@@ -56,7 +63,6 @@ async function waitForAuthReady() {
           tryResolve()
         })
       : null
-
     // fallback if neither auth provider updates quickly
     setTimeout(() => {
       if (!resolved) {
@@ -79,6 +85,24 @@ export function getActiveAuth() {
   if (auth?.currentUser) return auth
   if (prodAuth?.currentUser) return prodAuth
   return auth || prodAuth
+}
+
+function isAccountDeactivated(profile) {
+  return String(profile?.accountStatus || '').toLowerCase() === 'deactivated'
+}
+
+export async function isBackendAvailable() {
+  if (!BACKEND_URL) return false
+  if (/localhost|127\.0\.0\.1/i.test(BACKEND_URL)) return false
+  if (backendAvailabilityPromise) return backendAvailabilityPromise
+
+  backendAvailabilityPromise = Promise.resolve(true)
+  return backendAvailabilityPromise
+}
+
+export function normalizeAccountRole(role) {
+  const normalized = String(role || '').trim().toLowerCase()
+  return VALID_ACCOUNT_ROLES.has(normalized) ? normalized : null
 }
 
 async function sendVerificationEmailToUser(user) {
@@ -148,7 +172,13 @@ export async function resendVerificationEmail(email, password) {
       if (!res.ok) {
         throw new Error(data?.error || 'Backend resend failed')
       }
-      verificationEmail = { sent: true, reason: data?.result?.messageId ? 'Email sent via backend' : 'Email sent' }
+      verificationEmail = {
+        sent: true,
+        reason: data?.result?.messageId ? 'Email sent via backend' : 'Email sent'
+      }
+      if (data?.result?.verificationLink) {
+        verificationEmail.verificationLink = data.result.verificationLink
+      }
     } catch (e) {
       verificationEmail = { sent: false, reason: e?.message || 'Backend resend failed' }
     }
@@ -213,6 +243,7 @@ export async function registerUser({ email, password, role = 'resident', display
     try {
       if (import.meta.env.DEV || import.meta.env.VITE_DEBUG_AUTH === 'true') {
         // eslint-disable-next-line no-console
+  const backendOnline = await isBackendAvailable()
         console.error('Firebase registerUser error:', e)
         // also log identity toolkit token/server response when available
         // eslint-disable-next-line no-console
@@ -227,7 +258,8 @@ export async function registerUser({ email, password, role = 'resident', display
 
   let savedProfile = null
   let verificationEmail = { sent: false, reason: 'Email not configured' }
-  if (BACKEND_URL) {
+  const backendOnline = await isBackendAvailable()
+  if (BACKEND_URL && backendOnline) {
     try {
       const token = await user.getIdToken()
       const res = await fetch(`${BACKEND_URL}/createUserProfile`, {
@@ -250,6 +282,9 @@ export async function registerUser({ email, password, role = 'resident', display
       verificationEmail = data?.verificationEmail || verificationEmail
       if (verificationEmail.sent) {
         verificationEmail.source = 'backend'
+      }
+      if (data?.verificationLink && !verificationEmail.verificationLink) {
+        verificationEmail.verificationLink = data.verificationLink
       }
     } catch (e) {
       const errorMessage = e?.message || 'Backend profile creation failed'
@@ -363,8 +398,14 @@ export async function loginUser({ email, password }) {
 
   // fetch persisted profile from backend first, then fallback to Firestore
   let profile = { id: user.uid, email: user.email }
+  let loadedFromBackend = false
+  let tokenRole = null
+  let backendFetchError = null
+  const backendOnline = await isBackendAvailable()
   try {
-    if (BACKEND_URL) {
+    const tokenResult = await user.getIdTokenResult(true).catch(() => null)
+    tokenRole = normalizeAccountRole(tokenResult?.claims?.role)
+    if (BACKEND_URL && backendOnline) {
       const token = await user.getIdToken()
       const res = await fetch(
         `${BACKEND_URL}/getUserProfile/${encodeURIComponent(user.uid)}?userId=${encodeURIComponent(user.uid)}`,
@@ -378,6 +419,12 @@ export async function loginUser({ email, password }) {
       const data = await res.json().catch(() => ({}))
       if (res.ok && data?.profile) {
         profile = { id: user.uid, email: user.email, ...(data.profile || {}) }
+        loadedFromBackend = true
+      }
+
+      if (isAccountDeactivated(profile)) {
+        await fbSignOut(auth)
+        throw new Error('auth/account-deactivated: This account has been deactivated. Please contact support.')
       }
 
       if (profile.emailVerified === false) {
@@ -392,20 +439,46 @@ export async function loginUser({ email, password }) {
       }
     }
   } catch (e) {
+    backendFetchError = e
     // ignore backend profile fetch failure and fallback to Firestore
   }
 
-  if (profile.id === user.uid && profile.email === user.email && firestore) {
+  if (!loadedFromBackend && profile.id === user.uid && profile.email === user.email && firestore) {
     try {
       const snap = await getDoc(doc(firestore, 'profiles', user.uid))
-      if (snap.exists()) profile = { id: user.uid, email: user.email, ...(snap.data() || {}) }
+      if (snap.exists()) {
+        const firestoreProfile = { id: user.uid, email: user.email, ...(snap.data() || {}) }
+        const firestoreRole = normalizeAccountRole(firestoreProfile.role)
+        if (firestoreRole || tokenRole) {
+          profile = { ...firestoreProfile, role: firestoreRole || tokenRole }
+        }
+      }
     } catch (e) {
       // ignore
     }
   }
 
+  if (!normalizeAccountRole(profile.role)) {
+    const resolvedRole = tokenRole || normalizeAccountRole(profile.role)
+    if (!resolvedRole) {
+      throw backendFetchError || new Error('auth/role-missing: Your account type is missing. Please sign up again or contact support.')
+    }
+    profile.role = resolvedRole
+  }
+
   setCurrentUserLocal(profile)
   emitProfileUpdated(profile)
+
+  if (isAccountDeactivated(profile)) {
+    try {
+      await fbSignOut(auth)
+    } catch (e) {
+      // ignore
+    }
+    setCurrentUserLocal(null)
+    emitProfileUpdated(null)
+    throw new Error('auth/account-deactivated: This account has been deactivated. Please contact support.')
+  }
 
   return { ...profile, authSource }
 }
@@ -418,6 +491,56 @@ export async function logout() {
   }
   setCurrentUserLocal(null)
   emitProfileUpdated(null)
+}
+
+export async function deactivateCurrentUserAccount() {
+  await waitForAuthReady()
+  const current = auth && auth.currentUser
+  if (!current) throw new Error('Not authenticated')
+
+  if (BACKEND_URL) {
+    const token = await current.getIdToken()
+    const res = await fetch(`${BACKEND_URL}/deactivateUserAccount`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(data?.error || 'Backend error')
+    }
+  }
+
+  const profile = { ...(getCurrentUser() || {}), id: current.uid, accountStatus: 'deactivated' }
+  setCurrentUserLocal(profile)
+  emitProfileUpdated(profile)
+  await logout()
+  return profile
+}
+
+export async function deleteCurrentUserAccount() {
+  await waitForAuthReady()
+  const current = auth && auth.currentUser
+  if (!current) throw new Error('Not authenticated')
+
+  if (BACKEND_URL) {
+    const token = await current.getIdToken()
+    const res = await fetch(`${BACKEND_URL}/deleteUserAccount`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(data?.error || 'Backend error')
+    }
+  }
+
+  await logout()
 }
 
 export async function updateCurrentUserProfile(updates) {
@@ -434,9 +557,16 @@ export async function updateCurrentUserProfile(updates) {
   const current = auth && auth.currentUser
   if (!current) throw new Error('Not authenticated')
   const uid = current.uid
+  const backendOnline = await isBackendAvailable()
+
+  if (!backendOnline) {
+    const local = getCurrentUser() || { id: uid, email: current.email }
+    const merged = { ...local, ...updates, id: uid, email: current.email }
+    return cacheCurrentUserProfile(merged)
+  }
 
   // Prefer saving via backend functions when available so server becomes source of truth.
-  if (BACKEND_URL) {
+  if (BACKEND_URL && backendOnline) {
     try {
       const token = await current.getIdToken()
       const res = await fetch(`${BACKEND_URL}/updateUserProfile`, {
@@ -457,9 +587,10 @@ export async function updateCurrentUserProfile(updates) {
       emitProfileUpdated(profile)
       return profile
     } catch (e) {
-      // If backend is unavailable in dev, fall back to direct Firestore update.
-      // This still persists data and keeps the UI consistent.
-      if (!firestore) throw e
+      // If backend request fails, keep a local profile so the UI can continue.
+      const local = getCurrentUser() || { id: uid, email: current.email }
+      const merged = { ...local, ...updates, id: uid, email: current.email }
+      return cacheCurrentUserProfile(merged)
     }
   }
 
@@ -474,8 +605,7 @@ export async function updateCurrentUserProfile(updates) {
   // fallback: update local cache
   const local = getCurrentUser() || { id: uid }
   const merged = { ...local, ...updates }
-  setCurrentUserLocal(merged)
-  return merged
+  return cacheCurrentUserProfile(merged)
 }
 
 export function initAuthListener() {
@@ -483,6 +613,7 @@ export function initAuthListener() {
 
   onAuthStateChanged(auth, async (user) => {
     await waitForFirebaseReady()
+    const backendOnline = await isBackendAvailable()
 
     if (!user) {
       // Don't clear cached profile here.
@@ -498,7 +629,7 @@ export function initAuthListener() {
     }
 
     // Load profile from backend when available; fallback to Firestore; then to auth info.
-    if (BACKEND_URL) {
+    if (BACKEND_URL && backendOnline) {
       try {
         const token = await user.getIdToken()
         const res = await fetch(
@@ -516,9 +647,18 @@ export function initAuthListener() {
           const profile = backendProfile
             ? { id: user.uid, email: user.email, ...(backendProfile || {}) }
             : { id: user.uid, email: user.email }
+          const loadedFromBackend = Boolean(backendProfile)
+          if (isAccountDeactivated(profile)) {
+            await fbSignOut(auth)
+            setCurrentUserLocal(null)
+            emitProfileUpdated(null)
+            return
+          }
           setCurrentUserLocal(profile)
           emitProfileUpdated(profile)
-          return
+          if (loadedFromBackend) {
+            return
+          }
         }
       } catch (e) {
         // ignore and fallback

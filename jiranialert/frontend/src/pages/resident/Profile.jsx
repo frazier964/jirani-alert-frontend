@@ -34,7 +34,7 @@ import {
 } from 'lucide-react'
 import ProfileImageUpload from '../../components/UI/ProfileImageUpload'
 import Avatar from '../../components/UI/Avatar'
-import { getCurrentUser, updateCurrentUserProfile } from '../../lib/auth'
+import { getCurrentUser, updateCurrentUserProfile, deactivateCurrentUserAccount, deleteCurrentUserAccount } from '../../lib/auth'
 import { listContacts, upsertContact } from '../../lib/contactsApi'
 
 const sidebarItems = [
@@ -113,6 +113,8 @@ export default function Profile() {
     notes: '',
     favorite: false,
   })
+  const [accountActionLoading, setAccountActionLoading] = useState('')
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -199,6 +201,95 @@ export default function Profile() {
   const selectedTipItem = previewTips[selectedTip]
   const SelectedTipIcon = selectedTipItem.icon
 
+  const persistPreferenceChange = async (updates) => {
+    try {
+      await updateCurrentUserProfile(updates)
+    } catch (e) {
+      setToastContent({
+        tone: 'error',
+        title: 'Preference save failed',
+        message: e?.message || 'Could not save your preference change.',
+      })
+      setToastVisible(true)
+    }
+  }
+
+  const exportMyData = async () => {
+    try {
+      const current = getCurrentUser() || {}
+      const contactsData = await listContacts().catch(() => ({ contacts: [] }))
+      const exportPayload = {
+        exportedAt: new Date().toISOString(),
+        profile: current,
+        contacts: Array.isArray(contactsData?.contacts) ? contactsData.contacts : [],
+      }
+
+      const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' })
+      const url = window.URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `jiranialert-account-${current?.id || 'data'}.json`
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (e) {
+      setToastContent({
+        tone: 'error',
+        title: 'Export failed',
+        message: e?.message || 'Could not export your account data.',
+      })
+      setToastVisible(true)
+    }
+  }
+
+  const deactivateAccount = async () => {
+    setAccountActionLoading('deactivate')
+    try {
+      await deactivateCurrentUserAccount()
+      setToastContent({
+        tone: 'success',
+        title: 'Account deactivated',
+        message: 'Your account has been saved as deactivated in the backend.',
+      })
+      setToastVisible(true)
+      navigate('/login')
+    } catch (e) {
+      setToastContent({
+        tone: 'error',
+        title: 'Deactivate failed',
+        message: e?.message || 'Could not deactivate your account.',
+      })
+      setToastVisible(true)
+    } finally {
+      setAccountActionLoading('')
+    }
+  }
+
+  const confirmDeleteAccount = async () => {
+    setDeleteConfirmOpen(false)
+    setAccountActionLoading('delete')
+    try {
+      await deleteCurrentUserAccount()
+      setToastContent({
+        tone: 'success',
+        title: 'Account deleted',
+        message: 'Your account was removed from the backend.',
+      })
+      setToastVisible(true)
+      navigate('/signup')
+    } catch (e) {
+      setToastContent({
+        tone: 'error',
+        title: 'Delete failed',
+        message: e?.message || 'Could not delete your account.',
+      })
+      setToastVisible(true)
+    } finally {
+      setAccountActionLoading('')
+    }
+  }
+
   const handleSave = () => {
     // Persist profile fields (server-first). Include current avatar URL so it's kept.
     (async () => {
@@ -214,6 +305,19 @@ export default function Profile() {
           highContrast: highContrast,
           textSize: textSize,
           alertTone: alertTone,
+          showProfile: showProfile,
+          hideActivityStatus: hideActivityStatus,
+          emergencyAlerts: emergencyAlerts,
+          nearbyIncidents: nearbyIncidents,
+          smsNotifications: smsNotifications,
+          emailNotifications: emailNotifications,
+          pushNotifications: pushNotifications,
+          communityUpdates: communityUpdates,
+          autoDetect: autoDetect,
+          shareLiveLocation: shareLiveLocation,
+          anonymousReporting: anonymousReporting,
+          frequency: frequency,
+          radius: radius,
           updatedAt: new Date().toISOString(),
         }
         await updateCurrentUserProfile(payload)
@@ -604,13 +708,29 @@ export default function Profile() {
                   <div className="mt-5 space-y-3">
                     <label className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                       <span className="text-sm font-semibold text-slate-700">Dark Mode</span>
-                      <button type="button" onClick={() => setDarkMode((value) => !value)} className={`relative h-6 w-11 rounded-full transition-all ${darkMode ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextValue = !darkMode
+                          setDarkMode(nextValue)
+                          void persistPreferenceChange({ theme: nextValue ? 'dark' : 'light' })
+                        }}
+                        className={`relative h-6 w-11 rounded-full transition-all ${darkMode ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                      >
                         <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-all ${darkMode ? 'left-5' : 'left-0.5'}`} />
                       </button>
                     </label>
                     <label className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                       <span className="text-sm font-semibold text-slate-700">High contrast mode</span>
-                      <button type="button" onClick={() => setHighContrast((value) => !value)} className={`relative h-6 w-11 rounded-full transition-all ${highContrast ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextValue = !highContrast
+                          setHighContrast(nextValue)
+                          void persistPreferenceChange({ highContrast: nextValue })
+                        }}
+                        className={`relative h-6 w-11 rounded-full transition-all ${highContrast ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                      >
                         <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-all ${highContrast ? 'left-5' : 'left-0.5'}`} />
                       </button>
                     </label>
@@ -621,7 +741,10 @@ export default function Profile() {
                           <button
                             key={item}
                             type="button"
-                            onClick={() => setTextSize(item)}
+                            onClick={() => {
+                              setTextSize(item)
+                              void persistPreferenceChange({ textSize: item })
+                            }}
                             className={`rounded-full px-3 py-2 text-xs font-bold transition-colors ${
                               textSize === item ? 'bg-[#1E3A5F] text-white' : 'bg-white text-slate-600 hover:bg-slate-100'
                             }`}
@@ -660,6 +783,7 @@ export default function Profile() {
                                   onClick={() => {
                                     setAlertTone(tone)
                                     setToneMenuOpen(false)
+                                    void persistPreferenceChange({ alertTone: tone })
                                   }}
                                   className={`flex w-full items-center justify-between px-4 py-3 text-sm font-semibold transition-colors ${
                                     alertTone === tone ? 'bg-slate-50 text-slate-900' : 'text-slate-700 hover:bg-slate-50'
@@ -673,7 +797,7 @@ export default function Profile() {
                           )}
                         </AnimatePresence>
                       </div>
-                      <p className="mt-2 text-xs text-slate-500">Saved when you click Save Changes.</p>
+                      <p className="mt-2 text-xs text-slate-500">Saved automatically and kept across your account.</p>
                     </div>
                   </div>
                 </motion.section>
@@ -739,13 +863,13 @@ export default function Profile() {
                   <Download className="h-6 w-6 text-emerald-500" />
                 </div>
                 <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                  <button type="button" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-100">
+                  <button type="button" onClick={exportMyData} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-100">
                     Export My Data
                   </button>
-                  <button type="button" className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700 hover:bg-amber-100">
-                    Deactivate Account
+                  <button type="button" onClick={deactivateAccount} disabled={accountActionLoading === 'deactivate'} className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60">
+                    {accountActionLoading === 'deactivate' ? 'Deactivating...' : 'Deactivate Account'}
                   </button>
-                  <button type="button" className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-black text-red-700 hover:bg-red-100">
+                  <button type="button" onClick={() => setDeleteConfirmOpen(true)} disabled={accountActionLoading === 'delete'} className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-black text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60">
                     Delete Account
                   </button>
                 </div>
@@ -812,6 +936,25 @@ export default function Profile() {
             </aside>
           </section>
         </main>
+        {deleteConfirmOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_30px_90px_rgba(15,23,42,0.28)]">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-600">Confirm deletion</p>
+              <h3 className="mt-2 text-2xl font-black text-slate-900">Delete your account?</h3>
+              <p className="mt-3 text-sm text-slate-600">
+                This will remove your account profile and contacts from the backend and sign you out.
+              </p>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <button type="button" onClick={() => setDeleteConfirmOpen(false)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">
+                  Cancel
+                </button>
+                <button type="button" onClick={confirmDeleteAccount} className="rounded-2xl border border-red-200 bg-red-600 px-4 py-3 text-sm font-black text-white hover:bg-red-700">
+                  Yes, delete it
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-xl">

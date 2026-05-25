@@ -15,7 +15,7 @@ import {
   Shield,
   X,
 } from 'lucide-react'
-import { loginUser, resendVerificationEmail } from '../../lib/auth'
+import { loginUser, resendVerificationEmail, normalizeAccountRole } from '../../lib/auth'
 
 const trustItems = [
   { title: 'Real-Time Notifications', icon: Bell },
@@ -39,6 +39,7 @@ export default function Login() {
   const [infoMessage, setInfoMessage] = useState('')
   const [resendLoading, setResendLoading] = useState(false)
   const [resendResult, setResendResult] = useState('')
+  const [verificationLink, setVerificationLink] = useState('')
   const [showResendForm, setShowResendForm] = useState(false)
   const [resendEmail, setResendEmail] = useState('')
   const [resendPassword, setResendPassword] = useState('')
@@ -117,7 +118,11 @@ export default function Login() {
         localStorage.removeItem('jiranialert_remember_email')
       }
 
-      const role = user.role || 'resident'
+      const role = normalizeAccountRole(user.role)
+      if (!role) {
+        setError('Your account type could not be resolved. Please sign out and sign in again, or contact support.')
+        return
+      }
       if (role === 'resident') navigate('/resident/dashboard')
       else if (role === 'responder') navigate('/responder/dashboard')
       else navigate('/admin/dashboard')
@@ -140,6 +145,7 @@ export default function Login() {
   const handleResendVerification = async () => {
     setResendLoading(true)
     setResendResult('')
+    setVerificationLink('')
 
     try {
       // Pass email and password to allow resending without being logged in
@@ -148,6 +154,9 @@ export default function Login() {
         setResendResult('A fresh verification email has been sent. Please check your inbox and spam folder.')
       } else {
         setResendResult(result.reason || 'Unable to resend verification email.')
+      if (result.verificationLink) {
+        setVerificationLink(result.verificationLink)
+      }
       }
     } catch (e) {
       setResendResult(e?.message || 'Unable to resend verification email.')
@@ -384,9 +393,18 @@ export default function Login() {
                       </button>
                     )}
                     {resendResult && (
-                      <p className="rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-700">
-                        {resendResult}
-                      </p>
+                      <div className="space-y-2 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-700">
+                        <p>{resendResult}</p>
+                        {verificationLink && (
+                          <button
+                            type="button"
+                            onClick={() => window.open(verificationLink, '_blank', 'noopener,noreferrer')}
+                            className="inline-flex items-center justify-center rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1e40af]"
+                          >
+                            Open verification link
+                          </button>
+                        )}
+                      </div>
                     )}
                   </motion.div>
                 )}

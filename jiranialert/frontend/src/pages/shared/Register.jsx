@@ -13,7 +13,7 @@ export default function Register() {
     e.preventDefault()
     setError(null)
     try {
-      const user = registerUser({ email, password, role })
+      const user = await registerUser({ email, password, role })
       // redirect to role-specific dashboard
       if (user.role === 'resident') navigate('/resident/dashboard')
       else if (user.role === 'responder') navigate('/responder/dashboard')

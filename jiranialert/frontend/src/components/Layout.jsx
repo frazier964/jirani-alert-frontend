@@ -1,17 +1,47 @@
 import React, { useEffect, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { onAuthStateChanged } from 'firebase/auth'
+import { getIdTokenResult, onAuthStateChanged } from 'firebase/auth'
 import TopNav from './Layout/TopNav'
+import { getCurrentUser, normalizeAccountRole } from '../lib/auth'
 import { auth, prodAuth } from '../lib/firebase'
+
+const TEXT_SIZE_OPTIONS = new Set(['Small', 'Medium', 'Large'])
+
+function applyAccountPreferences(profile) {
+  if (typeof document === 'undefined') return
+
+  const root = document.documentElement
+  const theme = profile?.theme === 'dark' ? 'dark' : 'light'
+  const highContrast = profile?.highContrast === true
+  const textSize = TEXT_SIZE_OPTIONS.has(profile?.textSize) ? profile.textSize : 'Medium'
+
+  root.dataset.accountTheme = theme
+  root.dataset.accountContrast = highContrast ? 'true' : 'false'
+  root.dataset.accountTextSize = textSize.toLowerCase()
+  root.style.colorScheme = theme
+}
 
 export default function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
   const isResident = location.pathname.startsWith('/resident')
+  const isResponder = location.pathname.startsWith('/responder')
+  const isAdmin = location.pathname.startsWith('/admin')
   const isProtectedRoute = ['/resident', '/responder', '/admin', '/alerts'].some((prefix) =>
     location.pathname.startsWith(prefix),
   )
   const [authChecked, setAuthChecked] = useState(false)
+
+  useEffect(() => {
+    applyAccountPreferences(getCurrentUser())
+
+    const handleProfileUpdate = (event) => {
+      applyAccountPreferences(event?.detail || getCurrentUser())
+    }
+
+    window.addEventListener('jiranialert_profile_updated', handleProfileUpdate)
+    return () => window.removeEventListener('jiranialert_profile_updated', handleProfileUpdate)
+  }, [])
 
   useEffect(() => {
     if (!isProtectedRoute) {
@@ -25,8 +55,11 @@ export default function Layout() {
       return undefined
     }
 
-    const checkUser = () => {
+    const checkUser = async () => {
       const user = auth?.currentUser || prodAuth?.currentUser
+      const profile = getCurrentUser()
+      const tokenResult = user ? await getIdTokenResult(user, true).catch(() => null) : null
+      const role = normalizeAccountRole(profile?.role) || normalizeAccountRole(tokenResult?.claims?.role) || normalizeAccountRole(user?.role)
       setAuthChecked(true)
       if (!user) {
         navigate('/login', { replace: true })
@@ -34,18 +67,38 @@ export default function Layout() {
       }
       if (!user.emailVerified) {
         navigate('/login?verificationPending=true', { replace: true })
+        return
+      }
+
+      if (!role) {
+        navigate('/login', { replace: true })
+        return
+      }
+
+      if (role === 'responder' && !isResponder) {
+        navigate('/responder/dashboard', { replace: true })
+        return
+      }
+
+      if (role === 'admin' && !isAdmin) {
+        navigate('/admin/dashboard', { replace: true })
+        return
+      }
+
+      if (role === 'resident' && !isResident && isResponder) {
+        navigate('/resident/dashboard', { replace: true })
       }
     }
 
-    checkUser()
-    const unsubscribeAuth = auth ? onAuthStateChanged(auth, checkUser) : null
-    const unsubscribeProd = prodAuth ? onAuthStateChanged(prodAuth, checkUser) : null
+    void checkUser()
+    const unsubscribeAuth = auth ? onAuthStateChanged(auth, () => { void checkUser() }) : null
+    const unsubscribeProd = prodAuth ? onAuthStateChanged(prodAuth, () => { void checkUser() }) : null
 
     return () => {
       unsubscribeAuth?.()
       unsubscribeProd?.()
     }
-  }, [isProtectedRoute, navigate])
+  }, [isProtectedRoute, isResident, isResponder, isAdmin, navigate])
 
   return (
     <>

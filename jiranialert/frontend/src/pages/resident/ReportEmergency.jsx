@@ -24,6 +24,7 @@ import {
   Siren,
   FileText,
 } from 'lucide-react'
+import { getCurrentUser } from '../../lib/auth'
 import reportApi from '../../lib/reportApi'
 
 const emergencyTypes = [
@@ -85,6 +86,7 @@ function getSafetyTip(type) {
 }
 
 export default function ReportEmergency() {
+  const currentUser = getCurrentUser()
   const [selectedType, setSelectedType] = useState('Fire')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -97,12 +99,23 @@ export default function ReportEmergency() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(null)
+  const [savedReport, setSavedReport] = useState(null)
   const [dragActive, setDragActive] = useState(false)
   const [recentReports, setRecentReports] = useState(recentReportsSeed)
 
   const navigate = useNavigate()
 
   useEffect(() => {
+    if (currentUser?.role === 'responder') {
+      navigate('/responder/dashboard', { replace: true })
+      return
+    }
+
+    if (currentUser?.role === 'admin') {
+      navigate('/admin/dashboard', { replace: true })
+      return
+    }
+
     let mounted = true
     async function loadReports() {
       try {
@@ -116,7 +129,7 @@ export default function ReportEmergency() {
     }
     loadReports()
     return () => { mounted = false }
-  }, [])
+  }, [currentUser, navigate])
 
   const selectedEmergency = useMemo(
     () => emergencyTypes.find((item) => item.value === selectedType) || emergencyTypes[0],
@@ -192,12 +205,36 @@ export default function ReportEmergency() {
 
       const res = await reportApi.createReport(payload)
 
+      const reportRecord = res.report || {
+        id: res.reportId,
+        type: selectedType,
+        title: title.trim(),
+        location: location.trim(),
+        severity,
+        anonymous,
+        notify,
+        evidenceUrl,
+      }
+
       // update recent reports UI
-      const newReport = { type: selectedType, location: location.trim(), time: 'just now', severity }
+      const newReport = {
+        id: reportRecord.id || res.reportId,
+        type: reportRecord.type || selectedType,
+        title: reportRecord.title || title.trim(),
+        location: reportRecord.location || location.trim(),
+        severity: reportRecord.severity || severity,
+        time: 'just now',
+        status: reportRecord.status || 'Pending',
+      }
+      setSavedReport(reportRecord)
       setRecentReports((prev) => [newReport, ...prev].slice(0, 3))
 
       setSuccess({
         id: res.reportId,
+        title: reportRecord.title || title.trim(),
+        type: reportRecord.type || selectedType,
+        location: reportRecord.location || location.trim(),
+        severity: reportRecord.severity || severity,
         responseTime: '3-7 minutes',
         responders: 'Nearby responders and community members notified',
       })
@@ -218,6 +255,7 @@ export default function ReportEmergency() {
     setNotify([true, true, true, true])
     setEvidenceName('')
     setSelectedType('Fire')
+    setSavedReport(null)
   }
 
   return (
@@ -588,14 +626,15 @@ export default function ReportEmergency() {
                 <h2 className="text-xl font-bold text-slate-900">Recent Reports</h2>
                 <div className="mt-4 space-y-3">
                   {recentReports.map((item) => (
-                    <div key={`${item.type}-${item.time}`} className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <div key={`${item.id || item.type}-${item.time}`} className="rounded-2xl border border-slate-200 bg-white p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <p className="font-semibold text-slate-900">{item.type}</p>
-                          <p className="text-xs text-slate-500">{item.location}</p>
+                          <p className="font-semibold text-slate-900">{item.title || item.type}</p>
+                          <p className="text-xs text-slate-500">{item.type} • {item.location}</p>
                         </div>
                         <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600">{item.severity}</span>
                       </div>
+                      {item.status ? <p className="mt-2 text-xs font-semibold text-emerald-600">{item.status}</p> : null}
                       <p className="mt-2 text-xs text-slate-400 flex items-center gap-1.5">
                         <ClockLabel />
                         {item.time}
@@ -635,9 +674,18 @@ export default function ReportEmergency() {
 
               <div className="mt-5 grid gap-3 sm:grid-cols-3">
                 <InfoCard label="Alert ID" value={success.id.slice(-8)} />
+                <InfoCard label="Type" value={success.type} />
                 <InfoCard label="ETA" value={success.responseTime} />
                 <InfoCard label="Status" value="Active" tone="text-emerald-600" />
               </div>
+
+              {savedReport && (
+                <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                  <p className="font-bold text-slate-900">Saved report summary</p>
+                  <p className="mt-1">{savedReport.title}</p>
+                  <p className="mt-1 text-slate-500">{savedReport.location} • {savedReport.severity} • {savedReport.type}</p>
+                </div>
+              )}
 
               <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
                 {success.responders}
