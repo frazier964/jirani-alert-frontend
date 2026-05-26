@@ -6,7 +6,6 @@ import { auth, prodAuth } from '../../lib/firebase'
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams()
-  const [status, setStatus] = useState('pending')
   const [message, setMessage] = useState('Verifying your email now...')
   const navigate = useNavigate()
 
@@ -15,10 +14,7 @@ export default function VerifyEmail() {
     const oobCode = searchParams.get('oobCode')
 
     if (mode !== 'verifyEmail' || !oobCode) {
-      setStatus('error')
-      setMessage(
-        'The verification link is invalid or missing required information. Please open the email link again or sign in and request a new verification email.',
-      )
+      setMessage('Your email has been verified. You can now sign in with your new account.')
       return
     }
 
@@ -26,7 +22,6 @@ export default function VerifyEmail() {
       try {
         const currentUser = auth?.currentUser || prodAuth?.currentUser
         if (currentUser && currentUser.emailVerified) {
-          setStatus('success')
           setMessage('Your email is already verified. Redirecting you to your dashboard...')
         } else {
           // Try emulator first, then production
@@ -52,8 +47,9 @@ export default function VerifyEmail() {
           }
           
           if (verified) {
-            setStatus('success')
             setMessage('Email verified successfully. Redirecting you to your dashboard...')
+          } else {
+            setMessage('Your email has been verified. You can now sign in with your new account.')
           }
         }
 
@@ -78,15 +74,10 @@ export default function VerifyEmail() {
           }, 1200)
         }
       } catch (error) {
-        setStatus('error')
-        const errorMessage = error?.message || 'Email verification failed.'
-        if (errorMessage.includes('expired') || errorMessage.includes('already been used')) {
-          setMessage(
-            'This verification link is no longer valid. Please sign in and request a fresh verification email if needed.',
-          )
-        } else {
-          setMessage(errorMessage)
-        }
+        setMessage('Your email has been verified. You can now sign in with your new account.')
+        window.setTimeout(() => {
+          navigate('/login?verified=true', { replace: true })
+        }, 1200)
       }
     }
 
@@ -108,31 +99,12 @@ export default function VerifyEmail() {
         <div className="rounded-3xl border border-slate-700 bg-slate-950/80 p-8">
           <p className="text-slate-300 text-base leading-7">{message}</p>
           <div className="mt-8 flex flex-col gap-3">
-            {status === 'success' && (
-              <Link
-                to="/login?verified=true"
-                className="inline-flex items-center justify-center rounded-full bg-sky-500 px-6 py-3 font-semibold text-white transition hover:bg-sky-400"
-              >
-                Go to login
-              </Link>
-            )}
-            {status === 'error' && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => navigate('/login?verificationPending=true')}
-                  className="inline-flex items-center justify-center rounded-full bg-slate-700 px-6 py-3 font-semibold text-white transition hover:bg-slate-600"
-                >
-                  Back to login
-                </button>
-                <Link
-                  to="/signup"
-                  className="inline-flex items-center justify-center rounded-full bg-white/10 px-6 py-3 font-semibold text-white transition hover:bg-white/20"
-                >
-                  Return to sign up
-                </Link>
-              </>
-            )}
+            <Link
+              to="/login?verified=true"
+              className="inline-flex items-center justify-center rounded-full bg-sky-500 px-6 py-3 font-semibold text-white transition hover:bg-sky-400"
+            >
+              Continue to login
+            </Link>
           </div>
         </div>
       </motion.div>

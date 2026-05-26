@@ -176,7 +176,7 @@ async function sendVerificationEmailToUser(user) {
 
 export async function resendVerificationEmail(email, password) {
   if (!auth) throw new Error('Firebase not configured')
-  await waitForFirebaseReady()
+  const usingEmulators = await waitForFirebaseReady()
   
   let user = auth.currentUser
   let tempSignedIn = false
@@ -240,7 +240,7 @@ export async function resendVerificationEmail(email, password) {
     }
   }
 
-    if (!verificationEmail.sent && !BACKEND_URL) {
+  if (!verificationEmail.sent && !BACKEND_URL && !usingEmulators) {
     const fallback = await sendVerificationEmailToUser(user)
     verificationEmail = fallback.sent
       ? { sent: true, reason: 'Email sent via Firebase auth fallback' }
@@ -314,8 +314,7 @@ export async function registerUser({ email, password, role = 'resident', display
 
   let savedProfile = null
   let verificationEmail = { sent: false, reason: 'Email not configured' }
-  const backendOnline = await isBackendAvailable()
-  if (BACKEND_URL && backendOnline) {
+  if (BACKEND_URL) {
     try {
       const token = await user.getIdToken()
       const res = await fetch(`${BACKEND_URL}/createUserProfile`, {
@@ -371,7 +370,7 @@ export async function registerUser({ email, password, role = 'resident', display
     )
   }
 
-  if (!verificationEmail.sent) {
+  if (!verificationEmail.sent && !(usingEmulators && BACKEND_URL)) {
     const fallback = await sendVerificationEmailToUser(user)
     verificationEmail = fallback.sent
       ? { sent: true, source: 'firebase' }

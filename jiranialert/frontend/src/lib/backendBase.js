@@ -15,9 +15,6 @@ export function getFunctionsBaseUrl() {
   const explicitBase = String(import.meta.env.VITE_FUNCTIONS_BASE || '').trim()
   const backendBase = String(import.meta.env.VITE_BACKEND_URL || '').trim()
 
-  if (explicitBase) return explicitBase
-  if (backendBase) return backendBase
-
   if (import.meta.env.DEV && isLocalhostHost()) {
     return LOCAL_FUNCTIONS_BASE
   }
@@ -25,6 +22,9 @@ export function getFunctionsBaseUrl() {
   if (!import.meta.env.DEV && isVercelHost()) {
     return PRODUCTION_FUNCTIONS_BASE
   }
+
+  if (explicitBase) return explicitBase
+  if (backendBase) return backendBase
 
   return PRODUCTION_FUNCTIONS_BASE
 }

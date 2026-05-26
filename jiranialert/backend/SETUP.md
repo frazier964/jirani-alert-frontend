@@ -42,6 +42,8 @@ Or use the PowerShell script:
 - Functions Emulator: http://localhost:5002
 - Emulator UI: http://localhost:4021
 
+Local development for Jirani Alert uses the Functions emulator on port 5004 behind the frontend `/api` proxy. The emulator output may still mention a host port from the Firebase runtime, but the frontend should call the local app through `http://localhost:5173/api` during development.
+
 ### 4. Seed Demo Data (Optional)
 
 If you want to populate initial community posts:
@@ -58,7 +60,7 @@ Or manually create posts via the Emulator UI at http://localhost:4000
 
 Check the health endpoint:
 ```bash
-curl http://localhost:5002/jiranialert/us-central1/health
+curl http://127.0.0.1:5004/jiranialert/us-central1/health
 ```
 
 Expected response:
@@ -74,18 +76,20 @@ Expected response:
 
 The frontend is configured to use:
 ```
-http://localhost:5001/jiranialert/us-central1
+/api
 ```
 
 ### Environment Variables
 
 Frontend Vite env (`.env.local`):
 ```
-VITE_BACKEND_URL=http://localhost:5002/jiranialert/us-central1
-VITE_FUNCTIONS_BASE=http://localhost:5002/jiranialert/us-central1
+VITE_BACKEND_URL=/api
+VITE_FUNCTIONS_BASE=/api
 ```
 
 If not set, it defaults to the above.
+
+For local development, Vite proxies `/api` to the emulator at `http://127.0.0.1:5004/jiranialert/us-central1`, so the browser and production deploy both use the same request path.
 
 ### Signup Confirmation Email
 
@@ -108,7 +112,7 @@ You can verify SMTP email delivery with a dedicated test endpoint.
 Set `EMAIL_TEST_SECRET` to a secret string in `backend/functions/.env` and then POST to:
 
 ```bash
-http://localhost:5002/jiranialert/us-central1/sendTestEmail?secret=your-secret
+http://127.0.0.1:5004/jiranialert/us-central1/sendTestEmail?secret=your-secret
 ```
 
 Request body example:
@@ -122,11 +126,29 @@ Request body example:
 
 > Note: local Firebase emulators use separate auth and Firestore data from your live project.
 > If you want your local app to sign in with users from the deployed Firebase console,
-> set `VITE_USE_FIREBASE_EMULATORS=false` in `frontend/.env.local` and update
-> `VITE_BACKEND_URL` to the deployed functions base URL.
+> set `VITE_USE_FIREBASE_EMULATORS=false` in `frontend/.env.local` and point
+> `VITE_BACKEND_URL` / `VITE_FUNCTIONS_BASE` to the deployed proxy target.
 >
 > For automatic emulator detection during local development, use:
 > `VITE_USE_FIREBASE_EMULATORS=auto`
+
+### Local startup order
+
+Start the backend first, then the frontend:
+
+```bash
+cd backend
+npm run dev
+```
+
+In a second terminal:
+
+```bash
+cd frontend
+npm run dev
+```
+
+If the frontend starts before the backend emulator is listening, `/api` requests will fail with connection refused.
 
 ### Start the backend emulators
 Run from the `backend` directory so Firebase finds `firebase.json` correctly:

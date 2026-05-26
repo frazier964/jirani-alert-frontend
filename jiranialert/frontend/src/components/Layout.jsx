@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { getIdTokenResult, onAuthStateChanged } from 'firebase/auth'
 import TopNav from './Layout/TopNav'
@@ -31,6 +31,7 @@ export default function Layout() {
     location.pathname.startsWith(prefix),
   )
   const [authChecked, setAuthChecked] = useState(false)
+  const authReadyRef = useRef({ auth: !auth, prod: !prodAuth })
 
   useEffect(() => {
     applyAccountPreferences(getCurrentUser())
@@ -56,6 +57,10 @@ export default function Layout() {
     }
 
     const checkUser = async () => {
+      if ((auth && !authReadyRef.current.auth) || (prodAuth && !authReadyRef.current.prod)) {
+        return
+      }
+
       const user = auth?.currentUser || prodAuth?.currentUser
       const profile = getCurrentUser()
       const tokenResult = user ? await getIdTokenResult(user, true).catch(() => null) : null
@@ -90,9 +95,20 @@ export default function Layout() {
       }
     }
 
+    const unsubscribeAuth = auth
+      ? onAuthStateChanged(auth, () => {
+          authReadyRef.current.auth = true
+          void checkUser()
+        })
+      : null
+    const unsubscribeProd = prodAuth
+      ? onAuthStateChanged(prodAuth, () => {
+          authReadyRef.current.prod = true
+          void checkUser()
+        })
+      : null
+
     void checkUser()
-    const unsubscribeAuth = auth ? onAuthStateChanged(auth, () => { void checkUser() }) : null
-    const unsubscribeProd = prodAuth ? onAuthStateChanged(prodAuth, () => { void checkUser() }) : null
 
     return () => {
       unsubscribeAuth?.()
