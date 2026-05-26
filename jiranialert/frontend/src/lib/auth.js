@@ -11,6 +11,7 @@ import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { getFunctionsBaseUrl } from './backendBase'
 
 const CURRENT_KEY = 'jiranialert_current'
+const ROLE_CACHE_KEY = 'jiranialert_role_cache'
 const BACKEND_URL = getFunctionsBaseUrl()
 const VALID_ACCOUNT_ROLES = new Set(['resident', 'responder', 'admin'])
 let backendAvailabilityPromise = null
@@ -34,6 +35,39 @@ export function cacheCurrentUserProfile(profile) {
   setCurrentUserLocal(profile)
   emitProfileUpdated(profile)
   return profile
+}
+
+function getRoleCache() {
+  try {
+    return JSON.parse(localStorage.getItem(ROLE_CACHE_KEY) || '{}') || {}
+  } catch (e) {
+    return {}
+  }
+}
+
+function setCachedRoleForEmail(email, role) {
+  const normalizedEmail = String(email || '').trim().toLowerCase()
+  const normalizedRole = normalizeAccountRole(role)
+  if (!normalizedEmail || !normalizedRole) return
+
+  try {
+    const roleCache = getRoleCache()
+    roleCache[normalizedEmail] = normalizedRole
+    localStorage.setItem(ROLE_CACHE_KEY, JSON.stringify(roleCache))
+  } catch (e) {
+    // ignore cache write failures
+  }
+}
+
+function getCachedRoleForEmail(email) {
+  const normalizedEmail = String(email || '').trim().toLowerCase()
+  if (!normalizedEmail) return null
+
+  try {
+    return normalizeAccountRole(getRoleCache()[normalizedEmail])
+  } catch (e) {
+    return null
+  }
 }
 
 async function waitForAuthReady() {
@@ -93,10 +127,32 @@ function isAccountDeactivated(profile) {
 
 export async function isBackendAvailable() {
   if (!BACKEND_URL) return false
-  if (/localhost|127\.0\.0\.1/i.test(BACKEND_URL)) return false
   if (backendAvailabilityPromise) return backendAvailabilityPromise
 
-  backendAvailabilityPromise = Promise.resolve(true)
+  backendAvailabilityPromise = (async () => {
+    try {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
+      const timeoutId = controller ? setTimeout(() => controller.abort(), 1500) : null
+      try {
+        const response = await fetch(`${BACKEND_URL}/health`, {
+          method: 'GET',
+          cache: 'no-store',
+          signal: controller?.signal,
+        })
+        if (response.ok) {
+          return true
+        }
+        backendAvailabilityPromise = null
+        return false
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId)
+      }
+    } catch {
+      backendAvailabilityPromise = null
+      return false
+    }
+  })()
+
   return backendAvailabilityPromise
 }
 
@@ -184,7 +240,7 @@ export async function resendVerificationEmail(email, password) {
     }
   }
 
-  if (!verificationEmail.sent) {
+    if (!verificationEmail.sent && !BACKEND_URL) {
     const fallback = await sendVerificationEmailToUser(user)
     verificationEmail = fallback.sent
       ? { sent: true, reason: 'Email sent via Firebase auth fallback' }
@@ -216,6 +272,7 @@ export async function registerUser({ email, password, role = 'resident', display
   const usingEmulators = await waitForFirebaseReady()
   const normalizedEmail = String(email || '').trim().toLowerCase()
   const normalizedPassword = String(password || '')
+  let createdUser = null
 
   if (usingEmulators && prodAuth) {
     try {
@@ -243,9 +300,7 @@ export async function registerUser({ email, password, role = 'resident', display
     try {
       if (import.meta.env.DEV || import.meta.env.VITE_DEBUG_AUTH === 'true') {
         // eslint-disable-next-line no-console
-  const backendOnline = await isBackendAvailable()
         console.error('Firebase registerUser error:', e)
-        // also log identity toolkit token/server response when available
         // eslint-disable-next-line no-console
         console.error('tokenResponse:', e?._tokenResponse || e?.customData || null)
       }
@@ -255,6 +310,7 @@ export async function registerUser({ email, password, role = 'resident', display
     throw err
   }
   const user = cred.user
+  createdUser = user
 
   let savedProfile = null
   let verificationEmail = { sent: false, reason: 'Email not configured' }
@@ -326,9 +382,22 @@ export async function registerUser({ email, password, role = 'resident', display
     ? { id: user.uid, email: user.email, ...(savedProfile || {}) }
     : { id: user.uid, uid: user.uid, email: user.email, displayName: displayName || '', role, profileImageUrl: '', accountStatus: 'pending_verification' }
 
+  setCachedRoleForEmail(user.email, profile.role || role)
+
   setCurrentUserLocal(profile)
   emitProfileUpdated(profile)
-  return { ...profile, verificationEmail }
+
+  try {
+    return { ...profile, verificationEmail }
+  } finally {
+    if (auth?.currentUser?.uid === createdUser?.uid) {
+      try {
+        await fbSignOut(auth)
+      } catch (e) {
+        // ignore sign out errors; the account was still created and persisted
+      }
+    }
+  }
 }
 
 export async function loginUser({ email, password }) {
@@ -399,36 +468,47 @@ export async function loginUser({ email, password }) {
   // fetch persisted profile from backend first, then fallback to Firestore
   let profile = { id: user.uid, email: user.email }
   let loadedFromBackend = false
+  let backendSourceUrl = null
   let tokenRole = null
   let backendFetchError = null
   const backendOnline = await isBackendAvailable()
+  const backendCandidates = [BACKEND_URL]
   try {
     const tokenResult = await user.getIdTokenResult(true).catch(() => null)
     tokenRole = normalizeAccountRole(tokenResult?.claims?.role)
-    if (BACKEND_URL && backendOnline) {
-      const token = await user.getIdToken()
-      const res = await fetch(
-        `${BACKEND_URL}/getUserProfile/${encodeURIComponent(user.uid)}?userId=${encodeURIComponent(user.uid)}`,
-        {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
+    const token = await user.getIdToken()
+    for (const candidateUrl of backendCandidates) {
+      if (!candidateUrl) continue
+      try {
+        const res = await fetch(
+          `${candidateUrl}/getUserProfile/${encodeURIComponent(user.uid)}?userId=${encodeURIComponent(user.uid)}`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           },
-        },
-      )
-      const data = await res.json().catch(() => ({}))
-      if (res.ok && data?.profile) {
-        profile = { id: user.uid, email: user.email, ...(data.profile || {}) }
-        loadedFromBackend = true
+        )
+        const data = await res.json().catch(() => ({}))
+        if (res.ok && data?.profile) {
+          profile = { id: user.uid, email: user.email, ...(data.profile || {}) }
+          loadedFromBackend = true
+          backendSourceUrl = candidateUrl
+          break
+        }
+      } catch (e) {
+        // try the next backend candidate
       }
+    }
 
-      if (isAccountDeactivated(profile)) {
-        await fbSignOut(auth)
-        throw new Error('auth/account-deactivated: This account has been deactivated. Please contact support.')
-      }
+    if (loadedFromBackend && isAccountDeactivated(profile)) {
+      await fbSignOut(auth)
+      throw new Error('auth/account-deactivated: This account has been deactivated. Please contact support.')
+    }
 
-      if (profile.emailVerified === false) {
-        await fetch(`${BACKEND_URL}/updateUserProfile`, {
+    if (loadedFromBackend && profile.emailVerified === false && backendSourceUrl) {
+      try {
+        await fetch(`${backendSourceUrl}/updateUserProfile`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -436,6 +516,8 @@ export async function loginUser({ email, password }) {
           },
           body: JSON.stringify({ emailVerified: true, accountStatus: 'active' }),
         })
+      } catch (e) {
+        // ignore repair failures
       }
     }
   } catch (e) {
@@ -443,18 +525,32 @@ export async function loginUser({ email, password }) {
     // ignore backend profile fetch failure and fallback to Firestore
   }
 
-  if (!loadedFromBackend && profile.id === user.uid && profile.email === user.email && firestore) {
+  const cachedProfile = getCurrentUser()
+  const cachedRole = normalizeAccountRole(cachedProfile?.role)
+  const cachedEmailRole = getCachedRoleForEmail(user.email)
+
+  if ((!loadedFromBackend || !normalizeAccountRole(profile.role)) && profile.id === user.uid && profile.email === user.email && firestore) {
     try {
       const snap = await getDoc(doc(firestore, 'profiles', user.uid))
       if (snap.exists()) {
         const firestoreProfile = { id: user.uid, email: user.email, ...(snap.data() || {}) }
-        const firestoreRole = normalizeAccountRole(firestoreProfile.role)
-        if (firestoreRole || tokenRole) {
-          profile = { ...firestoreProfile, role: firestoreRole || tokenRole }
-        }
+        profile = { ...profile, ...firestoreProfile }
       }
     } catch (e) {
       // ignore
+    }
+  }
+
+  if (!normalizeAccountRole(profile.role)) {
+    const fallbackRole = cachedRole || cachedEmailRole
+    if (fallbackRole && (!profile.email || profile.email === user.email)) {
+      profile = {
+        ...profile,
+        ...cachedProfile,
+        id: user.uid,
+        email: user.email,
+        role: fallbackRole,
+      }
     }
   }
 
@@ -464,6 +560,19 @@ export async function loginUser({ email, password }) {
       throw backendFetchError || new Error('auth/role-missing: Your account type is missing. Please sign up again or contact support.')
     }
     profile.role = resolvedRole
+  }
+
+  if (profile.id === user.uid && profile.email === user.email && profile.role && backendOnline && backendSourceUrl === BACKEND_URL) {
+    try {
+      await updateCurrentUserProfile({
+        displayName: profile.displayName || cachedProfile?.displayName || user.displayName || '',
+        role: profile.role,
+        emailVerified: Boolean(user.emailVerified),
+        accountStatus: isAccountDeactivated(profile) ? 'deactivated' : 'active',
+      })
+    } catch (e) {
+      // ignore repair failures; the local session still has a resolved role
+    }
   }
 
   setCurrentUserLocal(profile)

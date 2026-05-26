@@ -100,53 +100,12 @@ export default function SignUp() {
       // if the email is already in use, redirect user to login with email prefilled
       if (msg.startsWith('auth/email-already-in-use')) {
         try {
-          const normalizedEmail = formData.email.trim().toLowerCase()
-          let signedInUser = null
-          const backendOnline = await isBackendAvailable()
-
-          if (auth) {
-            try {
-              const cred = await signInWithEmailAndPassword(auth, normalizedEmail, formData.password)
-              signedInUser = cred.user
-            } catch (signInError) {
-              if (prodAuth) {
-                const cred = await signInWithEmailAndPassword(prodAuth, normalizedEmail, formData.password)
-                signedInUser = cred.user
-              } else {
-                throw signInError
-              }
-            }
-          }
-
-          if (!signedInUser) {
-            navigate(`/login?prefillEmail=${encodeURIComponent(formData.email)}`)
-            return
-          }
-
-          const updatedProfile = backendOnline
-            ? await updateCurrentUserProfile({
-                displayName: formData.fullName,
-                role: formData.role,
-                accountStatus: 'active',
-                emailVerified: Boolean(signedInUser.emailVerified),
-              })
-            : cacheCurrentUserProfile({
-                id: signedInUser.uid,
-                email: signedInUser.email,
-                displayName: formData.fullName,
-                role: formData.role,
-                accountStatus: 'active',
-                emailVerified: Boolean(signedInUser.emailVerified),
-              })
           const verificationInfo = await resendVerificationEmail(formData.email, formData.password)
-          const resolvedRole = normalizeAccountRole(updatedProfile.role) || formData.role
           setSuccessMessage(
-            `This email already had an account. We updated it to ${accountTypes.find((item) => item.value === resolvedRole)?.label || resolvedRole} and ${verificationInfo.sent ? 'sent a fresh verification email.' : 'could not send the verification email automatically.'}`,
+            `This email already has an account. ${verificationInfo.sent ? 'A fresh verification email was sent.' : 'We could not send the verification email automatically.'} Please verify it, then log in again to access your account type.`,
           )
           setEmailStatus({ sent: verificationInfo.sent, verificationEmail: verificationInfo })
-          if (resolvedRole === 'responder') navigate('/responder/dashboard')
-          else if (resolvedRole === 'admin') navigate('/admin/dashboard')
-          else navigate('/resident/dashboard')
+          navigate(`/login?prefillEmail=${encodeURIComponent(formData.email)}&verificationPending=true`)
           return
         } catch (fallbackError) {
           setErrors({ submit: fallbackError?.message || msg })
@@ -251,7 +210,7 @@ export default function SignUp() {
             <motion.div className="flex flex-col justify-center order-1 lg:order-1" variants={itemVariants}>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-8 sm:mb-10 text-center lg:text-left">Sign Up</h1>
               
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form id="signup-form" onSubmit={handleSubmit} className="space-y-4">
                 {/* Full Name */}
                 <motion.div variants={itemVariants}>
                   <input
@@ -406,7 +365,8 @@ export default function SignUp() {
             >
               {/* Sign Up Button */}
               <motion.button
-                onClick={handleSubmit}
+                type="submit"
+                form="signup-form"
                 disabled={loading}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}

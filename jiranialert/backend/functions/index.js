@@ -1,6 +1,7 @@
 const { onRequest } = require('firebase-functions/v2/https')
 const admin = require('firebase-admin')
-const { getFirestore } = require('firebase-admin/firestore')
+const firestoreAdmin = require('firebase-admin/firestore')
+const { getFirestore } = firestoreAdmin
 const nodemailer = require('nodemailer')
 const fs = require('fs')
 const path = require('path')
@@ -41,7 +42,16 @@ if (process.env.NODE_ENV !== 'production') {
 admin.initializeApp()
 
 const db = getFirestore()
-const FieldValue = admin.firestore.FieldValue
+
+function serverTimestampValue() {
+  if (admin.firestore?.FieldValue?.serverTimestamp) {
+    return admin.firestore.FieldValue.serverTimestamp()
+  }
+  if (firestoreAdmin.FieldValue?.serverTimestamp) {
+    return firestoreAdmin.FieldValue.serverTimestamp()
+  }
+  throw new Error('Firestore serverTimestamp is unavailable')
+}
 
 const allowedOrigins = new Set([
   'http://localhost:5173',
@@ -154,7 +164,9 @@ async function sendSignupConfirmationEmail({ to, displayName, role, verification
   const htmlName = escapeHtml(safeName)
   const htmlRoleLabel = escapeHtml(roleLabel)
   const htmlAppUrl = escapeHtml(appUrl)
-  const htmlVerificationLink = escapeHtml(verificationLink || `${htmlAppUrl}/verify-email`)
+  const verificationHref = verificationLink || `${appUrl}/verify-email`
+  const htmlVerificationLink = escapeHtml(verificationHref)
+  const verificationPreview = escapeHtml(new URL(verificationHref).host)
 
   const info = await transporter.sendMail({
     from: mailFrom,
@@ -168,11 +180,11 @@ async function sendSignupConfirmationEmail({ to, displayName, role, verification
       '',
       'Please verify your email address to activate your account and access the correct dashboard for your role.',
       '',
-      verificationLink || `${appUrl}/verify-email`,
+      'Open the verification button in the HTML version of this email to continue.',
       '',
-      'This link is a one-time use verification link. After verification, sign in again to access your dashboard.',
+      'After verification, sign in again to access your dashboard.',
       '',
-      `If you did not sign up for Jirani Alert, please ignore this message.`,
+      'If you did not sign up for Jirani Alert, please ignore this message.',
       '',
       `Open Jirani Alert: ${appUrl}`,
       '',
@@ -180,21 +192,27 @@ async function sendSignupConfirmationEmail({ to, displayName, role, verification
       'Jirani Alert Team',
     ].join('\n'),
     html: `
-      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a">
-        <h2 style="color:#2563eb">You're invited to Jirani Alert</h2>
-        <p>Hi ${htmlName},</p>
-        <p>You have been invited to join Jirani Alert as a <strong>${htmlRoleLabel}</strong>.</p>
-        <p>To verify your identity and activate your account, click the button below:</p>
-        <p>
-          <a href="${htmlVerificationLink}" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:700">
-            Verify my account
-          </a>
-        </p>
-        <p>If the button does not work, paste this link into your browser:</p>
-        <p style="word-break:break-word"><a href="${htmlVerificationLink}" style="color:#2563eb">${htmlVerificationLink}</a></p>
-        <p style="margin-top:1rem;color:#64748b;font-size:13px">
-          This link can be used once to verify your email. After verification, sign in to access your account type anytime.
-        </p>
+      <div style="margin:0;padding:0;background:#f5f7fb">
+        <div style="max-width:640px;margin:0 auto;padding:32px 16px;font-family:Arial,Helvetica,sans-serif;color:#0f172a">
+          <div style="background:linear-gradient(135deg,#0f3d91,#2563eb);border-radius:24px 24px 0 0;padding:28px 32px;color:#fff">
+            <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;opacity:0.9">Jirani Alert</div>
+            <h1 style="margin:10px 0 0;font-size:28px;line-height:1.2">Verify your email</h1>
+          </div>
+          <div style="background:#ffffff;border:1px solid #dbe4f0;border-top:0;border-radius:0 0 24px 24px;padding:32px">
+            <p style="margin:0 0 16px;font-size:16px;line-height:1.7">Hi ${htmlName},</p>
+            <p style="margin:0 0 16px;font-size:16px;line-height:1.7">Your Jirani Alert account was created as a <strong>${htmlRoleLabel}</strong>. Confirm this email to activate your account and unlock the correct dashboard.</p>
+            <p style="margin:0 0 24px;font-size:16px;line-height:1.7">After verification, sign in again to continue.</p>
+            <p style="margin:0 0 28px">
+              <a href="${htmlVerificationLink}" style="display:inline-block;background:#2563eb;color:#fff;padding:14px 22px;border-radius:12px;text-decoration:none;font-weight:700">Verify email</a>
+            </p>
+            <div style="padding:16px 18px;border-radius:16px;background:#f8fafc;border:1px solid #e2e8f0">
+              <p style="margin:0;font-size:13px;line-height:1.6;color:#475569">If the button does not work, open the verification link from your browser.</p>
+              <p style="margin:8px 0 0;font-size:13px;line-height:1.6;color:#64748b;word-break:break-word">Destination: ${verificationPreview}</p>
+            </div>
+            <p style="margin:22px 0 0;font-size:13px;line-height:1.6;color:#64748b">If you did not create a Jirani Alert account, you can safely ignore this email.</p>
+            <p style="margin:22px 0 0;font-size:13px;color:#64748b">Open Jirani Alert: <a href="${htmlAppUrl}" style="color:#2563eb;text-decoration:none">${htmlAppUrl}</a></p>
+          </div>
+        </div>
       </div>
     `,
   })
@@ -433,7 +451,7 @@ exports.createUserProfile = onRequest({ region: 'us-central1' }, async (req, res
     const displayName = typeof body.displayName === 'string' ? body.displayName.trim() : ''
     const requestedRole = typeof body.role === 'string' ? body.role.trim() : 'resident'
     const role = allowedRoles.has(requestedRole) ? requestedRole : 'resident'
-    const now = FieldValue.serverTimestamp()
+    const now = serverTimestampValue()
     const profileRef = db.collection('profiles').doc(user.uid)
     const notificationRef = db.collection('notifications').doc()
     const email = user.email || ''
@@ -522,7 +540,7 @@ exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req,
     const evidenceUrl = typeof body.evidenceUrl === 'string' && body.evidenceUrl.trim() !== '' ? body.evidenceUrl.trim() : null
     const notify = Array.isArray(body.notify) ? body.notify : []
 
-    const now = FieldValue.serverTimestamp()
+    const now = serverTimestampValue()
     const reportRef = db.collection('reports').doc()
     const alertRef = db.collection('alerts').doc(reportRef.id)
     const notificationRef = db.collection('notifications').doc()
@@ -698,7 +716,7 @@ exports.markNotificationRead = onRequest({ region: 'us-central1' }, async (req, 
 
     await notificationRef.update({
       read: true,
-      readAt: FieldValue.serverTimestamp(),
+      readAt: serverTimestampValue(),
     })
 
     res.json({ ok: true })
@@ -726,7 +744,7 @@ exports.markAllNotificationsRead = onRequest({ region: 'us-central1' }, async (r
     snapshot.docs.forEach((doc) => {
       batch.update(doc.ref, {
         read: true,
-        readAt: FieldValue.serverTimestamp(),
+        readAt: serverTimestampValue(),
       })
     })
     await batch.commit()
@@ -800,7 +818,9 @@ exports.getUserProfile = onRequest({ region: 'us-central1' }, async (req, res) =
 
   try {
     requireMethod(req, 'GET')
-    const userId = req.path.replace(/^\//, '') || req.query.userId
+    const requestPath = String(req.path || req.url || '').split('?')[0].replace(/^\/+/, '')
+    const pathParts = requestPath.split('/').filter(Boolean)
+    const userId = String(req.query.userId || pathParts[1] || pathParts[0] || '').trim()
     if (!userId) {
       const error = new Error('userId is required in path')
       error.status = 400
@@ -858,7 +878,7 @@ exports.updateUserProfile = onRequest({ region: 'us-central1' }, async (req, res
     }
     if (typeof body.emailVerified === 'boolean') updates.emailVerified = body.emailVerified
     if (typeof body.accountStatus === 'string') updates.accountStatus = body.accountStatus.trim()
-    updates.updatedAt = FieldValue.serverTimestamp()
+    updates.updatedAt = serverTimestampValue()
 
     await db.collection('profiles').doc(userId).set(updates, { merge: true })
 
@@ -888,7 +908,7 @@ exports.deactivateUserAccount = onRequest({ region: 'us-central1' }, async (req,
   try {
     requireMethod(req, 'POST')
     const user = await requireUser(req)
-    const now = FieldValue.serverTimestamp()
+    const now = serverTimestampValue()
 
     await db.collection('profiles').doc(user.uid).set(
       {
@@ -992,7 +1012,7 @@ exports.upsertContact = onRequest({ region: 'us-central1' }, async (req, res) =>
     const contactId = typeof body.contactId === 'string' && body.contactId.trim() !== '' ? body.contactId.trim() : null
     const contact = sanitizeContact(body)
 
-    const now = FieldValue.serverTimestamp()
+    const now = serverTimestampValue()
     const ref = contactId
       ? db.collection('profiles').doc(user.uid).collection('contacts').doc(contactId)
       : db.collection('profiles').doc(user.uid).collection('contacts').doc()
@@ -1113,7 +1133,7 @@ exports.toggleLikePost = onRequest({ region: 'us-central1' }, async (req, res) =
     } else {
       await likeRef.set({
         userId: user.uid,
-        createdAt: FieldValue.serverTimestamp(),
+        createdAt: serverTimestampValue(),
       })
     }
 
@@ -1153,7 +1173,7 @@ exports.commentOnPost = onRequest({ region: 'us-central1' }, async (req, res) =>
     await commentRef.set({
       userId: user.uid,
       text,
-      createdAt: FieldValue.serverTimestamp(),
+      createdAt: serverTimestampValue(),
     })
 
     const commentsSnap = await postRef.collection('comments').get()
@@ -1190,7 +1210,7 @@ exports.sharePost = onRequest({ region: 'us-central1' }, async (req, res) => {
     const shareRef = postRef.collection('shares').doc()
     await shareRef.set({
       userId: user.uid,
-      createdAt: FieldValue.serverTimestamp(),
+      createdAt: serverTimestampValue(),
     })
 
     const sharesSnap = await postRef.collection('shares').get()
