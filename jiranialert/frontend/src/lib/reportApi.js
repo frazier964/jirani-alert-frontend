@@ -12,6 +12,7 @@ async function waitForAuthReady() {
 }
 
 async function callBackend(endpoint, method = 'GET', body = null) {
+  if (!BACKEND_URL) throw new Error('Backend is not configured')
   await waitForAuthReady()
   const token = await auth.currentUser?.getIdToken()
   const options = { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }

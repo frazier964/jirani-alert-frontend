@@ -7,7 +7,7 @@ import {
   onAuthStateChanged,
   sendEmailVerification,
 } from 'firebase/auth'
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, getDocs, query, serverTimestamp, setDoc, where, collection } from 'firebase/firestore'
 import { getFunctionsBaseUrl } from './backendBase'
 
 const CURRENT_KEY = 'jiranialert_current'
@@ -174,55 +174,24 @@ async function sendVerificationEmailToUser(user) {
   }
 }
 
-export async function resendVerificationEmail(email, password) {
+export async function resendVerificationEmail(email) {
   if (!auth) throw new Error('Firebase not configured')
   const usingEmulators = await waitForFirebaseReady()
-  
-  let user = auth.currentUser
-  let tempSignedIn = false
-  
-  // If email and password are provided but user is not logged in, sign in temporarily
-  if (!user && email && password) {
-    try {
-      const normalizedEmail = String(email || '').trim().toLowerCase()
-      const normalizedPassword = String(password || '')
-      
-      // Try emulator first, then production
-      try {
-        const cred = await signInWithEmailAndPassword(auth, normalizedEmail, normalizedPassword)
-        user = cred.user
-        tempSignedIn = true
-      } catch (e) {
-        // If emulator fails, try production
-        if (prodAuth) {
-          try {
-            const cred = await signInWithEmailAndPassword(prodAuth, normalizedEmail, normalizedPassword)
-            user = cred.user
-            tempSignedIn = true
-          } catch (prodError) {
-            // Both failed
-          }
-        }
-      }
-    } catch (e) {
-      // ignore sign in errors, will try other methods
-    }
-  }
-  
-  if (!user) {
-    throw new Error('Please provide valid credentials to resend verification email.')
+
+  const normalizedEmail = String(email || '').trim().toLowerCase()
+  if (!normalizedEmail) {
+    throw new Error('Please enter the email address used for signup.')
   }
 
   let verificationEmail = { sent: false, reason: 'Unable to send verification email' }
   if (BACKEND_URL) {
     try {
-      const token = await user.getIdToken()
       const res = await fetch(`${BACKEND_URL}/resendVerificationEmail`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
+        body: JSON.stringify({ email: normalizedEmail }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -240,20 +209,12 @@ export async function resendVerificationEmail(email, password) {
     }
   }
 
-  if (!verificationEmail.sent && !BACKEND_URL && !usingEmulators) {
-    const fallback = await sendVerificationEmailToUser(user)
+  const currentUser = auth?.currentUser || prodAuth?.currentUser || null
+  if (!verificationEmail.sent && currentUser?.email && String(currentUser.email).trim().toLowerCase() === normalizedEmail) {
+    const fallback = await sendVerificationEmailToUser(currentUser)
     verificationEmail = fallback.sent
       ? { sent: true, reason: 'Email sent via Firebase auth fallback' }
       : { sent: false, reason: verificationEmail.reason || fallback.reason }
-  }
-
-  // Sign out if we temporarily signed in just to resend the verification
-  if (tempSignedIn) {
-    try {
-      await fbSignOut(auth)
-    } catch (e) {
-      // ignore sign out errors
-    }
   }
 
   return verificationEmail
@@ -356,7 +317,6 @@ export async function registerUser({ email, password, role = 'resident', display
       doc(firestore, 'profiles', user.uid),
       {
         uid: user.uid,
-        email: user.email,
         displayName: displayName || '',
         role,
         accountStatus: 'pending_verification',
@@ -370,7 +330,7 @@ export async function registerUser({ email, password, role = 'resident', display
     )
   }
 
-  if (!verificationEmail.sent && !(usingEmulators && BACKEND_URL)) {
+  if (!verificationEmail.sent) {
     const fallback = await sendVerificationEmailToUser(user)
     verificationEmail = fallback.sent
       ? { sent: true, source: 'firebase' }
@@ -537,6 +497,20 @@ export async function loginUser({ email, password }) {
       }
     } catch (e) {
       // ignore
+    }
+  }
+
+  if (!normalizeAccountRole(profile.role) && firestore && user.email) {
+    try {
+      const emailQuery = query(collection(firestore, 'profiles'), where('email', '==', user.email))
+      const querySnap = await getDocs(emailQuery)
+      const matchingDoc = querySnap.docs.find((docSnap) => normalizeAccountRole(docSnap.data()?.role) || docSnap.data()?.accountType)
+      if (matchingDoc) {
+        const recoveredProfile = { id: user.uid, email: user.email, ...(matchingDoc.data() || {}) }
+        profile = { ...profile, ...recoveredProfile }
+      }
+    } catch (e) {
+      // ignore email query fallback failures
     }
   }
 
@@ -721,7 +695,6 @@ export function initAuthListener() {
 
   onAuthStateChanged(auth, async (user) => {
     await waitForFirebaseReady()
-    const backendOnline = await isBackendAvailable()
 
     if (!user) {
       // Don't clear cached profile here.
@@ -735,6 +708,8 @@ export function initAuthListener() {
       }
       return
     }
+
+    const backendOnline = await isBackendAvailable()
 
     // Load profile from backend when available; fallback to Firestore; then to auth info.
     if (BACKEND_URL && backendOnline) {

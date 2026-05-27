@@ -2,9 +2,7 @@ import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, AlertCircle } from 'lucide-react'
-import { signInWithEmailAndPassword } from 'firebase/auth'
-import { auth, prodAuth } from '../../lib/firebase'
-import { registerUser, resendVerificationEmail, updateCurrentUserProfile, normalizeAccountRole, cacheCurrentUserProfile, isBackendAvailable } from '../../lib/auth'
+import { registerUser, resendVerificationEmail } from '../../lib/auth'
 
 const accountTypes = [
   { value: 'resident', label: 'Resident / Community Member' },
@@ -100,7 +98,7 @@ export default function SignUp() {
       // if the email is already in use, redirect user to login with email prefilled
       if (msg.startsWith('auth/email-already-in-use')) {
         try {
-          const verificationInfo = await resendVerificationEmail(formData.email, formData.password)
+          const verificationInfo = await resendVerificationEmail(formData.email)
           setSuccessMessage(
             `This email already has an account. ${verificationInfo.sent ? 'A fresh verification email was sent.' : 'We could not send the verification email automatically.'} Please verify it, then log in again to access your account type.`,
           )
@@ -122,7 +120,7 @@ export default function SignUp() {
     setResendLoading(true)
     setResendResult('')
     try {
-      const result = await resendVerificationEmail()
+      const result = await resendVerificationEmail(formData.email)
       if (result.sent) {
         setResendResult('A fresh verification email has been sent. Please check your inbox and spam folder.')
       } else {

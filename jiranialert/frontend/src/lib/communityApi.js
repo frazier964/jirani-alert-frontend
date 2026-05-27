@@ -5,6 +5,7 @@ import { getFunctionsBaseUrl } from './backendBase'
 const BACKEND_URL = getFunctionsBaseUrl()
 
 async function callBackend(endpoint, method = 'GET', body = null) {
+  if (!BACKEND_URL) throw new Error('Backend is not configured')
   // Ensure we have an authenticated user before calling backend.
   if (!auth.currentUser) {
     await ensureAnonymous()

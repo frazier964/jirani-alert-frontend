@@ -148,15 +148,14 @@ export default function Login() {
     setVerificationLink('')
 
     try {
-      // Pass email and password to allow resending without being logged in
-      const result = await resendVerificationEmail(email, password)
+      const result = await resendVerificationEmail(email)
       if (result.sent) {
         setResendResult('A fresh verification email has been sent. Please check your inbox and spam folder.')
       } else {
         setResendResult(result.reason || 'Unable to resend verification email.')
+      }
       if (result.verificationLink) {
         setVerificationLink(result.verificationLink)
-      }
       }
     } catch (e) {
       setResendResult(e?.message || 'Unable to resend verification email.')
@@ -359,6 +358,37 @@ export default function Login() {
                       Forgot Password?
                     </button>
                   </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4 space-y-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">Need another verification email?</p>
+                    <p className="mt-1 text-xs sm:text-sm text-slate-600">
+                      Enter the same email and password you used during signup, then send a fresh verification link.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resendLoading || !email.trim()}
+                    className="w-full rounded-xl border border-[#2563EB] bg-white px-4 py-3 text-sm font-semibold text-[#2563EB] transition hover:bg-[#eff6ff] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {resendLoading ? 'Sending verification email...' : 'Resend verification email'}
+                  </button>
+                  {resendResult && (
+                    <div className="rounded-xl bg-white px-3 py-2 text-sm text-slate-700 border border-slate-200">
+                      <p>{resendResult}</p>
+                      {verificationLink && (
+                        <button
+                          type="button"
+                          onClick={() => window.open(verificationLink, '_blank', 'noopener,noreferrer')}
+                          className="mt-2 inline-flex items-center justify-center rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1e40af]"
+                        >
+                          Open verification link
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {infoMessage && (
