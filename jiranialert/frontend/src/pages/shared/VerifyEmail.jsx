@@ -57,7 +57,7 @@ export default function VerifyEmail() {
         if (verifiedUser) {
           await verifiedUser.reload()
           const tokenResult = await getIdTokenResult(verifiedUser, true)
-          const role = tokenResult.claims.role || 'resident'
+          const role = tokenResult?.claims?.role || verifiedUser?.role || null
           const dashboardRoute =
             role === 'admin'
               ? '/admin/dashboard'

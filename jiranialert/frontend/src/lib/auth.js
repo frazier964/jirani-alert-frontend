@@ -534,7 +534,7 @@ export async function loginUser({ email, password }) {
   const resolvedProfileRole = resolveAccountRole(profile)
 
   if (!resolvedProfileRole) {
-    const resolvedRole = tokenRole || normalizeAccountRole(profile.role) || normalizeAccountRole(profile.accountType) || 'resident'
+    const resolvedRole = tokenRole || normalizeAccountRole(user?.role) || normalizeAccountRole(profile.role) || normalizeAccountRole(profile.accountType)
     if (!resolvedRole) {
       throw backendFetchError || new Error('auth/role-missing: Your account type is missing. Please sign up again or contact support.')
     }

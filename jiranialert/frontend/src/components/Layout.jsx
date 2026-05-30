@@ -64,7 +64,7 @@ export default function Layout() {
       const user = auth?.currentUser || prodAuth?.currentUser
       const profile = getCurrentUser()
       const tokenResult = user ? await getIdTokenResult(user, true).catch(() => null) : null
-      const role = resolveAccountRole(profile) || normalizeAccountRole(tokenResult?.claims?.role) || normalizeAccountRole(user?.role)
+      const role = normalizeAccountRole(tokenResult?.claims?.role) || normalizeAccountRole(user?.role) || resolveAccountRole(profile)
       setAuthChecked(true)
       if (!user) {
         navigate('/login', { replace: true })
@@ -90,8 +90,18 @@ export default function Layout() {
         return
       }
 
-      if (role === 'resident' && !isResident && isResponder) {
+      if (role === 'resident' && isResponder) {
         navigate('/resident/dashboard', { replace: true })
+        return
+      }
+
+      if (role === 'responder' && isResident) {
+        navigate('/responder/dashboard', { replace: true })
+        return
+      }
+
+      if (role === 'admin' && (isResident || isResponder)) {
+        navigate('/admin/dashboard', { replace: true })
       }
     }
 
