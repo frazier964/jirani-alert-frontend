@@ -45,6 +45,8 @@ const firestore = app ? getFirestore(app) : null
 const emulatorMode = String(import.meta.env.VITE_USE_FIREBASE_EMULATORS || '').trim().toLowerCase()
 const useEmulatorsFlag = emulatorMode === 'true' || emulatorMode === 'auto' || emulatorMode === ''
 const shouldUseEmulators = import.meta.env.DEV && useEmulatorsFlag
+const shouldUseAuthEmulator = import.meta.env.DEV && emulatorMode === 'true'
+const shouldUseFirestoreEmulator = import.meta.env.DEV && useEmulatorsFlag
 let emulatorsConnected = false
 
 async function isEmulatorAvailable(host, port, path = '/') {
@@ -77,14 +79,16 @@ async function connectEmulatorsIfAvailable() {
   }
 
   try {
-    if (auth) {
+    if (auth && shouldUseAuthEmulator) {
       connectAuthEmulator(auth, 'http://127.0.0.1:9098', { disableWarnings: true })
     }
-    if (firestore) {
+    if (firestore && shouldUseFirestoreEmulator) {
       connectFirestoreEmulator(firestore, '127.0.0.1', 9000)
     }
     emulatorsConnected = true
-    console.info('Firebase emulators connected for auth and firestore')
+    console.info(
+      `Firebase emulators connected for ${shouldUseAuthEmulator ? 'auth and ' : ''}${shouldUseFirestoreEmulator ? 'firestore' : 'firebase'}`,
+    )
     return true
   } catch (e) {
     if (e?.code === 'auth/emulator-config-failed') {
@@ -128,6 +132,7 @@ export { prodAuth }
 async function ensureAnonymous() {
   if (!auth) return null
   if (auth.currentUser) return auth.currentUser
+  if (!shouldUseAuthEmulator) return null
   try {
     const cred = await signInAnonymously(auth)
     return cred.user

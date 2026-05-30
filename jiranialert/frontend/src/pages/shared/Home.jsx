@@ -27,7 +27,6 @@ import {
 const navItems = [
   { label: 'Home', id: 'home' },
   { label: 'Features', to: '/features' },
-  { label: 'How It Works', id: 'how-it-works' },
   { label: 'About', to: '/about' },
   { label: 'Contact', to: '/contact' },
   { label: 'Support', to: '/support' },
@@ -182,7 +181,7 @@ export default function Home() {
       <Header navItems={navItems} initialBg="transparent" scrolledBg="rgba(255,255,255,0.88)" primaryColor="#2563EB" />
 
       <main className="pt-0">
-        <section id="home" className="relative overflow-hidden pt-0 pb-8 sm:pt-8 sm:pb-10 lg:pt-10 lg:pb-12">
+        <section id="home" className="relative overflow-hidden pt-8 pb-8 sm:pt-14 sm:pb-10 lg:pt-20 lg:pb-12">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_15%,rgba(37,99,235,0.2),transparent_32%),radial-gradient(circle_at_85%_5%,rgba(220,38,38,0.16),transparent_28%),linear-gradient(180deg,#eff6ff_0%,#ffffff_45%,#f8fafc_100%)]" />
           <motion.div
             className="absolute top-20 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-[#2563EB]/20 blur-3xl"
@@ -198,7 +197,7 @@ export default function Home() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.6 }}
               >
-                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/70 backdrop-blur border border-blue-100 text-xs font-bold text-[#2563EB]">
+                <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/70 px-3 py-1 text-xs font-bold text-[#2563EB] backdrop-blur sm:mt-6 lg:mt-8">
                   <ShieldCheck className="h-4 w-4" />
                   Trusted Emergency Network
                 </span>

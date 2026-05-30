@@ -161,6 +161,10 @@ export function normalizeAccountRole(role) {
   return VALID_ACCOUNT_ROLES.has(normalized) ? normalized : null
 }
 
+export function resolveAccountRole(profile) {
+  return normalizeAccountRole(profile?.role) || normalizeAccountRole(profile?.accountType)
+}
+
 async function sendVerificationEmailToUser(user) {
   if (!auth || !user || !user.email) {
     return { sent: false, reason: 'No authenticated user available' }
@@ -371,7 +375,7 @@ export async function loginUser({ email, password }) {
     cred = await signInWithEmailAndPassword(auth, normalizedEmail, normalizedPassword)
   } catch (e) {
     authError = e
-    if (e?.code === 'auth/user-not-found' && prodAuth) {
+    if (prodAuth) {
       try {
         cred = await signInWithEmailAndPassword(prodAuth, normalizedEmail, normalizedPassword)
         authSource = 'production'
@@ -515,7 +519,7 @@ export async function loginUser({ email, password }) {
   }
 
   if (!normalizeAccountRole(profile.role)) {
-    const fallbackRole = cachedRole || cachedEmailRole
+    const fallbackRole = cachedRole || cachedEmailRole || resolveAccountRole(profile)
     if (fallbackRole && (!profile.email || profile.email === user.email)) {
       profile = {
         ...profile,
@@ -527,12 +531,16 @@ export async function loginUser({ email, password }) {
     }
   }
 
-  if (!normalizeAccountRole(profile.role)) {
-    const resolvedRole = tokenRole || normalizeAccountRole(profile.role)
+  const resolvedProfileRole = resolveAccountRole(profile)
+
+  if (!resolvedProfileRole) {
+    const resolvedRole = tokenRole || normalizeAccountRole(profile.role) || normalizeAccountRole(profile.accountType) || 'resident'
     if (!resolvedRole) {
       throw backendFetchError || new Error('auth/role-missing: Your account type is missing. Please sign up again or contact support.')
     }
     profile.role = resolvedRole
+  } else {
+    profile.role = resolvedProfileRole
   }
 
   if (profile.id === user.uid && profile.email === user.email && profile.role && backendOnline && backendSourceUrl === BACKEND_URL) {

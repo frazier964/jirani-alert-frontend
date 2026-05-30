@@ -323,12 +323,27 @@ exports.resendVerificationEmail = onRequest({ region: 'us-central1' }, async (re
 
   try {
     requireMethod(req, 'POST')
-    const user = await requireUser(req)
+    const body = req.body || {}
+    const requestedEmail = String(body.email || req.query?.email || '').trim().toLowerCase()
+
+    let user = null
+    if (requestedEmail) {
+      try {
+        user = await admin.auth().getUserByEmail(requestedEmail)
+      } catch (lookupError) {
+        const error = new Error('No account found for that email')
+        error.status = 404
+        throw error
+      }
+    } else {
+      user = await requireUser(req)
+    }
+
     const profileSnap = await db.collection('profiles').doc(user.uid).get()
     const profile = profileSnap.exists ? profileSnap.data() : {}
     const displayName = profile.displayName || user.displayName || ''
     const role = typeof profile.role === 'string' && profile.role ? profile.role : 'resident'
-    const email = String(user.email || '').trim()
+    const email = String(user.email || requestedEmail || '').trim()
 
     if (!email) {
       const error = new Error('User email is missing')
@@ -1059,7 +1074,12 @@ exports.getCommunityFeed = onRequest({ region: 'us-central1' }, async (req, res)
 
   try {
     requireMethod(req, 'GET')
-    const user = await requireUser(req)
+    let user = null
+    try {
+      user = await requireUser(req)
+    } catch (e) {
+      user = null
+    }
     const limit = Math.min(Number(req.query.limit || 50), 100)
 
     const snapshot = await db
@@ -1081,12 +1101,14 @@ exports.getCommunityFeed = onRequest({ region: 'us-central1' }, async (req, res)
           .doc(doc.id)
           .collection('comments')
           .get()
-        const userLiked = await db
-          .collection('communityPosts')
-          .doc(doc.id)
-          .collection('likes')
-          .doc(user.uid)
-          .get()
+        const userLiked = user
+          ? await db
+              .collection('communityPosts')
+              .doc(doc.id)
+              .collection('likes')
+              .doc(user.uid)
+              .get()
+          : { exists: false }
 
         return {
           id: doc.id,

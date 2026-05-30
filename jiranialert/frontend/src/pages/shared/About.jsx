@@ -94,7 +94,6 @@ export default function About() {
         navItems={[
           { label: 'Home', to: '/home' },
           { label: 'Features', to: '/features' },
-          { label: 'How It Works', id: 'how-it-works' },
           { label: 'About', to: '/about' },
           { label: 'Contact', to: '/contact' },
           { label: 'Support', to: '/support' },
@@ -109,14 +108,14 @@ export default function About() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(229,57,53,0.18),transparent_26%),radial-gradient(circle_at_80%_10%,rgba(59,130,246,0.18),transparent_20%),radial-gradient(circle_at_20%_85%,rgba(255,255,255,0.18),transparent_18%)]" />
           <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-2 lg:items-center">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }} className="space-y-6 text-white">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold backdrop-blur-xl">
+              <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold tracking-wide backdrop-blur-xl sm:text-sm">
                 <Sparkles className="h-4 w-4 text-[#ffb4b0]" />
                 Community-centered civic safety platform
               </div>
-              <h1 className="max-w-2xl text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl">
+              <h1 className="max-w-2xl text-4xl font-black tracking-tight leading-[1.04] sm:text-5xl lg:text-6xl">
                 Keeping Communities Safe, Connected, and Informed
               </h1>
-              <p className="max-w-2xl text-lg leading-8 text-blue-50/90 sm:text-xl">
+              <p className="max-w-2xl text-base leading-8 text-blue-50/95 sm:text-lg lg:text-xl">
                 Jirani Alert empowers neighborhoods with real-time emergency reporting and instant community alerts.
                 It helps people act faster, communicate clearly, and protect one another when it matters most.
               </p>

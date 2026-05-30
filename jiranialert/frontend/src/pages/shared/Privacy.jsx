@@ -328,7 +328,6 @@ We recommend reviewing this policy periodically to stay informed about how we pr
         navItems={[
           { label: 'Home', to: '/home' },
           { label: 'Features', to: '/features' },
-          { label: 'How It Works', id: 'how-it-works' },
           { label: 'About', to: '/about' },
           { label: 'Contact', to: '/contact' },
           { label: 'Support', to: '/support' },

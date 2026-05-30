@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { getIdTokenResult, onAuthStateChanged } from 'firebase/auth'
 import TopNav from './Layout/TopNav'
-import { getCurrentUser, normalizeAccountRole } from '../lib/auth'
+import { getCurrentUser, resolveAccountRole, normalizeAccountRole } from '../lib/auth'
 import { auth, prodAuth } from '../lib/firebase'
 
 const TEXT_SIZE_OPTIONS = new Set(['Small', 'Medium', 'Large'])
@@ -64,7 +64,7 @@ export default function Layout() {
       const user = auth?.currentUser || prodAuth?.currentUser
       const profile = getCurrentUser()
       const tokenResult = user ? await getIdTokenResult(user, true).catch(() => null) : null
-      const role = normalizeAccountRole(profile?.role) || normalizeAccountRole(tokenResult?.claims?.role) || normalizeAccountRole(user?.role)
+      const role = resolveAccountRole(profile) || normalizeAccountRole(tokenResult?.claims?.role) || normalizeAccountRole(user?.role)
       setAuthChecked(true)
       if (!user) {
         navigate('/login', { replace: true })

@@ -37,6 +37,7 @@ import {
   UserCircle2,
 } from 'lucide-react'
 import Avatar from '../../components/UI/Avatar'
+import ResponderTopNav from '../../components/Layout/ResponderTopNav'
 import { getCurrentUser } from '../../lib/auth'
 import { logout as logoutUser } from '../../lib/auth'
 
@@ -83,6 +84,25 @@ const quickActions = [
   { label: 'Request Backup', icon: Users },
   { label: 'Mark Arrived', icon: Navigation2 },
   { label: 'Radio Check', icon: Mic },
+]
+
+const residentDirectory = [
+  { name: 'Mwaniki Estate', status: '12 residents flagged', tone: 'text-red-200' },
+  { name: 'Kilimani Block C', status: '8 residents checked in', tone: 'text-cyan-200' },
+  { name: 'Westlands Tower B', status: '3 escalations open', tone: 'text-amber-200' },
+]
+
+const responderAnnouncements = [
+  { title: 'Shift briefing updated', detail: 'New hazard map and coverage notes are live.' },
+  { title: 'Weather advisory', detail: 'Heavy rain watch active for the evening window.' },
+  { title: 'Protocol reminder', detail: 'Verify scene safety before entering high-rise incidents.' },
+]
+
+const responderResources = [
+  'Triage checklist',
+  'Radio codes sheet',
+  'Scene safety guide',
+  'Evacuation playbook',
 ]
 
 const analytics = [
@@ -146,6 +166,11 @@ export default function ResponderDashboard() {
       scrollToSection(item.target)
     }
     if (item.action === 'logout') {
+      const shouldLogout = window.confirm('Are you sure you want to log out?')
+      if (!shouldLogout) {
+        setProfileOpen(false)
+        return
+      }
       await logoutUser()
       window.location.href = '/login'
     }
@@ -164,11 +189,12 @@ export default function ResponderDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white" id="responder-dashboard">
+      <ResponderTopNav />
       <div className="relative overflow-hidden border-b border-white/10 bg-gradient-to-br from-slate-950 via-slate-950 to-[#101a2f]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.18),transparent_24%),radial-gradient(circle_at_80%_10%,rgba(239,68,68,0.18),transparent_18%),radial-gradient(circle_at_55%_85%,rgba(251,191,36,0.12),transparent_22%)]" />
         <div className="relative mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-          <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-3xl">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)] xl:items-stretch">
+            <div className="max-w-3xl self-stretch">
               <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.26em] text-cyan-200">
                 <Radar className="h-4 w-4" />
                 Jirani Alert responder command center
@@ -197,7 +223,17 @@ export default function ResponderDashboard() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 rounded-[28px] border border-white/10 bg-white/5 p-4 backdrop-blur-xl sm:flex-row xl:min-w-[320px] xl:flex-col">
+            <div className="flex h-full flex-col gap-3 rounded-[28px] border border-white/10 bg-white/5 p-4 backdrop-blur-xl">
+              <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Command snapshot</p>
+                  <p className="mt-1 text-sm font-bold text-white">Live responder overview</p>
+                </div>
+                <div className="rounded-full border border-red-400/20 bg-red-500/10 px-3 py-1 text-xs font-bold text-red-100">
+                  18 active
+                </div>
+              </div>
+
               <div className="relative self-end" ref={profileMenuRef} onMouseEnter={() => setProfileOpen(true)} onMouseLeave={() => setProfileOpen(false)}>
                 <button
                   type="button"
@@ -273,14 +309,93 @@ export default function ResponderDashboard() {
                   Offline Mode
                 </button>
               </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4">
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Selected incident</p>
+                  <p className="mt-2 text-lg font-black text-white">{selectedAlert.title}</p>
+                  <p className="mt-1 text-sm text-slate-300">{selectedAlert.location} · ETA {selectedAlert.eta}</p>
+                  <div className={`mt-3 inline-flex rounded-full border px-3 py-1 text-xs font-bold ${severityStyles[selectedAlert.severity] || severityStyles.Medium}`}>
+                    {selectedAlert.severity}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4">
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Instant actions</p>
+                  <div className="mt-3 grid gap-2">
+                    {quickActions.slice(0, 3).map((action) => {
+                      const Icon = action.icon
+                      return (
+                        <button key={action.label} type="button" className="inline-flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm font-semibold text-white transition hover:border-cyan-400/30 hover:bg-cyan-400/10">
+                          <span className="flex items-center gap-2">
+                            <Icon className="h-4 w-4 text-cyan-200" />
+                            {action.label}
+                          </span>
+                          <ChevronRight className="h-4 w-4 text-slate-400" />
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4 sm:col-span-2 xl:col-span-1">
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Live coordination</p>
+                  <div className="mt-3 space-y-3">
+                    <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-3">
+                      <div>
+                        <p className="text-sm font-bold text-white">Radio channels</p>
+                        <p className="text-xs text-slate-400">Secure channels online</p>
+                      </div>
+                      <span className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-100">04 live</span>
+                    </div>
+                    <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-3">
+                      <div>
+                        <p className="text-sm font-bold text-white">Crew ETA</p>
+                        <p className="text-xs text-slate-400">Fastest unit arrival window</p>
+                      </div>
+                      <span className="rounded-full border border-cyan-400/20 bg-cyan-500/10 px-2.5 py-1 text-[11px] font-bold text-cyan-100">4 min</span>
+                    </div>
+                    <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-3">
+                      <div>
+                        <p className="text-sm font-bold text-white">Weather risk</p>
+                        <p className="text-xs text-slate-400">Potential rain within the hour</p>
+                      </div>
+                      <span className="rounded-full border border-amber-400/20 bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-100">Moderate</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-xl">
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Active zones</p>
+              <p className="mt-2 text-2xl font-black text-white">09</p>
+              <p className="mt-1 text-sm text-slate-300">High-priority neighborhoods under watch</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-xl">
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Dispatch queue</p>
+              <p className="mt-2 text-2xl font-black text-white">06</p>
+              <p className="mt-1 text-sm text-slate-300">Units waiting for assignment</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-xl">
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Channel health</p>
+              <p className="mt-2 text-2xl font-black text-white">99%</p>
+              <p className="mt-1 text-sm text-slate-300">Voice and data links stable</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-xl">
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Support backlog</p>
+              <p className="mt-2 text-2xl font-black text-white">03</p>
+              <p className="mt-1 text-sm text-slate-300">Open assistance requests</p>
             </div>
           </div>
         </div>
       </div>
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
-          <section className="space-y-6">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
+          <section className="space-y-4 xl:space-y-5">
             <motion.div
               id="responder-alerts"
               initial={{ opacity: 0, y: 16 }}
@@ -448,8 +563,8 @@ export default function ResponderDashboard() {
             </Panel>
           </section>
 
-          <aside className="space-y-6">
-            <Panel title="Dispatch & coordination" subtitle="Assign units and control response lanes" icon={LayoutGrid} id="responder-dispatch">
+          <aside className="grid gap-4 xl:grid-cols-2 xl:items-start">
+            <Panel className="xl:col-span-2" title="Dispatch & coordination" subtitle="Assign units and control response lanes" icon={LayoutGrid} id="responder-dispatch">
               <div className="space-y-3">
                 {[
                   { name: 'Ambulance Unit 12', status: 'Available', tone: 'text-emerald-200' },
@@ -470,7 +585,7 @@ export default function ResponderDashboard() {
               </div>
             </Panel>
 
-            <Panel title="Emergency communication" subtitle="Secure responder chat and voice channels" icon={MessageSquare} id="responder-comms">
+            <Panel className="xl:col-span-2" title="Emergency communication" subtitle="Secure responder chat and voice channels" icon={MessageSquare} id="responder-comms">
               <div className="space-y-3">
                 {comms.map((message, index) => (
                   <div key={`${message.from}-${index}`} className="rounded-2xl border border-white/10 bg-slate-950/45 p-4">
@@ -550,7 +665,45 @@ export default function ResponderDashboard() {
               </div>
             </Panel>
 
-            <Panel title="Settings & security" subtitle="Responder controls and compliance" icon={ShieldCheck} id="responder-settings">
+            <Panel title="Residents" subtitle="Resident coordination and welfare checks" icon={Users} id="responder-residents">
+              <div className="space-y-3">
+                {residentDirectory.map((item) => (
+                  <div key={item.name} className="flex items-center justify-between rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-3">
+                    <div>
+                      <p className="font-bold text-white">{item.name}</p>
+                      <p className={`text-sm ${item.tone}`}>{item.status}</p>
+                    </div>
+                    <button type="button" className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-white">
+                      Open
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </Panel>
+
+            <Panel title="Announcements" subtitle="Operational updates and advisories" icon={Bell} id="responder-announcements">
+              <div className="space-y-3">
+                {responderAnnouncements.map((item) => (
+                  <div key={item.title} className="rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-4">
+                    <p className="font-bold text-white">{item.title}</p>
+                    <p className="mt-1 text-sm leading-6 text-slate-300">{item.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </Panel>
+
+            <Panel title="Resources" subtitle="Responder references and playbooks" icon={ShieldCheck} id="responder-resources">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {responderResources.map((item) => (
+                  <div key={item} className="rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-4">
+                    <p className="font-bold text-white">{item}</p>
+                    <p className="mt-1 text-sm text-slate-300">Fast access reference for field operations.</p>
+                  </div>
+                ))}
+              </div>
+            </Panel>
+
+            <Panel className="xl:col-span-2" title="Settings & security" subtitle="Responder controls and compliance" icon={ShieldCheck} id="responder-settings">
               <div className="space-y-3">
                 {[
                   'Two-factor authentication',
@@ -575,12 +728,13 @@ export default function ResponderDashboard() {
   )
 }
 
-function Panel({ title, subtitle, icon: Icon, children }) {
+function Panel({ title, subtitle, icon: Icon, children, id, className = '' }) {
   return (
     <motion.section
+      id={id}
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-[30px] border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(15,23,42,0.35)] backdrop-blur-xl sm:p-6"
+      className={`rounded-[30px] border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(15,23,42,0.35)] backdrop-blur-xl sm:p-6 ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>

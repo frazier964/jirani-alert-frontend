@@ -195,7 +195,6 @@ export default function Support() {
         navItems={[
           { label: 'Home', to: '/home' },
           { label: 'Features', to: '/features' },
-          { label: 'How It Works', id: 'how-it-works' },
           { label: 'About', to: '/about' },
           { label: 'Contact', to: '/contact' },
           { label: 'Support', to: '/support' },
