@@ -17,5 +17,5 @@ export function getFunctionsBaseUrl() {
   if (explicitBase && !isRelativeApiBase(explicitBase)) return explicitBase
   if (backendBase && !isRelativeApiBase(backendBase)) return backendBase
 
-  return ''
+  return LOCAL_FUNCTIONS_BASE
 }
