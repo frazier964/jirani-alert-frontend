@@ -713,10 +713,8 @@ export function initAuthListener() {
       return
     }
 
-    const backendOnline = await isBackendAvailable()
-
-    // Load profile from backend when available; fallback to Firestore; then to auth info.
-    if (BACKEND_URL && backendOnline) {
+    // Load profile from backend first; fallback to Firestore; then to auth info.
+    if (BACKEND_URL) {
       try {
         const token = await user.getIdToken()
         const res = await fetch(
