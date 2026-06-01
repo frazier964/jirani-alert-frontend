@@ -434,7 +434,6 @@ export async function loginUser({ email, password }) {
   let backendSourceUrl = null
   let tokenRole = null
   let backendFetchError = null
-  const backendOnline = await isBackendAvailable()
   const backendCandidates = [BACKEND_URL]
   try {
     const tokenResult = await user.getIdTokenResult(true).catch(() => null)
@@ -518,32 +517,29 @@ export async function loginUser({ email, password }) {
     }
   }
 
-  if (!normalizeAccountRole(profile.role)) {
-    const fallbackRole = cachedRole || cachedEmailRole || resolveAccountRole(profile)
-    if (fallbackRole && (!profile.email || profile.email === user.email)) {
-      profile = {
-        ...profile,
-        ...cachedProfile,
-        id: user.uid,
-        email: user.email,
-        role: fallbackRole,
-      }
+  const resolvedProfileRole = resolveAccountRole(profile)
+  const resolvedRole = tokenRole || resolvedProfileRole || normalizeAccountRole(user?.role) || cachedRole || cachedEmailRole
+
+  if (!normalizeAccountRole(profile.role) && resolvedRole && (!profile.email || profile.email === user.email)) {
+    profile = {
+      ...profile,
+      ...cachedProfile,
+      id: user.uid,
+      email: user.email,
+      role: resolvedRole,
     }
   }
 
-  const resolvedProfileRole = resolveAccountRole(profile)
-
-  if (!resolvedProfileRole) {
-    const resolvedRole = tokenRole || normalizeAccountRole(user?.role) || normalizeAccountRole(profile.role) || normalizeAccountRole(profile.accountType)
+  if (!normalizeAccountRole(profile.role)) {
     if (!resolvedRole) {
       throw backendFetchError || new Error('auth/role-missing: Your account type is missing. Please sign up again or contact support.')
     }
     profile.role = resolvedRole
   } else {
-    profile.role = resolvedProfileRole
+    profile.role = resolvedRole
   }
 
-  if (profile.id === user.uid && profile.email === user.email && profile.role && backendOnline && backendSourceUrl === BACKEND_URL) {
+  if (profile.id === user.uid && profile.email === user.email && profile.role && backendSourceUrl === BACKEND_URL) {
     try {
       await updateCurrentUserProfile({
         displayName: profile.displayName || cachedProfile?.displayName || user.displayName || '',

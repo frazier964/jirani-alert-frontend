@@ -26,6 +26,7 @@ const Messages = lazy(() => import('./pages/resident/Messages'))
 const EmergencyContacts = lazy(() => import('./pages/resident/EmergencyContacts'))
 const Profile = lazy(() => import('./pages/resident/Profile'))
 const ResponderDashboard = lazy(() => import('./pages/responder/ResponderDashboard'))
+const ResponderSectionPage = lazy(() => import('./pages/responder/ResponderSectionPage'))
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
 const AlertDetails = lazy(() => import('./pages/alerts/AlertDetails'))
 
@@ -74,6 +75,7 @@ function AppRoutes() {
             <Route path="/alerts/:id" element={<AlertDetails />} />
 
             <Route path="/responder/dashboard" element={<ResponderDashboard />} />
+            <Route path="/responder/:section" element={<ResponderSectionPage />} />
 
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
           </Route>

@@ -11,7 +11,6 @@ import {
   Clock3,
   CloudLightning,
   Cpu,
-  ChevronDown,
   Flame,
   Globe,
   HeartPulse,
@@ -32,27 +31,12 @@ import {
   Wifi,
   X,
   MapPin,
-  LogOut,
   Settings2,
   UserCircle2,
 } from 'lucide-react'
 import Avatar from '../../components/UI/Avatar'
-import ResponderTopNav from '../../components/Layout/ResponderTopNav'
+import ResponderCommandBar from '../../components/Layout/ResponderCommandBar'
 import { getCurrentUser } from '../../lib/auth'
-import { logout as logoutUser } from '../../lib/auth'
-
-const responderMenuItems = [
-  { label: 'Dashboard', target: 'responder-dashboard', icon: LayoutGrid },
-  { label: 'Alerts feed', target: 'responder-alerts', icon: Bell },
-  { label: 'Nearby incidents', target: 'responder-incidents', icon: MapPin },
-  { label: 'Live map', target: 'responder-map', icon: Globe },
-  { label: 'Dispatch', target: 'responder-dispatch', icon: Users },
-  { label: 'Communication', target: 'responder-comms', icon: MessageSquare },
-  { label: 'Analytics', target: 'responder-analytics', icon: Star },
-  { label: 'Profile', target: 'responder-profile', icon: UserCircle2 },
-  { label: 'Settings', target: 'responder-settings', icon: Settings2 },
-  { label: 'Logout', action: 'logout', icon: LogOut },
-]
 
 const severityStyles = {
   Critical: 'border-red-500/30 bg-red-500/10 text-red-200',
@@ -126,8 +110,6 @@ export default function ResponderDashboard() {
   const [selectedAlert, setSelectedAlert] = useState(liveAlerts[0])
   const [commandMode, setCommandMode] = useState('Command')
   const [messagesOpen, setMessagesOpen] = useState(true)
-  const [profileOpen, setProfileOpen] = useState(false)
-  const profileMenuRef = React.useRef(null)
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -140,42 +122,8 @@ export default function ResponderDashboard() {
     return () => window.clearInterval(timer)
   }, [])
 
-  useEffect(() => {
-    const onPointerDown = (event) => {
-      const path = event.composedPath?.() || []
-      const clickedProfileMenu = profileMenuRef.current && (path.includes(profileMenuRef.current) || profileMenuRef.current.contains(event.target))
-      if (!clickedProfileMenu) {
-        setProfileOpen(false)
-      }
-    }
-
-    document.addEventListener('pointerdown', onPointerDown)
-    return () => document.removeEventListener('pointerdown', onPointerDown)
-  }, [])
-
   const responderName = currentUser.displayName || 'Emergency Responder'
   const responderRole = currentUser.role === 'responder' ? 'Emergency Responder' : 'Responder'
-
-  const scrollToSection = (target) => {
-    const element = document.getElementById(target)
-    element?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-
-  const handleMenuAction = async (item) => {
-    if (item.target) {
-      scrollToSection(item.target)
-    }
-    if (item.action === 'logout') {
-      const shouldLogout = window.confirm('Are you sure you want to log out?')
-      if (!shouldLogout) {
-        setProfileOpen(false)
-        return
-      }
-      await logoutUser()
-      window.location.href = '/login'
-    }
-    setProfileOpen(false)
-  }
 
   const stats = useMemo(
     () => [
@@ -189,11 +137,11 @@ export default function ResponderDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white" id="responder-dashboard">
-      <ResponderTopNav />
+      <ResponderCommandBar />
       <div className="relative overflow-hidden border-b border-white/10 bg-gradient-to-br from-slate-950 via-slate-950 to-[#101a2f]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.18),transparent_24%),radial-gradient(circle_at_80%_10%,rgba(239,68,68,0.18),transparent_18%),radial-gradient(circle_at_55%_85%,rgba(251,191,36,0.12),transparent_22%)]" />
         <div className="relative mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)] xl:items-stretch">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)] xl:items-stretch">
             <div className="max-w-3xl self-stretch">
               <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.26em] text-cyan-200">
                 <Radar className="h-4 w-4" />
@@ -221,6 +169,25 @@ export default function ResponderDashboard() {
                   )
                 })}
               </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-3">
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Shift status</p>
+                  <p className="mt-2 text-lg font-black text-white">Online and available</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-3">
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Response focus</p>
+                  <p className="mt-2 text-lg font-black text-white">{selectedAlert.title}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-3">
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Crew readiness</p>
+                  <p className="mt-2 text-lg font-black text-white">42 units online</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-3">
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Weather risk</p>
+                  <p className="mt-2 text-lg font-black text-white">Moderate rain watch</p>
+                </div>
+              </div>
             </div>
 
             <div className="flex h-full flex-col gap-3 rounded-[28px] border border-white/10 bg-white/5 p-4 backdrop-blur-xl">
@@ -234,57 +201,31 @@ export default function ResponderDashboard() {
                 </div>
               </div>
 
-              <div className="relative self-end" ref={profileMenuRef} onMouseEnter={() => setProfileOpen(true)} onMouseLeave={() => setProfileOpen(false)}>
-                <button
-                  type="button"
-                  onClick={() => setProfileOpen((value) => !value)}
-                  className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/40 px-3 py-2.5 text-left transition hover:border-cyan-400/30 hover:bg-white/10"
-                  aria-haspopup="menu"
-                  aria-expanded={profileOpen}
-                >
-                  <Avatar src={currentUser.profileImageUrl} alt={responderName} size={40} />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-bold text-white">{responderName}</p>
-                    <p className="truncate text-xs text-slate-400">{responderRole}</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4">
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Responder identity</p>
+                  <div className="mt-3 flex items-center gap-3">
+                    <Avatar src={currentUser.profileImageUrl} alt={responderName} size={40} />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-white">{responderName}</p>
+                      <p className="truncate text-xs text-slate-400">{responderRole}</p>
+                    </div>
                   </div>
-                  <ChevronDown className={`h-4 w-4 text-slate-300 transition-transform ${profileOpen ? 'rotate-180' : ''}`} />
-                </button>
+                </div>
 
-                <AnimatePresence>
-                  {profileOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                      transition={{ duration: 0.16 }}
-                      role="menu"
-                      aria-label="Responder profile menu"
-                      className="absolute right-0 top-full z-50 w-[18rem] pt-2"
-                    >
-                      <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 p-2 shadow-[0_24px_60px_rgba(15,23,42,0.42)] backdrop-blur-xl">
-                        <div className="px-3 py-2">
-                          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Responder pages</p>
-                        </div>
-                        <div className="grid gap-1">
-                          {responderMenuItems.map((item) => {
-                            const Icon = item.icon
-                            return (
-                              <button
-                                key={item.label}
-                                type="button"
-                                onClick={() => handleMenuAction(item)}
-                                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
-                              >
-                                <Icon className="h-4 w-4 text-cyan-200" />
-                                <span>{item.label}</span>
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4">
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Quick stats</p>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                    <div className="rounded-xl bg-white/5 px-3 py-2">
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Alerts</p>
+                      <p className="mt-1 font-bold text-white">7 live</p>
+                    </div>
+                    <div className="rounded-xl bg-white/5 px-3 py-2">
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Role</p>
+                      <p className="mt-1 font-bold text-white">Responder</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3">
