@@ -1,4 +1,5 @@
 const LOCAL_FUNCTIONS_BASE = '/api'
+const PROD_FUNCTIONS_BASE = 'https://us-central1-jiranialert.cloudfunctions.net'
 
 function isLocalhostHost() {
   if (typeof window === 'undefined') return false
@@ -10,5 +11,8 @@ export function getFunctionsBaseUrl() {
     return LOCAL_FUNCTIONS_BASE
   }
 
-  return LOCAL_FUNCTIONS_BASE
+  const explicitBase = String(import.meta.env.VITE_FUNCTIONS_BASE || import.meta.env.VITE_BACKEND_URL || '').trim()
+  if (explicitBase) return explicitBase
+
+  return PROD_FUNCTIONS_BASE
 }
