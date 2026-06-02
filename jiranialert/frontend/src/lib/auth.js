@@ -130,27 +130,38 @@ export async function isBackendAvailable() {
   if (backendAvailabilityPromise) return backendAvailabilityPromise
 
   backendAvailabilityPromise = (async () => {
-    try {
-      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
-      const timeoutId = controller ? setTimeout(() => controller.abort(), 1500) : null
+    // Retry logic: try up to 3 times with 1 second delays for initial connection
+    const maxRetries = 3
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const response = await fetch(`${BACKEND_URL}/health`, {
-          method: 'GET',
-          cache: 'no-store',
-          signal: controller?.signal,
-        })
-        if (response.ok) {
-          return true
+        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
+        const timeoutId = controller ? setTimeout(() => controller.abort(), 2000) : null
+        try {
+          const response = await fetch(`${BACKEND_URL}/health`, {
+            method: 'GET',
+            cache: 'no-store',
+            signal: controller?.signal,
+          })
+          if (response.ok) {
+            return true
+          }
+          backendAvailabilityPromise = null
+          return false
+        } finally {
+          if (timeoutId) clearTimeout(timeoutId)
         }
-        backendAvailabilityPromise = null
-        return false
-      } finally {
-        if (timeoutId) clearTimeout(timeoutId)
+      } catch {
+        if (attempt < maxRetries) {
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        } else {
+          // All retries exhausted
+          backendAvailabilityPromise = null
+          return false
+        }
       }
-    } catch {
-      backendAvailabilityPromise = null
-      return false
     }
+    return false
   })()
 
   return backendAvailabilityPromise
