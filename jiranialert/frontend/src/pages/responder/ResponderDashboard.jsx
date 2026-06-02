@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   Activity,
@@ -23,7 +23,6 @@ import {
   Siren,
   ShieldCheck,
   SignalHigh,
-  Sparkles,
   Star,
   Users,
   Video,
@@ -32,7 +31,7 @@ import {
   X,
   MapPin,
   Settings2,
-  UserCircle2,
+  FileText,
 } from 'lucide-react'
 import Avatar from '../../components/UI/Avatar'
 import ResponderCommandBar from '../../components/Layout/ResponderCommandBar'
@@ -96,6 +95,27 @@ const analytics = [
   { label: 'Escalations handled', value: '23', width: '54%' },
 ]
 
+const quickNavigationButtons = [
+  { label: 'Dashboard', target: '/responder/dashboard', icon: LayoutGrid, tone: 'border-cyan-400/30 bg-cyan-500/10 text-cyan-100', badge: null },
+  { label: 'Active Incidents', target: '/responder/incidents', icon: AlertTriangle, tone: 'border-red-400/35 bg-red-500/10 text-red-100', badge: '18' },
+  { label: 'Assigned Cases', target: '/responder/reports', icon: FileText, tone: 'border-amber-400/35 bg-amber-500/10 text-amber-100', badge: '6' },
+  { label: 'Map View', target: '/responder/dashboard#responder-map', icon: Globe, tone: 'border-sky-400/35 bg-sky-500/10 text-sky-100', badge: null },
+  { label: 'Messages', target: '/responder/help-support', icon: MessageSquare, tone: 'border-indigo-400/35 bg-indigo-500/10 text-indigo-100', badge: '4' },
+  { label: 'Incident Reports', target: '/responder/reports', icon: FileText, tone: 'border-blue-400/35 bg-blue-500/10 text-blue-100', badge: null },
+  { label: 'Community Alerts', target: '/responder/dashboard#responder-announcements', icon: Bell, tone: 'border-orange-400/35 bg-orange-500/10 text-orange-100', badge: '3' },
+  { label: 'Team Coordination', target: '/responder/team-members', icon: Users, tone: 'border-violet-400/35 bg-violet-500/10 text-violet-100', badge: null },
+  { label: 'Resources', target: '/responder/dashboard#responder-resources', icon: ShieldCheck, tone: 'border-emerald-400/35 bg-emerald-500/10 text-emerald-100', badge: null },
+  { label: 'Analytics', target: '/responder/dashboard#responder-analytics', icon: Activity, tone: 'border-fuchsia-400/35 bg-fuchsia-500/10 text-fuchsia-100', badge: null },
+  { label: 'Settings', target: '/responder/settings', icon: Settings2, tone: 'border-slate-300/30 bg-slate-500/10 text-slate-100', badge: null },
+]
+
+const recentActivityTimeline = [
+  { time: '2m ago', title: 'Warehouse smoke escalation updated', detail: 'Priority changed to Critical and backup requested.', tone: 'text-red-200' },
+  { time: '7m ago', title: 'Medic Unit 4 reached scene', detail: 'Patient triage initiated in Kilimani.', tone: 'text-cyan-200' },
+  { time: '12m ago', title: 'Dispatch channel switched', detail: 'Team moved to secure channel 3.', tone: 'text-amber-200' },
+  { time: '19m ago', title: 'Community alert broadcasted', detail: 'Residents notified to avoid Westlands route.', tone: 'text-emerald-200' },
+]
+
 const heatmapPoints = [
   { top: '18%', left: '18%', size: 1.2, tone: 'bg-red-500/60' },
   { top: '33%', left: '62%', size: 1.7, tone: 'bg-orange-400/60' },
@@ -110,6 +130,7 @@ export default function ResponderDashboard() {
   const [selectedAlert, setSelectedAlert] = useState(liveAlerts[0])
   const [commandMode, setCommandMode] = useState('Command')
   const [messagesOpen, setMessagesOpen] = useState(true)
+  const [lastActive] = useState(() => new Date().toLocaleString())
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -335,6 +356,57 @@ export default function ResponderDashboard() {
       </div>
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <section className="mb-4 rounded-[30px] border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(15,23,42,0.35)] backdrop-blur-xl sm:p-6">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+            <div>
+              <p className="text-xs uppercase tracking-[0.24em] text-cyan-200">Welcome back</p>
+              <h2 className="mt-2 text-2xl font-black text-white sm:text-3xl">Hello, {responderName}</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                Stay ready for one-click emergency actions. This command view is optimized for rapid incident response, visibility, and team coordination.
+              </p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <StatusMiniCard label="Shift status" value={online ? 'Online duty' : 'Offline duty'} tone={online ? 'text-emerald-200' : 'text-slate-300'} />
+              <StatusMiniCard label="Location status" value="HQ linked" tone="text-cyan-200" />
+              <StatusMiniCard label="Emergency status" value="Elevated" tone="text-red-200" />
+              <StatusMiniCard label="Last active" value={lastActive} tone="text-slate-200" />
+            </div>
+          </div>
+        </section>
+
+        <section className="mb-4 rounded-[30px] border border-white/10 bg-white/5 p-4 shadow-[0_24px_80px_rgba(15,23,42,0.35)] backdrop-blur-xl sm:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Quick navigation</p>
+              <h2 className="mt-2 text-2xl font-black text-white">One-tap page access</h2>
+            </div>
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {quickNavigationButtons.map((item) => {
+              const Icon = item.icon
+              return (
+                <a
+                  key={item.label}
+                  href={item.target}
+                  className={`group relative flex min-h-[86px] items-center gap-3 rounded-2xl border px-4 py-4 transition-all hover:-translate-y-0.5 hover:brightness-110 ${item.tone}`}
+                >
+                  <span className="rounded-xl bg-slate-950/35 p-2.5">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span className="text-sm font-bold">{item.label}</span>
+                  {item.badge ? (
+                    <span className="ml-auto rounded-full border border-white/20 bg-white/10 px-2 py-1 text-[11px] font-black">
+                      {item.badge}
+                    </span>
+                  ) : (
+                    <ChevronRight className="ml-auto h-4 w-4 opacity-70 transition group-hover:translate-x-0.5" />
+                  )}
+                </a>
+              )
+            })}
+          </div>
+        </section>
+
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
           <section className="space-y-4 xl:space-y-5">
             <motion.div
@@ -505,6 +577,20 @@ export default function ResponderDashboard() {
           </section>
 
           <aside className="grid gap-4 xl:grid-cols-2 xl:items-start">
+            <Panel className="xl:col-span-2" title="Recent activity timeline" subtitle="Incident updates and team events" icon={Clock3}>
+              <div className="space-y-3">
+                {recentActivityTimeline.map((item) => (
+                  <div key={`${item.time}-${item.title}`} className="rounded-2xl border border-white/10 bg-slate-950/45 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className={`text-sm font-bold ${item.tone}`}>{item.title}</p>
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-bold text-slate-300">{item.time}</span>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-300">{item.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </Panel>
+
             <Panel className="xl:col-span-2" title="Dispatch & coordination" subtitle="Assign units and control response lanes" icon={LayoutGrid} id="responder-dispatch">
               <div className="space-y-3">
                 {[
@@ -724,6 +810,15 @@ function Metric({ label, value }) {
     <div className="rounded-2xl border border-white/10 bg-slate-950/45 px-3 py-3">
       <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">{label}</p>
       <p className="mt-2 text-sm font-bold text-white">{value}</p>
+    </div>
+  )
+}
+
+function StatusMiniCard({ label, value, tone = 'text-slate-200' }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-slate-950/45 px-3 py-3">
+      <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">{label}</p>
+      <p className={`mt-2 text-sm font-bold ${tone}`}>{value}</p>
     </div>
   )
 }

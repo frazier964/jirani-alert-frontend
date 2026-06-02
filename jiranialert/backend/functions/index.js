@@ -30,12 +30,24 @@ function loadLocalEnv() {
 
 loadLocalEnv()
 
-if (process.env.NODE_ENV !== 'production') {
+const isLocalRuntime =
+  process.env.FUNCTIONS_EMULATOR === 'true' ||
+  process.env.NODE_ENV !== 'production'
+
+if (isLocalRuntime) {
+  // Align with firebase.json emulator ports to avoid startup timeouts and
+  // metadata lookups against unavailable local endpoints.
   if (!process.env.FIREBASE_AUTH_EMULATOR_HOST) {
-    process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9198'
+    process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9098'
   }
   if (!process.env.FIRESTORE_EMULATOR_HOST) {
-    process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8181'
+    process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:9000'
+  }
+  if (!process.env.GOOGLE_CLOUD_PROJECT) {
+    process.env.GOOGLE_CLOUD_PROJECT = process.env.GCLOUD_PROJECT || 'jiranialert'
+  }
+  if (!process.env.GCLOUD_PROJECT) {
+    process.env.GCLOUD_PROJECT = process.env.GOOGLE_CLOUD_PROJECT
   }
 }
 

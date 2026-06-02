@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   AlertTriangle,
@@ -27,13 +27,16 @@ const menuItems = [
 
 export default function ResponderCommandBar() {
   const currentUser = getCurrentUser() || {}
-  const location = useLocation()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [logoutPromptOpen, setLogoutPromptOpen] = useState(false)
 
   useEffect(() => {
     const onEscape = (event) => {
-      if (event.key === 'Escape') setMenuOpen(false)
+      if (event.key === 'Escape') {
+        setMenuOpen(false)
+        setLogoutPromptOpen(false)
+      }
     }
 
     document.addEventListener('keydown', onEscape)
@@ -51,13 +54,7 @@ export default function ResponderCommandBar() {
     }
   }, [menuOpen])
 
-  useEffect(() => {
-    setMenuOpen(false)
-  }, [location.pathname])
-
   const handleLogout = async () => {
-    const shouldLogout = window.confirm('Are you sure you want to log out?')
-    if (!shouldLogout) return
     await logoutUser()
     navigate('/login', { replace: true })
   }
@@ -106,6 +103,9 @@ export default function ResponderCommandBar() {
                     <div>
                       <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Responder menu</p>
                       <p className="mt-1 text-sm text-slate-300">Select a page</p>
+                      <p className="mt-2 text-xs text-slate-400">
+                        {currentUser.displayName || 'Emergency Responder'} · ID {currentUser.uid || currentUser.id || 'RD-2048'}
+                      </p>
                     </div>
                     <button
                       type="button"
@@ -120,10 +120,13 @@ export default function ResponderCommandBar() {
 
                 <div className="max-h-[calc(100dvh-10rem)] overflow-y-auto p-3 scrollbar-custom">
                   <div className="space-y-2">
-                    <Link
-                      to="/responder/dashboard"
-                      onClick={() => setMenuOpen(false)}
-                      className="flex min-h-[4rem] items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-slate-200 transition hover:bg-white/10"
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('/responder/dashboard')
+                        setMenuOpen(false)
+                      }}
+                      className="flex min-h-[4rem] w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-slate-200 transition hover:bg-white/10"
                     >
                       <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950/60 text-cyan-200">
                         <LayoutDashboard className="h-5 w-5" />
@@ -132,16 +135,19 @@ export default function ResponderCommandBar() {
                         <span className="block text-sm font-bold">Dashboard</span>
                         <span className="block text-[11px] text-slate-400">Overview and live status</span>
                       </span>
-                    </Link>
+                    </button>
 
                     {menuItems.map((item) => {
                       const Icon = item.icon
                       return (
-                        <Link
+                        <button
                           key={item.to}
-                          to={item.to}
-                          onClick={() => setMenuOpen(false)}
-                          className="flex min-h-[4rem] items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-slate-200 transition hover:border-red-400/30 hover:bg-white/10 hover:text-white"
+                          type="button"
+                          onClick={() => {
+                            navigate(item.to)
+                            setMenuOpen(false)
+                          }}
+                          className="flex min-h-[4rem] w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-slate-200 transition hover:border-red-400/30 hover:bg-white/10 hover:text-white"
                         >
                           <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950/60 text-cyan-200">
                             <Icon className="h-5 w-5" />
@@ -150,13 +156,13 @@ export default function ResponderCommandBar() {
                             <span className="block text-sm font-bold">{item.label}</span>
                             <span className="block text-[11px] text-slate-400">Open {item.label.toLowerCase()} page</span>
                           </span>
-                        </Link>
+                        </button>
                       )
                     })}
 
                     <button
                       type="button"
-                      onClick={handleLogout}
+                      onClick={() => setLogoutPromptOpen(true)}
                       className="mt-2 flex min-h-[4rem] w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-red-200 transition hover:border-red-400/30 hover:bg-red-500/10"
                     >
                       <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-red-500/10 text-red-200">
@@ -164,11 +170,58 @@ export default function ResponderCommandBar() {
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-bold">Log Out</span>
-                        <span className="block text-[11px] text-red-100/70">Exit your session</span>
+                        <span className="block text-[11px] text-red-100/70">End responder session securely</span>
                       </span>
                     </button>
                   </div>
                 </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {logoutPromptOpen ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 p-4"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Logout confirmation"
+              >
+                <motion.div
+                  initial={{ y: 14, opacity: 0, scale: 0.98 }}
+                  animate={{ y: 0, opacity: 1, scale: 1 }}
+                  exit={{ y: 14, opacity: 0, scale: 0.98 }}
+                  className="w-full max-w-md rounded-3xl border border-white/10 bg-[#09111e] p-5 shadow-[0_24px_60px_rgba(2,6,23,0.5)]"
+                >
+                  <p className="text-xs font-black uppercase tracking-[0.24em] text-red-200">Confirm logout</p>
+                  <h3 className="mt-2 text-xl font-black text-white">Do you want to log out?</h3>
+                  <p className="mt-2 text-sm text-slate-300">
+                    Select <span className="font-semibold text-white">Yes</span> to sign out, or <span className="font-semibold text-white">No</span> to stay in your account.
+                  </p>
+                  <div className="mt-5 grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setLogoutPromptOpen(false)}
+                      className="rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
+                    >
+                      No, stay signed in
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setLogoutPromptOpen(false)
+                        setMenuOpen(false)
+                        await handleLogout()
+                      }}
+                      className="rounded-2xl border border-red-400/30 bg-red-500/15 px-4 py-3 text-sm font-semibold text-red-100 transition hover:bg-red-500/25"
+                    >
+                      Yes, log out
+                    </button>
+                  </div>
+                </motion.div>
               </motion.div>
             ) : null}
           </AnimatePresence>

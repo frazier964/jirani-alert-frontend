@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { getIdTokenResult, onAuthStateChanged } from 'firebase/auth'
 import TopNav from './Layout/TopNav'
@@ -30,7 +30,7 @@ export default function Layout() {
   const isProtectedRoute = ['/resident', '/responder', '/admin', '/alerts'].some((prefix) =>
     location.pathname.startsWith(prefix),
   )
-  const [authChecked, setAuthChecked] = useState(false)
+  const [authChecked, setAuthChecked] = useState(!isProtectedRoute)
   const authReadyRef = useRef({ auth: !auth, prod: !prodAuth })
 
   useEffect(() => {
@@ -46,12 +46,10 @@ export default function Layout() {
 
   useEffect(() => {
     if (!isProtectedRoute) {
-      setAuthChecked(true)
       return undefined
     }
 
     if (!auth && !prodAuth) {
-      setAuthChecked(true)
       navigate('/login', { replace: true })
       return undefined
     }
@@ -63,11 +61,16 @@ export default function Layout() {
 
       const user = auth?.currentUser || prodAuth?.currentUser
       const profile = getCurrentUser()
+      const cachedRole = resolveAccountRole(profile)
       const tokenResult = user ? await getIdTokenResult(user, true).catch(() => null) : null
-      const role = normalizeAccountRole(tokenResult?.claims?.role) || normalizeAccountRole(user?.role) || resolveAccountRole(profile)
+      const role = normalizeAccountRole(tokenResult?.claims?.role) || normalizeAccountRole(user?.role) || cachedRole
       setAuthChecked(true)
       if (!user) {
-        navigate('/login', { replace: true })
+        // Keep the current protected session usable when Firebase takes time
+        // to rehydrate but we still have a known account role in local profile.
+        if (!cachedRole) {
+          navigate('/login', { replace: true })
+        }
         return
       }
       if (!user.emailVerified) {
