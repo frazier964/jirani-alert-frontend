@@ -239,6 +239,13 @@ export async function isBackendAvailable() {
           if (response.ok) {
             return true
           }
+          // 404 means backend is reachable but the health endpoint doesn't exist
+          // This is treated as backend being unavailable for health check purposes
+          if (response.status === 404) {
+            console.warn('Backend health endpoint not found (404). Running in offline mode with Firestore fallback.')
+            backendAvailabilityPromise = null
+            return false
+          }
           backendAvailabilityPromise = null
           return false
         } finally {
