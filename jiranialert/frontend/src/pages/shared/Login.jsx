@@ -148,17 +148,17 @@ export default function Login() {
     setVerificationLink('')
 
     try {
-      const result = await resendVerificationEmail(email)
+      const result = await resendVerificationEmail(email, password)
       if (result.sent) {
         setResendResult('A fresh verification email has been sent. Please check your inbox and spam folder.')
       } else {
-        setResendResult(result.reason || 'Unable to resend verification email.')
+        setResendResult(result.reason || 'Unable to resend verification email. Make sure your email and password are entered correctly.')
       }
       if (result.verificationLink) {
         setVerificationLink(result.verificationLink)
       }
     } catch (e) {
-      setResendResult(e?.message || 'Unable to resend verification email.')
+      setResendResult(e?.message || 'Unable to resend verification email. Make sure your email and password are entered correctly.')
     } finally {
       setResendLoading(false)
     }

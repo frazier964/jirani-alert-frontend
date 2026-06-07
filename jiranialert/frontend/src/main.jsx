@@ -1,6 +1,6 @@
 import { StrictMode, lazy, Suspense, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom'
 import './index.css'
 import AnnouncementBar from './components/AnnouncementBar'
 import Layout from './components/Layout'
@@ -61,7 +61,7 @@ function AppRoutes() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/register" element={<SignUp />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/report" element={<ReportEmergency />} />
+          <Route path="/report" element={<Navigate to="/resident/report" replace />} />
 
           <Route element={<Layout />}>
             <Route path="/resident/dashboard" element={<ResidentDashboard />} />

@@ -98,7 +98,7 @@ export default function SignUp() {
       // if the email is already in use, redirect user to login with email prefilled
       if (msg.startsWith('auth/email-already-in-use')) {
         try {
-          const verificationInfo = await resendVerificationEmail(formData.email)
+          const verificationInfo = await resendVerificationEmail(formData.email, formData.password)
           setSuccessMessage(
             `This email already has an account. ${verificationInfo.sent ? 'A fresh verification email was sent.' : 'We could not send the verification email automatically.'} Please verify it, then log in again to access your account type.`,
           )
@@ -120,7 +120,7 @@ export default function SignUp() {
     setResendLoading(true)
     setResendResult('')
     try {
-      const result = await resendVerificationEmail(formData.email)
+      const result = await resendVerificationEmail(formData.email, formData.password)
       if (result.sent) {
         setResendResult('A fresh verification email has been sent. Please check your inbox and spam folder.')
       } else {

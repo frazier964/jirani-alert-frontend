@@ -9,13 +9,22 @@ import {
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
 
+const defaultFirebaseConfig = {
+  apiKey: 'AIzaSyD1mpP_omm9poTSwMWJq5oyBrPcSYHSYr8',
+  authDomain: 'jiranialert.firebaseapp.com',
+  projectId: 'jiranialert',
+  storageBucket: 'jiranialert.firebasestorage.app',
+  messagingSenderId: '232389120138',
+  appId: '1:232389120138:web:b2b70087a13ad3413c9d73',
+}
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || defaultFirebaseConfig.apiKey,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || defaultFirebaseConfig.authDomain,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || defaultFirebaseConfig.projectId,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || defaultFirebaseConfig.storageBucket,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || defaultFirebaseConfig.messagingSenderId,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || defaultFirebaseConfig.appId,
 }
 
 const hasFirebaseConfig = Boolean(firebaseConfig.apiKey && firebaseConfig.apiKey !== '')

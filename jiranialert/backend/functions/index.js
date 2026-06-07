@@ -89,6 +89,15 @@ function getEnv(name) {
   return normalizeEnvValue(process.env[name] || process.env[name.toLowerCase()] || '')
 }
 
+function getMailFromAddress() {
+  return (
+    getEnv('MAIL_FROM') ||
+    getEnv('GMAIL_USER') ||
+    getEnv('SMTP_USER') ||
+    'Jirani Alert <no-reply@jiranialert.local>'
+  )
+}
+
 function getMailTransporter() {
   const gmailUser = getEnv('GMAIL_USER')
   const gmailPass = getEnv('GMAIL_APP_PASSWORD').replace(/\s+/g, '')
@@ -174,11 +183,7 @@ async function sendSignupConfirmationEmail({ to, displayName, role, verification
   if (!to) return { sent: false, reason: 'Recipient email is required', verificationLink }
   if (!transporter) return { sent: false, reason: 'Email is not configured', verificationLink }
 
-  const mailFrom =
-    getEnv('MAIL_FROM') ||
-    getEnv('GMAIL_USER') ||
-    getEnv('SMTP_USER') ||
-    'Jirani Alert <officialmablaryyvisuals@gmail.com>'
+  const mailFrom = getMailFromAddress()
   const resolvedAppUrl = appUrl || getEnv('APP_URL') || 'https://jirani-alert-frontend.vercel.app'
   const safeName = displayName || 'there'
   const roleLabel = role === 'responder' ? 'Emergency Responder' : role === 'admin' ? 'Local Admin' : 'Resident'
@@ -266,11 +271,7 @@ async function sendTestEmail({ to, subject, message, verificationLink }) {
   const transporter = getMailTransporter()
   if (!transporter || !to) return { sent: false, reason: 'Email is not configured' }
 
-  const mailFrom =
-    getEnv('MAIL_FROM') ||
-    getEnv('GMAIL_USER') ||
-    getEnv('SMTP_USER') ||
-    'Jirani Alert <officialmablaryyvisuals@gmail.com>'
+  const mailFrom = getMailFromAddress()
   const appUrl = getEnv('APP_URL') || 'https://jirani-alert-frontend.vercel.app'
   const safeMessage = message || 'You have been invited to Jirani Alert. Click the link below to verify your account and sign in.'
   const link = verificationLink || `${appUrl}/verify-email`

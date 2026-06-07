@@ -189,11 +189,12 @@ async function sendVerificationEmailToUser(user) {
   }
 }
 
-export async function resendVerificationEmail(email) {
+export async function resendVerificationEmail(email, password = '') {
   if (!auth) throw new Error('Firebase not configured')
-  const usingEmulators = await waitForFirebaseReady()
+  await waitForFirebaseReady()
 
   const normalizedEmail = String(email || '').trim().toLowerCase()
+  const normalizedPassword = String(password || '')
   if (!normalizedEmail) {
     throw new Error('Please enter the email address used for signup.')
   }
@@ -230,6 +231,31 @@ export async function resendVerificationEmail(email) {
     verificationEmail = fallback.sent
       ? { sent: true, reason: 'Email sent via Firebase auth fallback' }
       : { sent: false, reason: verificationEmail.reason || fallback.reason }
+  }
+
+  if (!verificationEmail.sent && normalizedPassword) {
+    const previousUser = auth?.currentUser || null
+    try {
+      const credential = await signInWithEmailAndPassword(auth, normalizedEmail, normalizedPassword)
+      const fallback = await sendVerificationEmailToUser(credential.user)
+      verificationEmail = fallback.sent
+        ? { sent: true, reason: 'Email sent via Firebase auth fallback', source: 'firebase' }
+        : { sent: false, reason: verificationEmail.reason || fallback.reason, source: 'firebase' }
+    } catch (fallbackError) {
+      verificationEmail = {
+        sent: false,
+        reason: verificationEmail.reason || fallbackError?.message || 'Unable to resend verification email.',
+        source: 'firebase',
+      }
+    } finally {
+      if (!previousUser && auth?.currentUser) {
+        try {
+          await fbSignOut(auth)
+        } catch (e) {
+          // ignore sign out errors after resend fallback
+        }
+      }
+    }
   }
 
   return verificationEmail

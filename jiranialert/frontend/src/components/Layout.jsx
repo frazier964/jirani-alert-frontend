@@ -66,11 +66,7 @@ export default function Layout() {
       const role = normalizeAccountRole(tokenResult?.claims?.role) || normalizeAccountRole(user?.role) || cachedRole
       setAuthChecked(true)
       if (!user) {
-        // Keep the current protected session usable when Firebase takes time
-        // to rehydrate but we still have a known account role in local profile.
-        if (!cachedRole) {
-          navigate('/login', { replace: true })
-        }
+        navigate('/login', { replace: true })
         return
       }
       if (!user.emailVerified) {

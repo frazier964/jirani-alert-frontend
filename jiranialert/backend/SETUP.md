@@ -99,8 +99,8 @@ Create `backend/functions/.env` from `backend/functions/.env.example`:
 
 ```
 APP_URL=https://jirani-alert-frontend.vercel.app
-MAIL_FROM="Jirani Alert <officialmablaryyvisuals@gmail.com>"
-GMAIL_USER=officialmablaryyvisuals@gmail.com
+MAIL_FROM="Jirani Alert <your-sender-email@gmail.com>"
+GMAIL_USER=your-sender-email@gmail.com
 GMAIL_APP_PASSWORD=your-16-character-app-password
 ```
 
