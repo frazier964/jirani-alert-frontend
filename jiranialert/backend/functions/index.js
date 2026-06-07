@@ -145,14 +145,23 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;')
 }
 
-async function generateEmailVerificationLink(to) {
-  const appUrl = getEnv('APP_URL') || 'https://jirani-alert-frontend.vercel.app'
+function getFrontendAppUrl(req) {
+  const origin = String(req?.get?.('origin') || '').trim()
+  if (origin && isAllowedOrigin(origin)) {
+    return origin
+  }
+
+  return getEnv('APP_URL') || 'https://jirani-alert-frontend.vercel.app'
+}
+
+async function generateEmailVerificationLink(to, appUrl) {
+  const destinationAppUrl = appUrl || getEnv('APP_URL') || 'https://jirani-alert-frontend.vercel.app'
   if (!to) {
     throw new Error('Recipient email is required for verification link generation')
   }
 
   const link = await admin.auth().generateEmailVerificationLink(to, {
-    url: `${appUrl}/verify-email`,
+    url: `${destinationAppUrl}/verify-email`,
     handleCodeInApp: true,
   })
 
@@ -160,7 +169,7 @@ async function generateEmailVerificationLink(to) {
   return link
 }
 
-async function sendSignupConfirmationEmail({ to, displayName, role, verificationLink }) {
+async function sendSignupConfirmationEmail({ to, displayName, role, verificationLink, appUrl }) {
   const transporter = getMailTransporter()
   if (!to) return { sent: false, reason: 'Recipient email is required', verificationLink }
   if (!transporter) return { sent: false, reason: 'Email is not configured', verificationLink }
@@ -170,13 +179,13 @@ async function sendSignupConfirmationEmail({ to, displayName, role, verification
     getEnv('GMAIL_USER') ||
     getEnv('SMTP_USER') ||
     'Jirani Alert <officialmablaryyvisuals@gmail.com>'
-  const appUrl = getEnv('APP_URL') || 'https://jirani-alert-frontend.vercel.app'
+  const resolvedAppUrl = appUrl || getEnv('APP_URL') || 'https://jirani-alert-frontend.vercel.app'
   const safeName = displayName || 'there'
   const roleLabel = role === 'responder' ? 'Emergency Responder' : role === 'admin' ? 'Local Admin' : 'Resident'
   const htmlName = escapeHtml(safeName)
   const htmlRoleLabel = escapeHtml(roleLabel)
-  const htmlAppUrl = escapeHtml(appUrl)
-  const verificationHref = verificationLink || `${appUrl}/verify-email`
+  const htmlAppUrl = escapeHtml(resolvedAppUrl)
+  const verificationHref = verificationLink || `${resolvedAppUrl}/verify-email`
   const htmlVerificationLink = escapeHtml(verificationHref)
   const verificationPreview = escapeHtml(new URL(verificationHref).host)
 
@@ -198,7 +207,7 @@ async function sendSignupConfirmationEmail({ to, displayName, role, verification
       '',
       'If you did not sign up for Jirani Alert, please ignore this message.',
       '',
-      `Open Jirani Alert: ${appUrl}`,
+      `Open Jirani Alert: ${resolvedAppUrl}`,
       '',
       'Stay safe,',
       'Jirani Alert Team',
@@ -337,6 +346,7 @@ exports.resendVerificationEmail = onRequest({ region: 'us-central1' }, async (re
     requireMethod(req, 'POST')
     const body = req.body || {}
     const requestedEmail = String(body.email || req.query?.email || '').trim().toLowerCase()
+    const appUrl = getFrontendAppUrl(req)
 
     let user = null
     if (requestedEmail) {
@@ -363,8 +373,8 @@ exports.resendVerificationEmail = onRequest({ region: 'us-central1' }, async (re
       throw error
     }
 
-    const verificationLink = await generateEmailVerificationLink(email)
-    const result = await sendSignupConfirmationEmail({ to: email, displayName, role, verificationLink })
+    const verificationLink = await generateEmailVerificationLink(email, appUrl)
+    const result = await sendSignupConfirmationEmail({ to: email, displayName, role, verificationLink, appUrl })
     if (!result.sent) {
       const error = new Error(result.reason || 'Unable to send verification email')
       error.status = 500
@@ -381,6 +391,7 @@ function isAllowedOrigin(origin) {
   if (!origin) return false
   if (allowedOrigins.has(origin)) return true
   if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return true
+  if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) return true
   return /^https:\/\/jirani-alert-frontend(?:-[a-z0-9-]+)?\.vercel\.app$/i.test(origin)
 }
 
@@ -474,6 +485,7 @@ exports.createUserProfile = onRequest({ region: 'us-central1' }, async (req, res
     requireMethod(req, 'POST')
     const user = await requireUser(req)
     const body = req.body || {}
+    const appUrl = getFrontendAppUrl(req)
 
     const displayName = typeof body.displayName === 'string' ? body.displayName.trim() : ''
     const requestedRole = typeof body.role === 'string' ? body.role.trim() : 'resident'
@@ -531,8 +543,8 @@ exports.createUserProfile = onRequest({ region: 'us-central1' }, async (req, res
 
     let verificationEmail = { sent: false, reason: 'Email is not configured' }
     try {
-      const verificationLink = await generateEmailVerificationLink(email)
-      verificationEmail = await sendSignupConfirmationEmail({ to: email, displayName, role, verificationLink })
+      const verificationLink = await generateEmailVerificationLink(email, appUrl)
+      verificationEmail = await sendSignupConfirmationEmail({ to: email, displayName, role, verificationLink, appUrl })
     } catch (emailError) {
       verificationEmail = { sent: false, reason: emailError.message || 'Verification email could not be sent' }
     }
