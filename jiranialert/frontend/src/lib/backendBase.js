@@ -8,7 +8,14 @@ function isLocalhostHost() {
 
 export function getFunctionsBaseUrl() {
   const explicitBase = String(import.meta.env.VITE_FUNCTIONS_BASE || import.meta.env.VITE_BACKEND_URL || '').trim()
-  if (explicitBase) return explicitBase
+  if (explicitBase) {
+    const directCloudFunctions = /^https:\/\/[a-z0-9-]+-[a-z0-9-]+\.cloudfunctions\.net/i.test(explicitBase)
+    if (typeof window === 'undefined' || isLocalhostHost() || !directCloudFunctions) {
+      return explicitBase
+    }
+
+    return SAME_ORIGIN_API_BASE
+  }
 
   if (typeof window !== 'undefined') {
     if (isLocalhostHost()) {

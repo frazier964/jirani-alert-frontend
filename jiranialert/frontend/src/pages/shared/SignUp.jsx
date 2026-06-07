@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, AlertCircle } from 'lucide-react'
-import { registerUser, resendVerificationEmail } from '../../lib/auth'
+import { registerUser, repairExistingSignupProfile, resendVerificationEmail } from '../../lib/auth'
 
 const accountTypes = [
   { value: 'resident', label: 'Resident / Community Member' },
@@ -98,6 +98,12 @@ export default function SignUp() {
       // if the email is already in use, redirect user to login with email prefilled
       if (msg.startsWith('auth/email-already-in-use')) {
         try {
+          await repairExistingSignupProfile({
+            email: formData.email,
+            password: formData.password,
+            role: formData.role,
+            displayName: formData.fullName,
+          })
           const verificationInfo = await resendVerificationEmail(formData.email, formData.password)
           setSuccessMessage(
             `This email already has an account. ${verificationInfo.sent ? 'A fresh verification email was sent.' : 'We could not send the verification email automatically.'} Please verify it, then log in again to access your account type.`,

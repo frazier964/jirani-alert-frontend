@@ -467,6 +467,30 @@ function requiredString(value, field) {
   return value.trim()
 }
 
+function normalizeRole(role) {
+  const value = String(role || '').trim().toLowerCase()
+  return allowedRoles.has(value) ? value : null
+}
+
+async function resolveProfileRole({ userId, email, profile }) {
+  const profileRole = normalizeRole(profile?.role) || normalizeRole(profile?.accountType)
+  if (profileRole) return profileRole
+
+  const authUser = await admin.auth().getUser(userId).catch(() => null)
+  const authRole = normalizeRole(authUser?.customClaims?.role) || normalizeRole(authUser?.role)
+  if (authRole) return authRole
+
+  const normalizedEmail = String(email || authUser?.email || '').trim().toLowerCase()
+  if (normalizedEmail) {
+    const roleIndexSnap = await db.collection('accountRoles').doc(normalizedEmail).get().catch(() => null)
+    const roleIndexData = roleIndexSnap?.data ? roleIndexSnap.data() : null
+    const roleIndexRole = normalizeRole(roleIndexData?.role)
+    if (roleIndexRole) return roleIndexRole
+  }
+
+  return null
+}
+
 exports.health = onRequest({ region: 'us-central1' }, (req, res) => {
   setCors(req, res)
   if (handleOptions(req, res)) return
@@ -868,8 +892,50 @@ exports.getUserProfile = onRequest({ region: 'us-central1' }, async (req, res) =
     }
 
     const doc = await db.collection('profiles').doc(userId).get()
-    if (!doc.exists) return res.json({ profile: null })
-    res.json({ profile: doc.data() })
+    const currentProfile = doc.exists ? doc.data() || {} : {}
+    const authUser = await admin.auth().getUser(userId).catch(() => null)
+    const fallbackEmail = String(currentProfile.email || authUser?.email || '').trim()
+    const fallbackDisplayName = currentProfile.displayName || authUser?.displayName || ''
+    const resolvedRole = await resolveProfileRole({
+      userId,
+      email: fallbackEmail,
+      profile: currentProfile,
+    })
+
+    if (!doc.exists && !authUser) {
+      return res.json({ profile: null })
+    }
+
+    const resolvedProfile = {
+      uid: userId,
+      email: fallbackEmail,
+      displayName: fallbackDisplayName,
+      ...currentProfile,
+    }
+
+    if (resolvedRole) {
+      resolvedProfile.role = resolvedRole
+      resolvedProfile.accountType = resolvedProfile.accountType || resolvedRole
+      if (!resolvedProfile.accountStatus) {
+        resolvedProfile.accountStatus = authUser?.emailVerified || currentProfile.emailVerified ? 'active' : 'pending_verification'
+      }
+
+      if (!doc.exists || !normalizeRole(currentProfile.role)) {
+        await db.collection('profiles').doc(userId).set(
+          {
+            ...resolvedProfile,
+            updatedAt: serverTimestampValue(),
+          },
+          { merge: true },
+        )
+      }
+    }
+
+    if (authUser) {
+      resolvedProfile.emailVerified = Boolean(currentProfile.emailVerified ?? authUser.emailVerified)
+    }
+
+    res.json({ profile: resolvedProfile })
   } catch (error) {
     sendError(res, error)
   }

@@ -16,6 +16,10 @@ const BACKEND_URL = getFunctionsBaseUrl()
 const VALID_ACCOUNT_ROLES = new Set(['resident', 'responder', 'admin'])
 let backendAvailabilityPromise = null
 
+function getEmailRoleId(email) {
+  return String(email || '').trim().toLowerCase()
+}
+
 function setCurrentUserLocal(userObj) {
   if (!userObj) localStorage.removeItem(CURRENT_KEY)
   else localStorage.setItem(CURRENT_KEY, JSON.stringify(userObj))
@@ -67,6 +71,96 @@ function getCachedRoleForEmail(email) {
     return normalizeAccountRole(getRoleCache()[normalizedEmail])
   } catch (e) {
     return null
+  }
+}
+
+async function saveRoleIndexForUser({ user, role, displayName = '' }) {
+  const normalizedRole = normalizeAccountRole(role) || 'resident'
+  const normalizedEmail = getEmailRoleId(user?.email)
+  if (!firestore || !user?.uid || !normalizedEmail) return
+
+  await setDoc(
+    doc(firestore, 'accountRoles', normalizedEmail),
+    {
+      uid: user.uid,
+      email: normalizedEmail,
+      displayName: displayName || user.displayName || '',
+      role: normalizedRole,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  )
+}
+
+async function saveProfileForUser({ user, role, displayName = '', accountStatus = 'pending_verification' }) {
+  const normalizedRole = normalizeAccountRole(role) || 'resident'
+  const normalizedEmail = getEmailRoleId(user?.email)
+  if (!firestore || !user?.uid) return null
+
+  const profile = {
+    uid: user.uid,
+    email: normalizedEmail,
+    displayName: displayName || user.displayName || '',
+    role: normalizedRole,
+    accountStatus,
+    emailVerified: Boolean(user.emailVerified),
+    authProvider: 'password',
+    profileImageUrl: '',
+    updatedAt: serverTimestamp(),
+  }
+
+  await setDoc(
+    doc(firestore, 'profiles', user.uid),
+    {
+      ...profile,
+      createdAt: serverTimestamp(),
+    },
+    { merge: true },
+  )
+  await saveRoleIndexForUser({ user, role: normalizedRole, displayName })
+
+  return {
+    ...profile,
+    id: user.uid,
+  }
+}
+
+async function getRoleIndexForEmail(email) {
+  const normalizedEmail = getEmailRoleId(email)
+  if (!firestore || !normalizedEmail) return null
+
+  const snap = await getDoc(doc(firestore, 'accountRoles', normalizedEmail))
+  if (!snap.exists()) return null
+  const data = snap.data() || {}
+  return normalizeAccountRole(data.role) ? data : null
+}
+
+export async function repairExistingSignupProfile({ email, password, role, displayName }) {
+  const normalizedEmail = getEmailRoleId(email)
+  const normalizedPassword = String(password || '')
+  const normalizedRole = normalizeAccountRole(role)
+  if (!auth || !normalizedEmail || !normalizedPassword || !normalizedRole) return null
+
+  const previousUser = auth.currentUser || null
+  try {
+    const credential = await signInWithEmailAndPassword(auth, normalizedEmail, normalizedPassword)
+    const user = credential.user
+    const profile = await saveProfileForUser({
+      user,
+      role: normalizedRole,
+      displayName,
+      accountStatus: user.emailVerified ? 'active' : 'pending_verification',
+    })
+    setCachedRoleForEmail(user.email, normalizedRole)
+    return profile
+  } finally {
+    if (!previousUser && auth.currentUser) {
+      try {
+        await fbSignOut(auth)
+      } catch (e) {
+        // ignore sign out errors after profile repair
+      }
+    }
   }
 }
 
@@ -200,7 +294,7 @@ export async function resendVerificationEmail(email, password = '') {
   }
 
   let verificationEmail = { sent: false, reason: 'Unable to send verification email' }
-  if (BACKEND_URL) {
+  if (BACKEND_URL && await isBackendAvailable()) {
     try {
       const res = await fetch(`${BACKEND_URL}/resendVerificationEmail`, {
         method: 'POST',
@@ -352,23 +446,18 @@ export async function registerUser({ email, password, role = 'resident', display
     }
   }
 
-  // create profile doc fallback
+  // Create profile doc fallback. This is the critical production path when
+  // Firebase Functions are not deployed yet.
   if (firestore) {
-    await setDoc(
-      doc(firestore, 'profiles', user.uid),
-      {
-        uid: user.uid,
-        displayName: displayName || '',
-        role,
-        accountStatus: 'pending_verification',
-        emailVerified: Boolean(user.emailVerified),
-        authProvider: 'password',
-        profileImageUrl: '',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true },
-    )
+    const fallbackProfile = await saveProfileForUser({
+      user,
+      role,
+      displayName,
+      accountStatus: user.emailVerified ? 'active' : 'pending_verification',
+    })
+    if (!savedProfile && fallbackProfile) {
+      savedProfile = fallbackProfile
+    }
   }
 
   if (!verificationEmail.sent) {
@@ -471,7 +560,7 @@ export async function loginUser({ email, password }) {
   let backendSourceUrl = null
   let tokenRole = null
   let backendFetchError = null
-  const backendCandidates = [BACKEND_URL]
+  const backendCandidates = (await isBackendAvailable()) ? [BACKEND_URL] : []
   try {
     const tokenResult = await user.getIdTokenResult(true).catch(() => null)
     tokenRole = normalizeAccountRole(tokenResult?.claims?.role)
@@ -542,6 +631,25 @@ export async function loginUser({ email, password }) {
 
   if (!normalizeAccountRole(profile.role) && firestore && user.email) {
     try {
+      const roleIndex = await getRoleIndexForEmail(user.email)
+      if (roleIndex?.uid === user.uid || roleIndex?.email === getEmailRoleId(user.email)) {
+        profile = {
+          ...profile,
+          id: user.uid,
+          uid: user.uid,
+          email: user.email,
+          displayName: profile.displayName || roleIndex.displayName || user.displayName || '',
+          role: roleIndex.role,
+          accountStatus: profile.accountStatus || (user.emailVerified ? 'active' : 'pending_verification'),
+        }
+      }
+    } catch (e) {
+      // ignore role index fallback failures
+    }
+  }
+
+  if (!normalizeAccountRole(profile.role) && firestore && user.email) {
+    try {
       const emailQuery = query(collection(firestore, 'profiles'), where('email', '==', user.email))
       const querySnap = await getDocs(emailQuery)
       const matchingDoc = querySnap.docs.find((docSnap) => normalizeAccountRole(docSnap.data()?.role) || docSnap.data()?.accountType)
@@ -574,6 +682,19 @@ export async function loginUser({ email, password }) {
     profile.role = resolvedRole
   } else {
     profile.role = resolvedRole
+  }
+
+  if (firestore && normalizeAccountRole(profile.role)) {
+    try {
+      await saveProfileForUser({
+        user,
+        role: profile.role,
+        displayName: profile.displayName || user.displayName || '',
+        accountStatus: isAccountDeactivated(profile) ? 'deactivated' : 'active',
+      })
+    } catch (e) {
+      // ignore profile repair failures
+    }
   }
 
   if (profile.id === user.uid && profile.email === user.email && profile.role && backendSourceUrl === BACKEND_URL) {
@@ -750,8 +871,8 @@ export function initAuthListener() {
       return
     }
 
-    // Load profile from backend first; fallback to Firestore; then to auth info.
-    if (BACKEND_URL) {
+    // Load profile from backend first when available; fallback to Firestore.
+    if (BACKEND_URL && await isBackendAvailable()) {
       try {
         const token = await user.getIdToken()
         const res = await fetch(
