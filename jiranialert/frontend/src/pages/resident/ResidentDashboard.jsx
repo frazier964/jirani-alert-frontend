@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { getCurrentUser } from '../../lib/auth'
+import { getCurrentUser, getPreferredUserName } from '../../lib/auth'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import CommunityFeed from '../../components/Dashboard/CommunityFeed'
@@ -251,7 +251,7 @@ export default function ResidentDashboard() {
 
   const currentUser = getCurrentUser()
 
-  const displayName = currentUser?.displayName || 'Resident Name'
+  const displayName = getPreferredUserName(currentUser) || 'Resident Name'
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#F8FAFC_0%,#EEF4FB_100%)] text-slate-900">

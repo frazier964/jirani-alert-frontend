@@ -197,7 +197,7 @@ export default function Home() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.6 }}
               >
-                <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/70 px-3 py-1 text-xs font-bold text-[#2563EB] backdrop-blur sm:mt-6 lg:mt-8">
+                <span className="mt-12 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/70 px-3 py-1 text-xs font-bold text-[#2563EB] backdrop-blur sm:mt-6 lg:mt-8">
                   <ShieldCheck className="h-4 w-4" />
                   Trusted Emergency Network
                 </span>
@@ -212,7 +212,7 @@ export default function Home() {
                   <Link to="/signup" className="px-4 sm:px-6 py-3 rounded-xl bg-[#2563EB] text-white font-bold text-sm sm:text-base shadow-[0_0_18px_rgba(37,99,235,0.45)] hover:shadow-[0_0_28px_rgba(37,99,235,0.6)] transition-all">
                     Get Started
                   </Link>
-                  <Link to="/report" className="px-4 sm:px-6 py-3 rounded-xl bg-[#DC2626] text-white font-bold text-sm sm:text-base shadow-[0_0_18px_rgba(220,38,38,0.35)] hover:shadow-[0_0_28px_rgba(220,38,38,0.55)] transition-all">
+                  <Link to="/resident/report" className="px-4 sm:px-6 py-3 rounded-xl bg-[#DC2626] text-white font-bold text-sm sm:text-base shadow-[0_0_18px_rgba(220,38,38,0.35)] hover:shadow-[0_0_28px_rgba(220,38,38,0.55)] transition-all">
                     Report Emergency
                   </Link>
                 </div>

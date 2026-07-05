@@ -35,7 +35,7 @@ import {
 } from 'lucide-react'
 import Avatar from '../../components/UI/Avatar'
 import ResponderCommandBar from '../../components/Layout/ResponderCommandBar'
-import { getCurrentUser } from '../../lib/auth'
+import { getCurrentUser, getPreferredUserName } from '../../lib/auth'
 
 const severityStyles = {
   Critical: 'border-red-500/30 bg-red-500/10 text-red-200',
@@ -143,7 +143,7 @@ export default function ResponderDashboard() {
     return () => window.clearInterval(timer)
   }, [])
 
-  const responderName = currentUser.displayName || 'Emergency Responder'
+  const responderName = getPreferredUserName(currentUser) || 'Emergency Responder'
   const responderRole = currentUser.role === 'responder' ? 'Emergency Responder' : 'Responder'
 
   const stats = useMemo(

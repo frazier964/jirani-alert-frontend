@@ -26,7 +26,7 @@ npx firebase use your-firebase-project-id
 npm run emulators
 ```
 
-For local frontend development, start the backend emulator first, then run the frontend dev server so `/api` requests can reach the emulator on `127.0.0.1:5004`.
+For local frontend development, start the backend emulator first, then run the frontend dev server so `/api` requests can reach the emulator on `127.0.0.1:5005`.
 
 On this Windows machine, you can also use the helper script that adds the installed Java runtime to PATH before starting Firebase:
 
@@ -63,10 +63,14 @@ npx firebase deploy --only functions,firestore:indexes
 
 ## Frontend proxy
 
-The frontend uses the same `/api` base in local development and on Vercel. In development, Vite proxies `/api` to the Functions emulator at `http://127.0.0.1:5004/jiranialert/us-central1`. In production, Vercel rewrites `/api/*` to the deployed Cloud Functions backend.
+The frontend uses the same `/api` base in local development and on Vercel. In development, Vite proxies `/api` to the Functions emulator at `http://127.0.0.1:5005/jiranialert/us-central1`. In production, Vercel rewrites `/api/*` to the deployed Cloud Functions backend.
 
 Requests should include a Firebase Auth ID token:
 
 ```http
 Authorization: Bearer <firebase-id-token>
 ```
+
+## Verification email delivery
+
+The signup and resend verification flows use the backend SMTP configuration in `functions/.env`. To send branded verification emails instead of Firebase's default mail, configure either Gmail App Password settings or another SMTP provider and restart the backend emulator.

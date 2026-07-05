@@ -17,16 +17,21 @@
   ],
   "emulators": {
     "auth": {
-      "port": 9098
+      "port": 9099,
+      "host": "0.0.0.0"
     },
     "firestore": {
-      "port": 9000
+      "port": 9001,
+      "host": "0.0.0.0"
     },
     "functions": {
-      "port": 5004
+      "port": 5005,
+      "host": "0.0.0.0"
     },
     "ui": {
-      "enabled": false
+      "enabled": true,
+      "host": "0.0.0.0",
+      "port": 4022
     }
   }
 }

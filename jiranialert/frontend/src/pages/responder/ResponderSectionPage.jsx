@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import ResponderCommandBar from '../../components/Layout/ResponderCommandBar'
 import Avatar from '../../components/UI/Avatar'
-import { getCurrentUser } from '../../lib/auth'
+import { getCurrentUser, getPreferredUserName } from '../../lib/auth'
 
 const sectionAliases = {
   dashboard: 'dashboard',
@@ -174,9 +174,9 @@ export default function ResponderSectionPage() {
             <div className="rounded-[30px] border border-white/10 bg-white/5 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.35)] backdrop-blur-xl">
               <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Signed in as</p>
               <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/45 p-3">
-                <Avatar src={currentUser.profileImageUrl} alt={currentUser.displayName || 'Emergency Responder'} size={44} />
+                <Avatar src={currentUser.profileImageUrl} alt={getPreferredUserName(currentUser) || 'Emergency Responder'} size={44} />
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-white">{currentUser.displayName || 'Emergency Responder'}</p>
+                  <p className="truncate text-sm font-bold text-white">{getPreferredUserName(currentUser) || 'Emergency Responder'}</p>
                   <p className="truncate text-xs text-slate-400">Emergency Responder</p>
                 </div>
               </div>

@@ -9,7 +9,7 @@ Write-Host ""
 # Function to check if backend is ready
 function Test-BackendReady {
     try {
-        $response = Invoke-WebRequest -Uri "http://127.0.0.1:5004/jiranialert/us-central1/health" -TimeoutSec 2 -UseBasicParsing
+        $response = Invoke-WebRequest -Uri "http://127.0.0.1:5005/jiranialert/us-central1/health" -TimeoutSec 2 -UseBasicParsing
         return $response.StatusCode -eq 200
     } catch {
         return $false
@@ -49,7 +49,7 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PWD/frontend
 Write-Host ""
 Write-Host "🎉 Development environment started!" -ForegroundColor Green
 Write-Host "   Frontend: http://localhost:5173" -ForegroundColor Cyan
-Write-Host "   Backend:  http://127.0.0.1:5004" -ForegroundColor Cyan
+Write-Host "   Backend:  http://127.0.0.1:5005" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Press any key to exit this window..."
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")

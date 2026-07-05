@@ -75,9 +75,9 @@ async function connectEmulatorsIfAvailable() {
   if (!app || !shouldUseEmulators) return false
 
   const tryConnect = async () => {
-    const authAvailable = await isEmulatorAvailable('127.0.0.1', 9098, '/')
-    const firestoreAvailable = await isEmulatorAvailable('127.0.0.1', 9000, '/')
-    const functionsAvailable = await isEmulatorAvailable('127.0.0.1', 5004, '/')
+    const authAvailable = await isEmulatorAvailable('127.0.0.1', 9099, '/')
+    const firestoreAvailable = await isEmulatorAvailable('127.0.0.1', 9001, '/')
+    const functionsAvailable = await isEmulatorAvailable('127.0.0.1', 5005, '/')
     return authAvailable && firestoreAvailable && functionsAvailable
   }
 
@@ -89,10 +89,10 @@ async function connectEmulatorsIfAvailable() {
 
   try {
     if (auth && shouldUseAuthEmulator) {
-      connectAuthEmulator(auth, 'http://127.0.0.1:9098', { disableWarnings: true })
+      connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
     }
     if (firestore && shouldUseFirestoreEmulator) {
-      connectFirestoreEmulator(firestore, '127.0.0.1', 9000)
+      connectFirestoreEmulator(firestore, '127.0.0.1', 9001)
     }
     emulatorsConnected = true
     console.info(

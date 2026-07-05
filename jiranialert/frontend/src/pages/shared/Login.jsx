@@ -128,15 +128,7 @@ export default function Login() {
       else navigate('/admin/dashboard')
     } catch (err) {
       const message = String(err.message || err || 'Unable to sign in. Please try again.')
-      if (message.includes('auth/user-not-found')) {
-        setError('No account found for that email. Please sign up first.')
-      } else if (message.includes('auth/wrong-password')) {
-        setError('Incorrect password. Please try again.')
-      } else if (message.includes('auth/email-not-verified')) {
-        setError('Please verify your email address before signing in. Check your inbox for the confirmation link.')
-      } else {
-        setError(message)
-      }
+      setError(getFriendlyLoginError(message))
     } finally {
       setSubmitting(false)
     }
@@ -168,6 +160,22 @@ export default function Login() {
     e.preventDefault()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forgotEmail)) return
     setForgotSuccess(true)
+  }
+
+  const getFriendlyLoginError = (value) => {
+    const message = String(value || '').toLowerCase()
+    if (
+      message.includes('auth/invalid-credential') ||
+      message.includes('auth/wrong-password') ||
+      message.includes('auth/user-not-found') ||
+      message.includes('auth/invalid-login-credentials')
+    ) {
+      return 'Wrong email or password. Please check your details and try again.'
+    }
+    if (message.includes('auth/email-not-verified')) {
+      return 'Please verify your email address before signing in. Check your inbox for the confirmation link.'
+    }
+    return String(value || 'Unable to sign in. Please try again.')
   }
 
   return (

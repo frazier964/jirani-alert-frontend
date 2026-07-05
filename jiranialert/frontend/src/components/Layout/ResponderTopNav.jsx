@@ -19,7 +19,7 @@ import {
   Zap,
 } from 'lucide-react'
 import Avatar from '../UI/Avatar'
-import { getCurrentUser, logout as logoutUser, resolveAccountRole } from '../../lib/auth'
+import { getCurrentUser, getPreferredUserName, logout as logoutUser, resolveAccountRole } from '../../lib/auth'
 
 const navItems = [
   { label: 'Dashboard', target: 'responder-dashboard', icon: LayoutDashboard },
@@ -59,7 +59,7 @@ export default function ResponderTopNav() {
   const profileRef = useRef(null)
   const searchRef = useRef(null)
 
-  const responderName = currentUser.displayName || 'Emergency Responder'
+  const responderName = getPreferredUserName(currentUser) || 'Emergency Responder'
   const unreadCount = liveAlerts.length + 4
 
   useEffect(() => {

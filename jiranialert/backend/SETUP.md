@@ -42,7 +42,7 @@ Or use the PowerShell script:
 - Functions Emulator: http://localhost:5002
 - Emulator UI: http://localhost:4021
 
-Local development for Jirani Alert uses the Functions emulator on port 5004 behind the frontend `/api` proxy. The emulator output may still mention a host port from the Firebase runtime, but the frontend should call the local app through `http://localhost:5173/api` during development.
+Local development for Jirani Alert uses the Functions emulator on port 5005 behind the frontend `/api` proxy. The emulator output may still mention a host port from the Firebase runtime, but the frontend should call the local app through `http://localhost:5173/api` during development.
 
 ### 4. Seed Demo Data (Optional)
 
@@ -60,7 +60,7 @@ Or manually create posts via the Emulator UI at http://localhost:4000
 
 Check the health endpoint:
 ```bash
-curl http://127.0.0.1:5004/jiranialert/us-central1/health
+curl http://127.0.0.1:5005/jiranialert/us-central1/health
 ```
 
 Expected response:
@@ -89,7 +89,7 @@ VITE_FUNCTIONS_BASE=/api
 
 If not set, it defaults to the above.
 
-For local development, Vite proxies `/api` to the emulator at `http://127.0.0.1:5004/jiranialert/us-central1`, so the browser and production deploy both use the same request path.
+For local development, Vite proxies `/api` to the emulator at `http://127.0.0.1:5005/jiranialert/us-central1`, so the browser and production deploy both use the same request path.
 
 ### Signup Confirmation Email
 
@@ -112,7 +112,7 @@ You can verify SMTP email delivery with a dedicated test endpoint.
 Set `EMAIL_TEST_SECRET` to a secret string in `backend/functions/.env` and then POST to:
 
 ```bash
-http://127.0.0.1:5004/jiranialert/us-central1/sendTestEmail?secret=your-secret
+http://127.0.0.1:5005/jiranialert/us-central1/sendTestEmail?secret=your-secret
 ```
 
 Request body example:

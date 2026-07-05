@@ -74,7 +74,20 @@ function getCachedRoleForEmail(email) {
   }
 }
 
-async function saveRoleIndexForUser({ user, role, displayName = '' }) {
+export function getPreferredUserName(profile) {
+  const firstName = String(profile?.firstName || '').trim()
+  if (firstName) return firstName
+
+  const displayName = String(profile?.displayName || '').trim()
+  if (displayName) return displayName.split(/\s+/)[0]
+
+  const fullName = String(profile?.fullName || '').trim()
+  if (fullName) return fullName.split(/\s+/)[0]
+
+  return ''
+}
+
+async function saveRoleIndexForUser({ user, role, displayName = '', firstName = '', lastName = '', fullName = '' }) {
   const normalizedRole = normalizeAccountRole(role) || 'resident'
   const normalizedEmail = getEmailRoleId(user?.email)
   if (!firestore || !user?.uid || !normalizedEmail) return
@@ -84,7 +97,10 @@ async function saveRoleIndexForUser({ user, role, displayName = '' }) {
     {
       uid: user.uid,
       email: normalizedEmail,
-      displayName: displayName || user.displayName || '',
+      displayName: displayName || firstName || user.displayName || '',
+      firstName: firstName || '',
+      lastName: lastName || '',
+      fullName: fullName || '',
       role: normalizedRole,
       updatedAt: serverTimestamp(),
     },
@@ -92,15 +108,23 @@ async function saveRoleIndexForUser({ user, role, displayName = '' }) {
   )
 }
 
-async function saveProfileForUser({ user, role, displayName = '', accountStatus = 'pending_verification' }) {
+async function saveProfileForUser({ user, role, displayName = '', firstName = '', lastName = '', fullName = '', accountStatus = 'pending_verification' }) {
   const normalizedRole = normalizeAccountRole(role) || 'resident'
   const normalizedEmail = getEmailRoleId(user?.email)
   if (!firestore || !user?.uid) return null
 
+  const resolvedFirstName = String(firstName || displayName || '').trim()
+  const resolvedLastName = String(lastName || '').trim()
+  const resolvedFullName = String(fullName || [resolvedFirstName, resolvedLastName].filter(Boolean).join(' ')).trim()
+  const resolvedDisplayName = String(displayName || resolvedFirstName || user.displayName || '').trim()
+
   const profile = {
     uid: user.uid,
     email: normalizedEmail,
-    displayName: displayName || user.displayName || '',
+    displayName: resolvedDisplayName,
+    firstName: resolvedFirstName,
+    lastName: resolvedLastName,
+    fullName: resolvedFullName,
     role: normalizedRole,
     accountStatus,
     emailVerified: Boolean(user.emailVerified),
@@ -117,7 +141,7 @@ async function saveProfileForUser({ user, role, displayName = '', accountStatus 
     },
     { merge: true },
   )
-  await saveRoleIndexForUser({ user, role: normalizedRole, displayName })
+  await saveRoleIndexForUser({ user, role: normalizedRole, displayName: resolvedDisplayName, firstName: resolvedFirstName, lastName: resolvedLastName, fullName: resolvedFullName })
 
   return {
     ...profile,
@@ -135,7 +159,7 @@ async function getRoleIndexForEmail(email) {
   return normalizeAccountRole(data.role) ? data : null
 }
 
-export async function repairExistingSignupProfile({ email, password, role, displayName }) {
+export async function repairExistingSignupProfile({ email, password, role, displayName, firstName = '', lastName = '', fullName = '' }) {
   const normalizedEmail = getEmailRoleId(email)
   const normalizedPassword = String(password || '')
   const normalizedRole = normalizeAccountRole(role)
@@ -149,6 +173,9 @@ export async function repairExistingSignupProfile({ email, password, role, displ
       user,
       role: normalizedRole,
       displayName,
+      firstName,
+      lastName,
+      fullName,
       accountStatus: user.emailVerified ? 'active' : 'pending_verification',
     })
     setCachedRoleForEmail(user.email, normalizedRole)
@@ -327,38 +354,6 @@ export async function resendVerificationEmail(email, password = '') {
   }
 
   const currentUser = auth?.currentUser || prodAuth?.currentUser || null
-  if (!verificationEmail.sent && currentUser?.email && String(currentUser.email).trim().toLowerCase() === normalizedEmail) {
-    const fallback = await sendVerificationEmailToUser(currentUser)
-    verificationEmail = fallback.sent
-      ? { sent: true, reason: 'Email sent via Firebase auth fallback' }
-      : { sent: false, reason: verificationEmail.reason || fallback.reason }
-  }
-
-  if (!verificationEmail.sent && normalizedPassword) {
-    const previousUser = auth?.currentUser || null
-    try {
-      const credential = await signInWithEmailAndPassword(auth, normalizedEmail, normalizedPassword)
-      const fallback = await sendVerificationEmailToUser(credential.user)
-      verificationEmail = fallback.sent
-        ? { sent: true, reason: 'Email sent via Firebase auth fallback', source: 'firebase' }
-        : { sent: false, reason: verificationEmail.reason || fallback.reason, source: 'firebase' }
-    } catch (fallbackError) {
-      verificationEmail = {
-        sent: false,
-        reason: verificationEmail.reason || fallbackError?.message || 'Unable to resend verification email.',
-        source: 'firebase',
-      }
-    } finally {
-      if (!previousUser && auth?.currentUser) {
-        try {
-          await fbSignOut(auth)
-        } catch (e) {
-          // ignore sign out errors after resend fallback
-        }
-      }
-    }
-  }
-
   return verificationEmail
 }
 
@@ -370,11 +365,15 @@ export function getCurrentUser() {
   }
 }
 
-export async function registerUser({ email, password, role = 'resident', displayName = '' }) {
+export async function registerUser({ email, password, role = 'resident', firstName = '', lastName = '', displayName = '', fullName = '' }) {
   if (!auth) throw new Error('Firebase not configured')
   const usingEmulators = await waitForFirebaseReady()
   const normalizedEmail = String(email || '').trim().toLowerCase()
   const normalizedPassword = String(password || '')
+  const resolvedFirstName = String(firstName || displayName || '').trim()
+  const resolvedLastName = String(lastName || '').trim()
+  const resolvedFullName = String(fullName || [resolvedFirstName, resolvedLastName].filter(Boolean).join(' ')).trim()
+  const resolvedDisplayName = String(displayName || resolvedFirstName || '').trim()
   let createdUser = null
 
   if (usingEmulators && prodAuth) {
@@ -427,7 +426,10 @@ export async function registerUser({ email, password, role = 'resident', display
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          displayName: displayName || '',
+          displayName: resolvedDisplayName,
+          firstName: resolvedFirstName,
+          lastName: resolvedLastName,
+          fullName: resolvedFullName,
           role,
         }),
       })
@@ -459,7 +461,10 @@ export async function registerUser({ email, password, role = 'resident', display
     const fallbackProfile = await saveProfileForUser({
       user,
       role,
-      displayName,
+      displayName: resolvedDisplayName,
+      firstName: resolvedFirstName,
+      lastName: resolvedLastName,
+      fullName: resolvedFullName,
       accountStatus: user.emailVerified ? 'active' : 'pending_verification',
     })
     if (!savedProfile && fallbackProfile) {
@@ -468,15 +473,16 @@ export async function registerUser({ email, password, role = 'resident', display
   }
 
   if (!verificationEmail.sent) {
-    const fallback = await sendVerificationEmailToUser(user)
-    verificationEmail = fallback.sent
-      ? { sent: true, source: 'firebase' }
-      : { sent: false, reason: verificationEmail.reason || fallback.reason, source: 'firebase' }
+    verificationEmail = {
+      sent: false,
+      reason: verificationEmail.reason || 'Verification email could not be sent because the backend mail sender is not configured.',
+      source: 'backend',
+    }
   }
 
   const profile = savedProfile
     ? { id: user.uid, email: user.email, ...(savedProfile || {}) }
-    : { id: user.uid, uid: user.uid, email: user.email, displayName: displayName || '', role, profileImageUrl: '', accountStatus: 'pending_verification' }
+    : { id: user.uid, uid: user.uid, email: user.email, displayName: resolvedDisplayName, firstName: resolvedFirstName, lastName: resolvedLastName, fullName: resolvedFullName, role, profileImageUrl: '', accountStatus: 'pending_verification' }
 
   setCachedRoleForEmail(user.email, profile.role || role)
 
@@ -684,9 +690,26 @@ export async function loginUser({ email, password }) {
 
   if (!normalizeAccountRole(profile.role)) {
     if (!resolvedRole) {
-      throw backendFetchError || new Error('auth/role-missing: Your account type is missing. Please sign up again or contact support.')
+      // If no role is found anywhere, default to 'resident' instead of throwing
+      // This handles cases where the profile was created but role wasn't saved properly
+      console.warn('No role found for user, defaulting to resident. User:', user.uid, 'Email:', user.email)
+      profile.role = 'resident'
+      // Save the default role to prevent future issues
+      if (firestore) {
+        try {
+          await saveProfileForUser({
+            user,
+            role: 'resident',
+            displayName: profile.displayName || user.displayName || '',
+            accountStatus: user.emailVerified ? 'active' : 'pending_verification',
+          })
+        } catch (saveError) {
+          // Ignore save errors - we still allow login with default role
+        }
+      }
+    } else {
+      profile.role = resolvedRole
     }
-    profile.role = resolvedRole
   } else {
     profile.role = resolvedRole
   }

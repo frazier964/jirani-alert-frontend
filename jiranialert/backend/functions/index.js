@@ -38,10 +38,10 @@ if (isLocalRuntime) {
   // Align with firebase.json emulator ports to avoid startup timeouts and
   // metadata lookups against unavailable local endpoints.
   if (!process.env.FIREBASE_AUTH_EMULATOR_HOST) {
-    process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9098'
+    process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099'
   }
   if (!process.env.FIRESTORE_EMULATOR_HOST) {
-    process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:9000'
+    process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:9001'
   }
   if (!process.env.GOOGLE_CLOUD_PROJECT) {
     process.env.GOOGLE_CLOUD_PROJECT = process.env.GCLOUD_PROJECT || 'jiranialert'
@@ -112,6 +112,11 @@ function getMailTransporter() {
   }
   if (mailTransporter) return mailTransporter
 
+  if (gmailUser && !gmailPass) {
+    console.warn('Email not configured: GMAIL_APP_PASSWORD is missing')
+    return null
+  }
+
   if (gmailUser && gmailPass) {
     console.log(`Configuring Gmail SMTP transporter for ${gmailUser}`)
     mailTransporter = nodemailer.createTransport({
@@ -140,6 +145,11 @@ function getMailTransporter() {
       },
     })
     return mailTransporter
+  }
+
+  if (smtpHost && (!smtpUser || !smtpPass)) {
+    console.warn('Email not configured: SMTP_HOST requires SMTP_USER and SMTP_PASS')
+    return null
   }
 
   return null
@@ -178,15 +188,16 @@ async function generateEmailVerificationLink(to, appUrl) {
   return link
 }
 
-async function sendSignupConfirmationEmail({ to, displayName, role, verificationLink, appUrl }) {
+async function sendSignupConfirmationEmail({ to, displayName, firstName, fullName, role, verificationLink, appUrl }) {
   const transporter = getMailTransporter()
   if (!to) return { sent: false, reason: 'Recipient email is required', verificationLink }
   if (!transporter) return { sent: false, reason: 'Email is not configured', verificationLink }
 
   const mailFrom = getMailFromAddress()
   const resolvedAppUrl = appUrl || getEnv('APP_URL') || 'https://jirani-alert-frontend.vercel.app'
-  const safeName = displayName || 'there'
+  const safeName = firstName || displayName || fullName || 'there'
   const roleLabel = role === 'responder' ? 'Emergency Responder' : role === 'admin' ? 'Local Admin' : 'Resident'
+  const roleTone = role === 'responder' ? '#0f766e' : role === 'admin' ? '#7c2d12' : '#1d4ed8'
   const htmlName = escapeHtml(safeName)
   const htmlRoleLabel = escapeHtml(roleLabel)
   const htmlAppUrl = escapeHtml(resolvedAppUrl)
@@ -204,13 +215,9 @@ async function sendSignupConfirmationEmail({ to, displayName, role, verification
       '',
       `Thanks for signing up for Jirani Alert as a ${roleLabel}.`,
       '',
-      'Please verify your email address to activate your account and access the correct dashboard for your role.',
+      'Verify your email to activate your account and unlock the correct dashboard for your role.',
       '',
-      'Open the verification button in the HTML version of this email to continue.',
-      '',
-      'After verification, sign in again to access your dashboard.',
-      '',
-      'If you did not sign up for Jirani Alert, please ignore this message.',
+      `Verification link: ${verificationHref}`,
       '',
       `Open Jirani Alert: ${resolvedAppUrl}`,
       '',
@@ -218,25 +225,31 @@ async function sendSignupConfirmationEmail({ to, displayName, role, verification
       'Jirani Alert Team',
     ].join('\n'),
     html: `
-      <div style="margin:0;padding:0;background:#f5f7fb">
-        <div style="max-width:640px;margin:0 auto;padding:32px 16px;font-family:Arial,Helvetica,sans-serif;color:#0f172a">
-          <div style="background:linear-gradient(135deg,#0f3d91,#2563eb);border-radius:24px 24px 0 0;padding:28px 32px;color:#fff">
-            <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;opacity:0.9">Jirani Alert</div>
-            <h1 style="margin:10px 0 0;font-size:28px;line-height:1.2">Verify your email</h1>
-          </div>
-          <div style="background:#ffffff;border:1px solid #dbe4f0;border-top:0;border-radius:0 0 24px 24px;padding:32px">
-            <p style="margin:0 0 16px;font-size:16px;line-height:1.7">Hi ${htmlName},</p>
-            <p style="margin:0 0 16px;font-size:16px;line-height:1.7">Your Jirani Alert account was created as a <strong>${htmlRoleLabel}</strong>. Confirm this email to activate your account and unlock the correct dashboard.</p>
-            <p style="margin:0 0 24px;font-size:16px;line-height:1.7">After verification, sign in again to continue.</p>
-            <p style="margin:0 0 28px">
-              <a href="${htmlVerificationLink}" style="display:inline-block;background:#2563eb;color:#fff;padding:14px 22px;border-radius:12px;text-decoration:none;font-weight:700">Verify email</a>
-            </p>
-            <div style="padding:16px 18px;border-radius:16px;background:#f8fafc;border:1px solid #e2e8f0">
-              <p style="margin:0;font-size:13px;line-height:1.6;color:#475569">If the button does not work, open the verification link from your browser.</p>
-              <p style="margin:8px 0 0;font-size:13px;line-height:1.6;color:#64748b;word-break:break-word">Destination: ${verificationPreview}</p>
+      <div style="margin:0;padding:0;background:#eef4fb">
+        <div style="max-width:680px;margin:0 auto;padding:28px 16px;font-family:Arial,Helvetica,sans-serif;color:#0f172a">
+          <div style="border-radius:28px;overflow:hidden;border:1px solid #dbe4f0;box-shadow:0 18px 60px rgba(15,23,42,0.12)">
+            <div style="background:linear-gradient(135deg,#0f3d91 0%,#2563eb 55%,#1d4ed8 100%);padding:30px 32px;color:#fff">
+              <div style="font-size:12px;letter-spacing:0.18em;text-transform:uppercase;opacity:0.9">Jirani Alert</div>
+              <h1 style="margin:10px 0 0;font-size:30px;line-height:1.15">Verify your email address</h1>
+              <p style="margin:14px 0 0;font-size:15px;line-height:1.7;color:#eff6ff">Complete signup to unlock your ${htmlRoleLabel} dashboard.</p>
             </div>
-            <p style="margin:22px 0 0;font-size:13px;line-height:1.6;color:#64748b">If you did not create a Jirani Alert account, you can safely ignore this email.</p>
-            <p style="margin:22px 0 0;font-size:13px;color:#64748b">Open Jirani Alert: <a href="${htmlAppUrl}" style="color:#2563eb;text-decoration:none">${htmlAppUrl}</a></p>
+            <div style="background:#ffffff;padding:32px">
+              <div style="display:inline-block;border-radius:999px;background:${roleTone};color:#fff;padding:8px 14px;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">${htmlRoleLabel}</div>
+              <p style="margin:18px 0 0;font-size:16px;line-height:1.8">Hi ${htmlName},</p>
+              <p style="margin:12px 0 0;font-size:16px;line-height:1.8;color:#334155">Your account is ready. Confirm this address so Jirani Alert can activate the profile you registered for and keep your emergency notifications flowing to the right dashboard.</p>
+              <div style="margin:28px 0;padding:18px 20px;border-radius:20px;background:#f8fafc;border:1px solid #e2e8f0">
+                <p style="margin:0;font-size:14px;line-height:1.7;color:#475569">Use the button below to verify your email. After that, sign in again and you will be taken to the account type you registered as.</p>
+              </div>
+              <p style="margin:0 0 28px">
+                <a href="${htmlVerificationLink}" style="display:inline-block;background:#2563eb;color:#fff;padding:15px 24px;border-radius:14px;text-decoration:none;font-weight:700;box-shadow:0 10px 24px rgba(37,99,235,0.28)">Verify email</a>
+              </p>
+              <div style="padding:16px 18px;border-radius:16px;background:#f8fafc;border:1px solid #e2e8f0">
+                <p style="margin:0;font-size:13px;line-height:1.6;color:#475569">If the button does not work, open the link below.</p>
+                <p style="margin:8px 0 0;font-size:13px;line-height:1.6;color:#64748b;word-break:break-word">${verificationPreview}</p>
+              </div>
+              <p style="margin:22px 0 0;font-size:13px;line-height:1.6;color:#64748b">If you did not create a Jirani Alert account, you can ignore this email.</p>
+              <p style="margin:18px 0 0;font-size:13px;color:#64748b">Open Jirani Alert: <a href="${htmlAppUrl}" style="color:#2563eb;text-decoration:none">${htmlAppUrl}</a></p>
+            </div>
           </div>
         </div>
       </div>
@@ -269,7 +282,7 @@ function verifyTestEmailAccess(req) {
 
 async function sendTestEmail({ to, subject, message, verificationLink }) {
   const transporter = getMailTransporter()
-  if (!transporter || !to) return { sent: false, reason: 'Email is not configured' }
+  if (!transporter || !to) return { sent: false, reason: 'Email is not configured. Set GMAIL_APP_PASSWORD or SMTP_* in backend/functions/.env and restart the backend.' }
 
   const mailFrom = getMailFromAddress()
   const appUrl = getEnv('APP_URL') || 'https://jirani-alert-frontend.vercel.app'
@@ -364,7 +377,10 @@ exports.resendVerificationEmail = onRequest({ region: 'us-central1' }, async (re
 
     const profileSnap = await db.collection('profiles').doc(user.uid).get()
     const profile = profileSnap.exists ? profileSnap.data() : {}
-    const displayName = profile.displayName || user.displayName || ''
+    const firstName = profile.firstName || String(user.displayName || '').trim().split(/\s+/)[0] || ''
+    const lastName = profile.lastName || ''
+    const fullName = profile.fullName || [firstName, lastName].filter(Boolean).join(' ')
+    const displayName = profile.displayName || firstName || user.displayName || ''
     const role = typeof profile.role === 'string' && profile.role ? profile.role : 'resident'
     const email = String(user.email || requestedEmail || '').trim()
 
@@ -375,7 +391,7 @@ exports.resendVerificationEmail = onRequest({ region: 'us-central1' }, async (re
     }
 
     const verificationLink = await generateEmailVerificationLink(email, appUrl)
-    const result = await sendSignupConfirmationEmail({ to: email, displayName, role, verificationLink, appUrl })
+    const result = await sendSignupConfirmationEmail({ to: email, displayName, firstName, fullName, role, verificationLink, appUrl })
     if (!result.sent) {
       const error = new Error(result.reason || 'Unable to send verification email')
       error.status = 500
@@ -512,7 +528,10 @@ exports.createUserProfile = onRequest({ region: 'us-central1' }, async (req, res
     const body = req.body || {}
     const appUrl = getFrontendAppUrl(req)
 
-    const displayName = typeof body.displayName === 'string' ? body.displayName.trim() : ''
+    const firstName = typeof body.firstName === 'string' ? body.firstName.trim() : ''
+    const lastName = typeof body.lastName === 'string' ? body.lastName.trim() : ''
+    const fullName = typeof body.fullName === 'string' ? body.fullName.trim() : ''
+    const displayName = (typeof body.displayName === 'string' ? body.displayName.trim() : '') || firstName
     const requestedRole = typeof body.role === 'string' ? body.role.trim() : 'resident'
     const role = allowedRoles.has(requestedRole) ? requestedRole : 'resident'
     const now = serverTimestampValue()
@@ -528,8 +547,8 @@ exports.createUserProfile = onRequest({ region: 'us-central1' }, async (req, res
     }
 
     try {
-      if (displayName) {
-        await admin.auth().updateUser(user.uid, { displayName })
+      if (firstName || displayName) {
+        await admin.auth().updateUser(user.uid, { displayName: firstName || displayName })
       }
     } catch (displayNameError) {
       console.warn('Could not set auth displayName:', displayNameError.message || displayNameError)
@@ -542,6 +561,9 @@ exports.createUserProfile = onRequest({ region: 'us-central1' }, async (req, res
           uid: user.uid,
           email,
           displayName,
+          firstName,
+          lastName,
+          fullName: fullName || [firstName, lastName].filter(Boolean).join(' '),
           role,
           accountStatus: emailVerified ? 'active' : 'pending_verification',
           emailVerified,
@@ -569,7 +591,7 @@ exports.createUserProfile = onRequest({ region: 'us-central1' }, async (req, res
     let verificationEmail = { sent: false, reason: 'Email is not configured' }
     try {
       const verificationLink = await generateEmailVerificationLink(email, appUrl)
-      verificationEmail = await sendSignupConfirmationEmail({ to: email, displayName, role, verificationLink, appUrl })
+      verificationEmail = await sendSignupConfirmationEmail({ to: email, displayName, firstName, fullName, role, verificationLink, appUrl })
     } catch (emailError) {
       verificationEmail = { sent: false, reason: emailError.message || 'Verification email could not be sent' }
     }
@@ -895,7 +917,7 @@ exports.getUserProfile = onRequest({ region: 'us-central1' }, async (req, res) =
     const currentProfile = doc.exists ? doc.data() || {} : {}
     const authUser = await admin.auth().getUser(userId).catch(() => null)
     const fallbackEmail = String(currentProfile.email || authUser?.email || '').trim()
-    const fallbackDisplayName = currentProfile.displayName || authUser?.displayName || ''
+    const fallbackDisplayName = currentProfile.firstName || currentProfile.displayName || authUser?.displayName || ''
     const resolvedRole = await resolveProfileRole({
       userId,
       email: fallbackEmail,
@@ -909,8 +931,11 @@ exports.getUserProfile = onRequest({ region: 'us-central1' }, async (req, res) =
     const resolvedProfile = {
       uid: userId,
       email: fallbackEmail,
-      displayName: fallbackDisplayName,
       ...currentProfile,
+      displayName: currentProfile.firstName || currentProfile.displayName || authUser?.displayName || fallbackDisplayName,
+      firstName: currentProfile.firstName || authUser?.displayName?.split(/\s+/)[0] || '',
+      lastName: currentProfile.lastName || '',
+      fullName: currentProfile.fullName || [currentProfile.firstName || authUser?.displayName || '', currentProfile.lastName || ''].filter(Boolean).join(' '),
     }
 
     if (resolvedRole) {
@@ -955,6 +980,9 @@ exports.updateUserProfile = onRequest({ region: 'us-central1' }, async (req, res
     const body = req.body || {}
     const updates = {}
     if (typeof body.displayName === 'string') updates.displayName = body.displayName.trim()
+    if (typeof body.firstName === 'string') updates.firstName = body.firstName.trim()
+    if (typeof body.lastName === 'string') updates.lastName = body.lastName.trim()
+    if (typeof body.fullName === 'string') updates.fullName = body.fullName.trim()
     if (typeof body.phoneNumber === 'string') updates.phoneNumber = body.phoneNumber.trim()
     if (typeof body.residentialArea === 'string') updates.residentialArea = body.residentialArea.trim()
     if (typeof body.profileImageUrl === 'string') updates.profileImageUrl = body.profileImageUrl
@@ -981,6 +1009,12 @@ exports.updateUserProfile = onRequest({ region: 'us-central1' }, async (req, res
           console.warn('Could not update custom user claims:', claimsError.message || claimsError)
         }
       }
+    }
+    if (!updates.displayName && updates.firstName) {
+      updates.displayName = updates.firstName
+    }
+    if (!updates.fullName && (updates.firstName || updates.lastName || updates.displayName)) {
+      updates.fullName = [updates.firstName || updates.displayName || '', updates.lastName || ''].filter(Boolean).join(' ')
     }
     if (typeof body.emailVerified === 'boolean') updates.emailVerified = body.emailVerified
     if (typeof body.accountStatus === 'string') updates.accountStatus = body.accountStatus.trim()

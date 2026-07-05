@@ -135,7 +135,7 @@ export default function Features() {
         theme="dark"
       />
       <main className="overflow-hidden pt-0">
-        <section className="relative isolate overflow-hidden bg-[linear-gradient(135deg,#0c1f49_0%,#113a7a_45%,#ffffff_45%,#ffffff_100%)] px-4 pt-0 pb-10 sm:px-6 sm:pt-10 sm:pb-12 lg:px-8 lg:pt-12 lg:pb-16">
+        <section className="relative isolate overflow-hidden bg-[linear-gradient(135deg,#0c1f49_0%,#113a7a_45%,#ffffff_45%,#ffffff_100%)] px-4 pt-24 pb-10 sm:px-6 sm:pt-10 sm:pb-12 lg:px-8 lg:pt-12 lg:pb-16">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(229,57,53,0.18),transparent_24%),radial-gradient(circle_at_80%_15%,rgba(59,130,246,0.2),transparent_22%),radial-gradient(circle_at_18%_82%,rgba(255,255,255,0.15),transparent_16%)]" />
           <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-2 lg:items-center">
             <Reveal className="space-y-6 text-white">
@@ -154,7 +154,7 @@ export default function Features() {
                   Get Started
                   <ArrowRight className="h-4 w-4" />
                 </Link>
-                <Link to="/report" className="inline-flex items-center gap-2 rounded-full bg-[#E53935] px-6 py-3 font-bold text-white shadow-[0_18px_40px_rgba(229,57,53,0.28)] transition-transform hover:-translate-y-0.5">
+                <Link to="/resident/report" className="inline-flex items-center gap-2 rounded-full bg-[#E53935] px-6 py-3 font-bold text-white shadow-[0_18px_40px_rgba(229,57,53,0.28)] transition-transform hover:-translate-y-0.5">
                   Report Emergency
                 </Link>
               </div>
@@ -250,12 +250,10 @@ export default function Features() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-100">Demo Mode</p>
-                      <h3 className="mt-2 text-2xl font-extrabold">Mock app dashboard animation</h3>
-                        <h3 className="mt-2 text-2xl font-extrabold text-white">Mock app dashboard animation</h3>
+                      <h3 className="mt-2 text-2xl font-extrabold text-white">Mock app dashboard animation</h3>
                     </div>
                     <div className="rounded-2xl bg-white/12 p-3 backdrop-blur">
-                      <Smartphone className="h-6 w-6" />
-                        <Smartphone className="h-6 w-6 text-white" />
+                      <Smartphone className="h-6 w-6 text-white" />
                     </div>
                   </div>
 
@@ -277,7 +275,6 @@ export default function Features() {
                             <Icon className="h-5 w-5 text-white" />
                           </div>
                           <div>
-                            <p className="text-sm font-bold">{title}</p>
                               <p className="text-sm font-bold text-white">{title}</p>
                             <p className="text-xs text-blue-50/80">{text}</p>
                           </div>
@@ -288,12 +285,6 @@ export default function Features() {
                 </div>
 
                 <div className="space-y-4">
-                  <button type="button" className="w-full rounded-2xl bg-[#E53935] px-5 py-4 text-left font-bold text-white shadow-[0_18px_40px_rgba(229,57,53,0.28)] transition-transform hover:-translate-y-0.5">
-                    Try Demo
-                  </button>
-                  <button type="button" className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-5 py-4 text-left font-bold text-slate-800 transition-colors hover:bg-white">
-                    Watch Walkthrough
-                  </button>
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
                     <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-400">What you will see</p>
                     <div className="mt-4 space-y-3 text-sm text-slate-600">

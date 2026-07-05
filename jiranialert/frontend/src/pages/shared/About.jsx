@@ -104,18 +104,18 @@ export default function About() {
         textColor="text-white"
       />
       <main className="overflow-hidden pt-0">
-        <section className="relative isolate overflow-hidden bg-[linear-gradient(135deg,#0f2458_0%,#153b82_45%,#ffffff_45%,#ffffff_100%)] px-4 pt-0 pb-10 sm:px-6 sm:pt-10 sm:pb-12 lg:px-8 lg:pt-12 lg:pb-16">
+        <section className="relative isolate overflow-hidden bg-[linear-gradient(135deg,#0f2458_0%,#153b82_45%,#ffffff_45%,#ffffff_100%)] px-4 pt-24 pb-10 sm:px-6 sm:pt-10 sm:pb-12 lg:px-8 lg:pt-12 lg:pb-16">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(229,57,53,0.18),transparent_26%),radial-gradient(circle_at_80%_10%,rgba(59,130,246,0.18),transparent_20%),radial-gradient(circle_at_20%_85%,rgba(255,255,255,0.18),transparent_18%)]" />
           <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-2 lg:items-center">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }} className="space-y-6 text-white">
-              <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold tracking-wide backdrop-blur-xl sm:text-sm">
+              <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold tracking-wide text-white backdrop-blur-xl sm:text-sm">
                 <Sparkles className="h-4 w-4 text-[#ffb4b0]" />
                 Community-centered civic safety platform
               </div>
-              <h1 className="max-w-2xl text-4xl font-black tracking-tight leading-[1.04] sm:text-5xl lg:text-6xl">
+              <h1 className="max-w-2xl text-4xl font-black tracking-tight leading-[1.04] text-white sm:text-5xl lg:text-6xl">
                 Keeping Communities Safe, Connected, and Informed
               </h1>
-              <p className="max-w-2xl text-base leading-8 text-blue-50/95 sm:text-lg lg:text-xl">
+              <p className="max-w-2xl text-base leading-8 text-white/95 sm:text-lg lg:text-xl">
                 Jirani Alert empowers neighborhoods with real-time emergency reporting and instant community alerts.
                 It helps people act faster, communicate clearly, and protect one another when it matters most.
               </p>
@@ -124,7 +124,7 @@ export default function About() {
                   Get Started
                   <ArrowRight className="h-4 w-4" />
                 </Link>
-                <Link to="/report" className="inline-flex items-center gap-2 rounded-full bg-[#E53935] px-6 py-3 font-bold text-white shadow-[0_18px_40px_rgba(229,57,53,0.3)] transition-transform hover:-translate-y-0.5">
+                <Link to="/resident/report" className="inline-flex items-center gap-2 rounded-full bg-[#E53935] px-6 py-3 font-bold text-white shadow-[0_18px_40px_rgba(229,57,53,0.3)] transition-transform hover:-translate-y-0.5">
                   Report Emergency
                 </Link>
               </div>

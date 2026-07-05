@@ -143,7 +143,7 @@ export default function Contact() {
         theme="dark"
       />
       <main className="overflow-hidden pt-0">
-        <section className="relative isolate overflow-hidden bg-[linear-gradient(135deg,#0c1f49_0%,#113a7a_45%,#ffffff_45%,#ffffff_100%)] px-4 pt-0 pb-10 sm:px-6 sm:pt-10 sm:pb-12 lg:px-8 lg:pt-12 lg:pb-16">
+        <section className="relative isolate overflow-hidden bg-[linear-gradient(135deg,#0c1f49_0%,#113a7a_45%,#ffffff_45%,#ffffff_100%)] px-4 pt-24 pb-10 sm:px-6 sm:pt-10 sm:pb-12 lg:px-8 lg:pt-12 lg:pb-16">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(229,57,53,0.18),transparent_24%),radial-gradient(circle_at_80%_15%,rgba(59,130,246,0.2),transparent_22%),radial-gradient(circle_at_18%_82%,rgba(255,255,255,0.15),transparent_16%)]" />
           <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-2 lg:items-center">
             <Reveal className="space-y-6 text-white">
@@ -151,7 +151,7 @@ export default function Contact() {
                 <Sparkles className="h-4 w-4 text-[#ffb4b0]" />
                 Professional support for every community
               </div>
-              <h1 className="max-w-2xl text-2xl sm:text-3xl lg:text-5xl font-black tracking-tight text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.22)]">
+              <h1 className="max-w-2xl text-2xl font-black tracking-tight text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.22)] sm:text-3xl lg:text-5xl">
                 We're Here to Help
               </h1>
               <p className="max-w-2xl text-base sm:text-lg leading-8 text-blue-50/95">

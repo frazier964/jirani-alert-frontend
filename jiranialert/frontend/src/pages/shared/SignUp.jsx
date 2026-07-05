@@ -12,7 +12,8 @@ const accountTypes = [
 
 export default function SignUp() {
   const [formData, setFormData] = useState({
-    fullName: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -47,7 +48,8 @@ export default function SignUp() {
   const validateForm = () => {
     const newErrors = {}
     
-    if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required'
+    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required'
+    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required'
     if (!formData.email.trim()) newErrors.email = 'Email is required'
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Invalid email'
     
@@ -74,7 +76,10 @@ export default function SignUp() {
         email: formData.email,
         password: formData.password,
         role: formData.role,
-        displayName: formData.fullName,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        displayName: formData.firstName,
+        fullName: `${formData.firstName} ${formData.lastName}`.trim(),
       })
 
       const verificationInfo = user.verificationEmail || { sent: false, reason: 'Verification email status not available' }
@@ -89,7 +94,9 @@ export default function SignUp() {
       })
       setAccountCreated(true)
       setCreatedProfile({
-        fullName: formData.fullName,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        fullName: `${formData.firstName} ${formData.lastName}`.trim(),
         email: formData.email,
         role: formData.role,
       })
@@ -102,7 +109,10 @@ export default function SignUp() {
             email: formData.email,
             password: formData.password,
             role: formData.role,
-            displayName: formData.fullName,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            displayName: formData.firstName,
+            fullName: `${formData.firstName} ${formData.lastName}`.trim(),
           })
           const verificationInfo = await resendVerificationEmail(formData.email, formData.password)
           setSuccessMessage(
@@ -215,27 +225,51 @@ export default function SignUp() {
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-8 sm:mb-10 text-center lg:text-left">Sign Up</h1>
               
               <form id="signup-form" onSubmit={handleSubmit} className="space-y-4">
-                {/* Full Name */}
-                <motion.div variants={itemVariants}>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {/* First Name */}
+                  <motion.div variants={itemVariants}>
                   <input
                     type="text"
-                    name="fullName"
-                    autoComplete="name"
-                    value={formData.fullName}
+                    name="firstName"
+                    autoComplete="given-name"
+                    value={formData.firstName}
                     onChange={handleChange}
-                    placeholder="Full Name"
+                    placeholder="First Name"
                     className={`w-full px-6 py-4 rounded-full bg-white placeholder-gray-400 text-gray-800 font-medium focus:outline-none transition-all duration-300 ${
-                      errors.fullName
+                      errors.firstName
                         ? 'ring-2 ring-red-400 focus:ring-red-500'
                         : 'hover:shadow-lg focus:ring-2 focus:ring-blue-300'
                     }`}
                   />
-                  {errors.fullName && (
+                  {errors.firstName && (
                     <motion.p className="text-red-200 text-sm mt-1 flex items-center gap-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                      <AlertCircle className="w-4 h-4" /> {errors.fullName}
+                      <AlertCircle className="w-4 h-4" /> {errors.firstName}
                     </motion.p>
                   )}
                 </motion.div>
+
+                  {/* Last Name */}
+                  <motion.div variants={itemVariants}>
+                    <input
+                      type="text"
+                      name="lastName"
+                      autoComplete="family-name"
+                      value={formData.lastName}
+                      onChange={handleChange}
+                      placeholder="Last Name"
+                      className={`w-full px-6 py-4 rounded-full bg-white placeholder-gray-400 text-gray-800 font-medium focus:outline-none transition-all duration-300 ${
+                        errors.lastName
+                          ? 'ring-2 ring-red-400 focus:ring-red-500'
+                          : 'hover:shadow-lg focus:ring-2 focus:ring-blue-300'
+                      }`}
+                    />
+                    {errors.lastName && (
+                      <motion.p className="text-red-200 text-sm mt-1 flex items-center gap-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                        <AlertCircle className="w-4 h-4" /> {errors.lastName}
+                      </motion.p>
+                    )}
+                  </motion.div>
+                </div>
 
                 {/* Email */}
                 <motion.div variants={itemVariants}>
@@ -408,10 +442,14 @@ export default function SignUp() {
                     <p className="text-sm text-slate-600 mb-3">You have been invited to Jirani Alert. Verify your email using the link we sent, then sign in to access your assigned account type.</p>
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="rounded-2xl bg-slate-50 p-3">
-                        <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Full name</p>
-                        <p className="mt-2 text-sm font-semibold text-slate-900">{createdProfile.fullName}</p>
+                        <p className="text-xs uppercase tracking-[0.24em] text-slate-500">First name</p>
+                        <p className="mt-2 text-sm font-semibold text-slate-900">{createdProfile.firstName}</p>
                       </div>
                       <div className="rounded-2xl bg-slate-50 p-3">
+                        <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Last name</p>
+                        <p className="mt-2 text-sm font-semibold text-slate-900">{createdProfile.lastName}</p>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 p-3 sm:col-span-2">
                         <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Email</p>
                         <p className="mt-2 text-sm font-semibold text-slate-900">{createdProfile.email}</p>
                       </div>
