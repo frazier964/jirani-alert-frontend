@@ -26,7 +26,8 @@ const Messages = lazy(() => import('./pages/resident/Messages'))
 const EmergencyContacts = lazy(() => import('./pages/resident/EmergencyContacts'))
 const Profile = lazy(() => import('./pages/resident/Profile'))
 const ResponderDashboard = lazy(() => import('./pages/responder/ResponderDashboard'))
-const ResponderSectionPage = lazy(() => import('./pages/responder/ResponderSectionPage'))
+const ResponderWorkspacePage = lazy(() => import('./pages/responder/ResponderWorkspacePage'))
+const ResponderIncidentDetails = lazy(() => import('./pages/responder/IncidentDetails'))
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
 const AlertDetails = lazy(() => import('./pages/alerts/AlertDetails'))
 
@@ -75,7 +76,26 @@ function AppRoutes() {
             <Route path="/alerts/:id" element={<AlertDetails />} />
 
             <Route path="/responder/dashboard" element={<ResponderDashboard />} />
-            <Route path="/responder/:section" element={<ResponderSectionPage />} />
+            <Route path="/responder/incidents" element={<ResponderWorkspacePage page="incidents" />} />
+            <Route path="/responder/incidents/:id" element={<ResponderIncidentDetails />} />
+            <Route path="/responder/assigned" element={<ResponderWorkspacePage page="assigned" />} />
+            <Route path="/responder/map" element={<ResponderWorkspacePage page="map" />} />
+            <Route path="/responder/dispatch" element={<ResponderWorkspacePage page="dispatch" />} />
+            <Route path="/responder/communications" element={<ResponderWorkspacePage page="communications" />} />
+            <Route path="/responder/residents" element={<ResponderWorkspacePage page="residents" />} />
+            <Route path="/responder/team" element={<ResponderWorkspacePage page="team" />} />
+            <Route path="/responder/equipment" element={<ResponderWorkspacePage page="equipment" />} />
+            <Route path="/responder/reports" element={<ResponderWorkspacePage page="reports" />} />
+            <Route path="/responder/analytics" element={<ResponderWorkspacePage page="analytics" />} />
+            <Route path="/responder/resources" element={<ResponderWorkspacePage page="resources" />} />
+            <Route path="/responder/announcements" element={<ResponderWorkspacePage page="announcements" />} />
+            <Route path="/responder/profile" element={<ResponderWorkspacePage page="profile" />} />
+            <Route path="/responder/settings" element={<ResponderWorkspacePage page="settings" />} />
+            <Route path="/responder/notifications" element={<ResponderWorkspacePage page="notifications" />} />
+            <Route path="/responder/help" element={<ResponderWorkspacePage page="help" />} />
+            <Route path="/responder" element={<Navigate to="/responder/dashboard" replace />} />
+            <Route path="/responder/team-members" element={<Navigate to="/responder/team" replace />} />
+            <Route path="/responder/help-support" element={<Navigate to="/responder/help" replace />} />
 
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
           </Route>

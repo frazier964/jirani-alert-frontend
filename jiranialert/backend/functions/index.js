@@ -451,6 +451,18 @@ async function requireUser(req) {
   }
 }
 
+async function requireResponderUser(req) {
+  const user = await requireUser(req)
+  const profileSnap = await db.collection('profiles').doc(user.uid).get().catch(() => null)
+  const role = normalizeRole(user.role) || normalizeRole(profileSnap?.data?.()?.role)
+  if (!['responder', 'admin'].includes(role)) {
+    const error = new Error('Responder access is required')
+    error.status = 403
+    throw error
+  }
+  return { ...user, role }
+}
+
 function sendError(res, error) {
   const status = error.status || 500
   if (status === 500) {
@@ -481,6 +493,10 @@ function requiredString(value, field) {
     throw error
   }
   return value.trim()
+}
+
+function optionalString(value) {
+  return typeof value === 'string' ? value.trim() : ''
 }
 
 function normalizeRole(role) {
@@ -745,6 +761,230 @@ exports.getEmergencyReport = onRequest({ region: 'us-central1' }, async (req, re
     }
 
     res.json({ report: { id: report.id, ...data } })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.listAssignedIncidents = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'GET')
+    const user = await requireResponderUser(req)
+    const limit = Math.min(Number(req.query.limit || 50), 100)
+    const snapshot = await db
+      .collection('reports')
+      .where('assignedResponderId', '==', user.uid)
+      .orderBy('updatedAt', 'desc')
+      .limit(limit)
+      .get()
+
+    res.json({
+      incidents: snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })),
+    })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.acceptIncident = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireResponderUser(req)
+    const reportId = requiredString(req.body?.reportId, 'reportId')
+    const reportRef = db.collection('reports').doc(reportId)
+    const alertRef = db.collection('alerts').doc(reportId)
+    const now = serverTimestampValue()
+
+    await db.runTransaction(async (transaction) => {
+      const report = await transaction.get(reportRef)
+      if (!report.exists) {
+        const error = new Error('Incident not found')
+        error.status = 404
+        throw error
+      }
+
+      transaction.set(
+        reportRef,
+        {
+          assignedResponderId: user.uid,
+          assignedResponderEmail: user.email || null,
+          assignmentStatus: 'Accepted',
+          status: 'Accepted',
+          acceptedAt: now,
+          updatedAt: now,
+          timeline: admin.firestore.FieldValue.arrayUnion({
+            type: 'accepted',
+            label: 'Responder accepted incident',
+            responderId: user.uid,
+            createdAt: new Date().toISOString(),
+          }),
+        },
+        { merge: true },
+      )
+      transaction.set(alertRef, { status: 'Accepted', updatedAt: now }, { merge: true })
+    })
+
+    const saved = await reportRef.get()
+    res.json({ ok: true, incident: { id: saved.id, ...saved.data() } })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.rejectIncident = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireResponderUser(req)
+    const reportId = requiredString(req.body?.reportId, 'reportId')
+    const reason = optionalString(req.body?.reason)
+    const reportRef = db.collection('reports').doc(reportId)
+    const now = serverTimestampValue()
+
+    await reportRef.set(
+      {
+        rejectedBy: admin.firestore.FieldValue.arrayUnion(user.uid),
+        lastRejectionReason: reason || null,
+        assignmentStatus: 'Rejected',
+        updatedAt: now,
+        timeline: admin.firestore.FieldValue.arrayUnion({
+          type: 'rejected',
+          label: reason ? `Responder rejected incident: ${reason}` : 'Responder rejected incident',
+          responderId: user.uid,
+          createdAt: new Date().toISOString(),
+        }),
+      },
+      { merge: true },
+    )
+
+    const saved = await reportRef.get()
+    res.json({ ok: true, incident: { id: saved.id, ...saved.data() } })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.updateIncidentStatus = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireResponderUser(req)
+    const reportId = requiredString(req.body?.reportId, 'reportId')
+    const status = requiredString(req.body?.status, 'status')
+    const note = optionalString(req.body?.note)
+    const reportRef = db.collection('reports').doc(reportId)
+    const alertRef = db.collection('alerts').doc(reportId)
+    const now = serverTimestampValue()
+    const updates = {
+      status,
+      updatedAt: now,
+      timeline: admin.firestore.FieldValue.arrayUnion({
+        type: 'status',
+        label: note ? `${status}: ${note}` : `Status updated to ${status}`,
+        responderId: user.uid,
+        createdAt: new Date().toISOString(),
+      }),
+    }
+    if (status.toLowerCase() === 'completed') {
+      updates.completedAt = now
+      updates.assignmentStatus = 'Completed'
+    }
+
+    await db.runTransaction(async (transaction) => {
+      const report = await transaction.get(reportRef)
+      if (!report.exists) {
+        const error = new Error('Incident not found')
+        error.status = 404
+        throw error
+      }
+      transaction.set(reportRef, updates, { merge: true })
+      transaction.set(alertRef, { status, updatedAt: now }, { merge: true })
+    })
+
+    const saved = await reportRef.get()
+    res.json({ ok: true, incident: { id: saved.id, ...saved.data() } })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.assignIncident = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireResponderUser(req)
+    const reportId = requiredString(req.body?.reportId, 'reportId')
+    const responderId = requiredString(req.body?.responderId, 'responderId')
+    const reportRef = db.collection('reports').doc(reportId)
+    const now = serverTimestampValue()
+
+    await reportRef.set(
+      {
+        assignedResponderId: responderId,
+        dispatchedBy: user.uid,
+        assignmentStatus: 'Assigned',
+        status: 'Assigned',
+        updatedAt: now,
+        timeline: admin.firestore.FieldValue.arrayUnion({
+          type: 'assigned',
+          label: 'Incident assigned from dispatch center',
+          responderId: user.uid,
+          assignedResponderId: responderId,
+          createdAt: new Date().toISOString(),
+        }),
+      },
+      { merge: true },
+    )
+
+    const saved = await reportRef.get()
+    res.json({ ok: true, incident: { id: saved.id, ...saved.data() } })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.addIncidentNote = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireResponderUser(req)
+    const reportId = requiredString(req.body?.reportId, 'reportId')
+    const note = requiredString(req.body?.note, 'note')
+    const reportRef = db.collection('reports').doc(reportId)
+    const now = serverTimestampValue()
+
+    await reportRef.set(
+      {
+        responderNotes: admin.firestore.FieldValue.arrayUnion({
+          note,
+          responderId: user.uid,
+          responderEmail: user.email || null,
+          createdAt: new Date().toISOString(),
+        }),
+        updatedAt: now,
+      },
+      { merge: true },
+    )
+
+    const saved = await reportRef.get()
+    res.json({ ok: true, incident: { id: saved.id, ...saved.data() } })
   } catch (error) {
     sendError(res, error)
   }
