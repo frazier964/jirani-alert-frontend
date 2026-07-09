@@ -256,8 +256,8 @@ export default function ResidentDashboard() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#F8FAFC_0%,#EEF4FB_100%)] text-slate-900">
 
-      <div className="mx-auto w-full max-w-[1780px] px-3 pb-8 sm:px-5 lg:px-6 lg:pb-10">
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(360px,0.85fr)] 2xl:grid-cols-[minmax(0,1.7fr)_420px]">
+      <div className="mx-auto w-full max-w-screen-2xl px-4 pb-8 sm:px-6 lg:px-8 lg:pb-10">
+        <div className="grid gap-6 xl:grid-cols-[3fr_1fr]">
           <main className="min-w-0 space-y-5 pb-24 lg:pb-0">
             <motion.section
               initial={{ opacity: 0, y: 18 }}
@@ -271,7 +271,7 @@ export default function ResidentDashboard() {
                 transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
               />
 
-              <div className="relative grid gap-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(420px,1.08fr)] xl:items-stretch">
+              <div className="relative grid gap-4 xl:grid-cols-[1.2fr_1fr] xl:items-stretch">
                 <div className="flex min-h-[250px] flex-col justify-between">
                   <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em]">
                     <Sparkles className="h-4 w-4" />
@@ -292,7 +292,7 @@ export default function ResidentDashboard() {
                   </div>
                 </div>
 
-                <aside className="grid gap-2 sm:grid-cols-2 xl:grid-cols-2 xl:self-stretch">
+                <aside className="grid gap-4 sm:grid-cols-2 xl:grid-cols-2 xl:self-stretch">
                   {quickStats.map((item, index) => {
                     const Icon = item.icon
                     return (
@@ -315,7 +315,7 @@ export default function ResidentDashboard() {
               </div>
             </motion.section>
 
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.28fr)_minmax(320px,0.72fr)]">
+            <div className="grid gap-4 lg:grid-cols-2">
               <motion.section
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -411,7 +411,7 @@ export default function ResidentDashboard() {
               </motion.section>
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.82fr)]">
+            <div className="grid gap-4 lg:grid-cols-2">
               <motion.section
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -539,7 +539,7 @@ export default function ResidentDashboard() {
               </motion.section>
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.82fr)]">
+            <div className="grid gap-4 lg:grid-cols-2">
               <motion.section
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -576,7 +576,7 @@ export default function ResidentDashboard() {
                   <ShieldCheck className="h-6 w-6 text-emerald-500" />
                 </div>
 
-                <div className="mt-3 space-y-3">
+                <div className="mt-3 grid gap-4">
                   {recentReports.map((item) => (
                     <div key={item.title} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
                       <div className="flex items-start justify-between gap-4">
@@ -659,7 +659,7 @@ export default function ResidentDashboard() {
                 </div>
                 <CloudSun className="h-5 w-5 text-amber-500" />
               </div>
-              <div className="mt-3 grid gap-2 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
+              <div className="mt-3 grid gap-2 sm:grid-cols-3 xl:grid-cols-3">
                 {weatherAlerts.map((item) => (
                   <div key={item.label} className="flex min-h-[74px] flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                     <span className={`text-sm font-semibold ${item.tone}`}>{item.label}</span>
