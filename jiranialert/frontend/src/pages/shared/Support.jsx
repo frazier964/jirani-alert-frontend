@@ -206,13 +206,13 @@ export default function Support() {
         theme="dark"
       />
 
-      <main className="pt-0">
+      <main className="pt-1">
         <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white">
           <div className="absolute inset-0 opacity-20">
             <div className="absolute left-1/3 top-0 h-72 w-72 rounded-full bg-red-600 blur-3xl" />
             <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-blue-500 blur-3xl" />
           </div>
-          <div className="relative mx-auto grid max-w-7xl gap-10 sm:gap-12 px-4 pt-0 pb-14 sm:px-6 sm:pt-12 sm:pb-16 md:pt-16 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
+          <div className="relative mx-auto grid max-w-7xl gap-10 sm:gap-12 px-4 pt-28 pb-14 sm:px-6 sm:pt-32 sm:pb-16 md:pt-36 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
             <Reveal>
               <p className="text-sm font-semibold uppercase tracking-[0.4em] text-red-300">Support Center</p>
               <h1 className="mt-4 text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold leading-tight text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.28)]">
@@ -338,9 +338,9 @@ export default function Support() {
                         </span>
                       </div>
                       <h3 className="mt-5 text-lg sm:text-xl font-bold text-slate-950">{article.title}</h3>
-                      <button className="mt-6 inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-[#B91C1C] transition-colors hover:text-[#991B1B]\">
+                      <button className="mt-6 inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-[#B91C1C] transition-colors hover:text-[#991B1B]">
                         Read Article
-                        <ArrowRight className="h-3 sm:h-4 w-3 sm:w-4\" />
+                        <ArrowRight className="h-3 sm:h-4 w-3 sm:w-4" />
                       </button>
                     </article>
                   </Reveal>
@@ -584,15 +584,15 @@ export default function Support() {
                   </div>
                   <div className="mt-4 sm:mt-6 space-y-2 sm:space-y-3 text-xs sm:text-sm text-slate-200">
                     {systemStatus.map((item) => (
-                      <div key={item} className="flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-2xl bg-white/5 px-3 sm:px-4 py-2 sm:py-3\">
-                        <CheckCircle2 className="h-3 sm:h-4 w-3 sm:w-4 text-emerald-400 flex-shrink-0\" />
+                      <div key={item} className="flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-2xl bg-white/5 px-3 sm:px-4 py-2 sm:py-3">
+                        <CheckCircle2 className="h-3 sm:h-4 w-3 sm:w-4 text-emerald-400 flex-shrink-0" />
                         <span>{item} — Operational</span>
                       </div>
                     ))}
                   </div>
-                  <button className="mt-4 sm:mt-6 inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-red-300 transition hover:text-red-200\">
+                  <button className="mt-4 sm:mt-6 inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-red-300 transition hover:text-red-200">
                     View Status Details
-                    <ArrowRight className="h-3 sm:h-4 w-3 sm:w-4\" />
+                    <ArrowRight className="h-3 sm:h-4 w-3 sm:w-4" />
                   </button>
                 </div>
               </Reveal>

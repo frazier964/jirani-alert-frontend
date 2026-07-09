@@ -48,7 +48,7 @@ export default function Terms() {
         <section className="bg-[linear-gradient(135deg,#0f2458_0%,#163b82_58%,#2563eb_100%)] px-4 pt-0 pb-20 text-white sm:px-6 sm:pt-12 sm:pb-24 lg:px-8">
           <div className="mx-auto max-w-5xl">
             <p className="text-sm font-black uppercase tracking-[0.24em] text-blue-100">Legal</p>
-            <h1 className="mt-4 max-w-3xl text-4xl font-black tracking-tight sm:text-5xl">
+            <h1 className="mt-4 max-w-3xl text-4xl font-black tracking-tight text-white sm:text-5xl">
               Terms and Conditions
             </h1>
             <p className="mt-5 max-w-3xl text-lg leading-8 text-blue-50/90">

@@ -353,7 +353,7 @@ We recommend reviewing this policy periodically to stay informed about how we pr
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.6 }}
             >
-              <h1 className="!text-white text-5xl lg:text-6xl !font-black mb-6 leading-tight drop-shadow-[0_4px_18px_rgba(0,0,0,0.35)]">
+              <h1 className="mt-20 sm:mt-0 !text-white text-5xl lg:text-6xl !font-black mb-6 leading-tight drop-shadow-[0_4px_18px_rgba(0,0,0,0.35)]">
                 Privacy Policy
               </h1>
               <p className="max-w-2xl text-xl text-white mb-4 leading-relaxed">
