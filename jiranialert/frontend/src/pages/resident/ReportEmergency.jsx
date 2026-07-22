@@ -19,7 +19,6 @@ import {
   Navigation2,
   Siren,
 } from 'lucide-react'
-import { getCurrentUser } from '../../lib/auth'
 import reportApi from '../../lib/reportApi'
 
 const emergencyTypes = [
@@ -71,7 +70,6 @@ function getSafetyTip(type) {
 }
 
 export default function ReportEmergency() {
-  const currentUser = getCurrentUser()
   const [selectedType, setSelectedType] = useState('Fire')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -95,16 +93,6 @@ export default function ReportEmergency() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (currentUser?.role === 'responder') {
-      navigate('/responder/dashboard', { replace: true })
-      return
-    }
-
-    if (currentUser?.role === 'admin') {
-      navigate('/admin/dashboard', { replace: true })
-      return
-    }
-
     let mounted = true
     async function loadReports() {
       try {
@@ -118,7 +106,7 @@ export default function ReportEmergency() {
     }
     loadReports()
     return () => { mounted = false }
-  }, [currentUser, navigate])
+  }, [])
 
   const selectedEmergency = useMemo(
     () => emergencyTypes.find((item) => item.value === selectedType) || emergencyTypes[0],

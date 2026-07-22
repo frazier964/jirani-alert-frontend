@@ -1,3 +1,37 @@
-in the destop view and mobile view of the responder account type under the workspace drop down menu the menu is too large such that the content covers the whole page and i dont see the whole menu i want that fixed and a side scroll bar to be added and when i open the workspace drop down menu i can scroll well 
-
-also in the account dropdown menu under settings i cant open anything in the settings page this is what i want and i want to be able to access it and for it to be both desktop and mobile responsive
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log"
+      ]
+    }
+  ],
+  "emulators": {
+    "auth": {
+      "port": 9099,
+      "host": "0.0.0.0"
+    },
+    "firestore": {
+      "port": 9001,
+      "host": "0.0.0.0"
+    },
+    "functions": {
+      "port": 5005,
+      "host": "0.0.0.0"
+    },
+    "ui": {
+      "enabled": true,
+      "host": "0.0.0.0",
+      "port": 4022
+    }
+  }
+}
