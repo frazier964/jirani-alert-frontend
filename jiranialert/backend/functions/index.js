@@ -260,6 +260,59 @@ async function sendSignupConfirmationEmail({ to, displayName, firstName, fullNam
   return { sent: true, messageId: info.messageId, verificationLink }
 }
 
+function getConfiguredAdminEmails() {
+  return getEnv('SUPER_ADMIN_EMAILS')
+    .split(/[;,]/)
+    .map((email) => email.trim().toLowerCase())
+    .filter((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+}
+
+async function getEmergencyAdminEmails() {
+  const configured = getConfiguredAdminEmails()
+  const admins = await db.collection('profiles').where('role', '==', 'admin').get()
+  const profileEmails = admins.docs
+    .map((snap) => String(snap.data()?.email || '').trim().toLowerCase())
+    .filter((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+  return [...new Set([...configured, ...profileEmails])]
+}
+
+async function sendEmergencyReportEmails({ reportId, type, title, description, location, severity, reporterName, reporterPhone, reporterEmail, appUrl }) {
+  const transporter = getMailTransporter()
+  if (!transporter) return { sent: false, reason: 'Email is not configured' }
+
+  const mailFrom = getMailFromAddress()
+  const reportCode = `JA-${reportId.slice(-8).toUpperCase()}`
+  const reportUrl = `${appUrl}/report-emergency/${encodeURIComponent(reportId)}`
+  const safe = {
+    type: escapeHtml(type), title: escapeHtml(title), description: escapeHtml(description), location: escapeHtml(location),
+    severity: escapeHtml(severity), reporterName: escapeHtml(reporterName || 'Not provided'), reporterPhone: escapeHtml(reporterPhone || 'Not provided'),
+    reportCode: escapeHtml(reportCode), reportUrl: escapeHtml(reportUrl),
+  }
+  const adminEmails = await getEmergencyAdminEmails()
+  const jobs = []
+
+  if (adminEmails.length) {
+    jobs.push(transporter.sendMail({
+      from: mailFrom, replyTo: mailFrom, to: adminEmails,
+      subject: `Emergency alert ${reportCode}: ${type}`,
+      text: `A new ${type} emergency has been reported.\n\nReport: ${reportCode}\nTitle: ${title}\nSeverity: ${severity}\nLocation: ${location}\nDescription: ${description}\nReporter: ${reporterName || 'Not provided'}\nPhone: ${reporterPhone || 'Not provided'}\nEmail: ${reporterEmail || 'Not provided'}`,
+      html: `<div style="font-family:Arial,sans-serif;color:#0f172a"><h1 style="color:#b91c1c">New emergency alert</h1><p><strong>${safe.reportCode}</strong> · ${safe.type} · ${safe.severity}</p><p><strong>Location:</strong> ${safe.location}</p><p><strong>Details:</strong> ${safe.description}</p><hr><p><strong>Reporter:</strong> ${safe.reporterName}<br><strong>Phone:</strong> ${safe.reporterPhone}<br><strong>Email:</strong> ${escapeHtml(reporterEmail || 'Not provided')}</p></div>`,
+    }))
+  }
+  if (reporterEmail) {
+    jobs.push(transporter.sendMail({
+      from: mailFrom, replyTo: mailFrom, to: reporterEmail,
+      subject: `Emergency report received (${reportCode})`,
+      text: `Your ${type} emergency report has been received. Report ID: ${reportCode}. Responders are being notified. Track it here: ${reportUrl}`,
+      html: `<div style="font-family:Arial,sans-serif;color:#0f172a"><h1 style="color:#047857">Emergency report received</h1><p>Your <strong>${safe.type}</strong> report has been received and responders are being notified.</p><p><strong>Report ID:</strong> ${safe.reportCode}</p><p><a href="${safe.reportUrl}" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:bold">Track my report</a></p></div>`,
+    }))
+  }
+  const results = await Promise.allSettled(jobs)
+  const sent = results.filter((result) => result.status === 'fulfilled').length
+  results.filter((result) => result.status === 'rejected').forEach((result) => console.error('Emergency email failed:', result.reason))
+  return { sent: sent > 0, recipients: sent, adminRecipients: adminEmails.length, reporterConfirmation: Boolean(reporterEmail) }
+}
+
 function getEmailTestSecret() {
   return getEnv('EMAIL_TEST_SECRET')
 }
@@ -638,9 +691,24 @@ exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req,
     const location = requiredString(body.location, 'location')
     const description = requiredString(body.description, 'description')
     const severity = typeof body.severity === 'string' ? body.severity.trim() : 'Medium'
-    const anonymous = Boolean(body.anonymous)
+    const isAnonymousUser = user.firebase?.sign_in_provider === 'anonymous'
+    const anonymous = isAnonymousUser || Boolean(body.anonymous)
     const evidenceUrl = typeof body.evidenceUrl === 'string' && body.evidenceUrl.trim() !== '' ? body.evidenceUrl.trim() : null
     const notify = Array.isArray(body.notify) ? body.notify : []
+    const reporterName = typeof body.reporterName === 'string' ? body.reporterName.trim().slice(0, 120) : ''
+    const reporterPhone = typeof body.reporterPhone === 'string' ? body.reporterPhone.trim().slice(0, 32) : ''
+    const suppliedReporterEmail = typeof body.reporterEmail === 'string' ? body.reporterEmail.trim().toLowerCase().slice(0, 254) : ''
+    if (suppliedReporterEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(suppliedReporterEmail)) {
+      const error = new Error('A valid reporter email is required when one is provided')
+      error.status = 400
+      throw error
+    }
+    const reporterEmail = user.email || suppliedReporterEmail || null
+    const locationCoordinates = body.locationCoordinates
+      && Number.isFinite(body.locationCoordinates.latitude)
+      && Number.isFinite(body.locationCoordinates.longitude)
+      ? { latitude: body.locationCoordinates.latitude, longitude: body.locationCoordinates.longitude }
+      : null
 
     const now = serverTimestampValue()
     const reportRef = db.collection('reports').doc()
@@ -659,7 +727,10 @@ exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req,
         evidenceUrl: evidenceUrl || null,
         notify: notify || [],
         reporterId: user.uid,
-        reporterEmail: anonymous ? null : user.email || null,
+        reporterEmail,
+        reporterName,
+        reporterPhone,
+        locationCoordinates,
         createdAt: now,
         updatedAt: now,
       })
@@ -687,13 +758,32 @@ exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req,
       })
     })
 
-      const savedReport = await reportRef.get()
+    const savedReport = await reportRef.get()
+    let emailNotifications = { sent: false, reason: 'Email notifications were not attempted' }
+    try {
+      emailNotifications = await sendEmergencyReportEmails({
+        reportId: reportRef.id,
+        type,
+        title,
+        description,
+        location,
+        severity,
+        reporterName,
+        reporterPhone,
+        reporterEmail,
+        appUrl: getFrontendAppUrl(req),
+      })
+    } catch (emailError) {
+      console.error('Emergency report email notification setup failed:', emailError)
+      emailNotifications = { sent: false, reason: 'Email notifications could not be delivered' }
+    }
 
     res.status(201).json({
       reportId: reportRef.id,
       alertId: alertRef.id,
       notificationId: notificationRef.id,
-         report: savedReport.exists ? { id: reportRef.id, ...savedReport.data() } : { id: reportRef.id, type, title, location, description, severity, anonymous, evidenceUrl, notify },
+      emailNotifications,
+      report: savedReport.exists ? { id: reportRef.id, ...savedReport.data() } : { id: reportRef.id, type, title, location, description, severity, anonymous, evidenceUrl, notify },
     })
   } catch (error) {
     sendError(res, error)

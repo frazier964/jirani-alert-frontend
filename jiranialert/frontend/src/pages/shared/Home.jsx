@@ -212,7 +212,7 @@ export default function Home() {
                   <Link to="/signup" className="px-4 sm:px-6 py-3 rounded-xl bg-[#2563EB] text-white font-bold text-sm sm:text-base shadow-[0_0_18px_rgba(37,99,235,0.45)] hover:shadow-[0_0_28px_rgba(37,99,235,0.6)] transition-all">
                     Get Started
                   </Link>
-                  <Link to="/resident/report" className="px-4 sm:px-6 py-3 rounded-xl bg-[#DC2626] text-white font-bold text-sm sm:text-base shadow-[0_0_18px_rgba(220,38,38,0.35)] hover:shadow-[0_0_28px_rgba(220,38,38,0.55)] transition-all">
+                  <Link to="/report-emergency" className="px-4 sm:px-6 py-3 rounded-xl bg-[#DC2626] text-white font-bold text-sm sm:text-base shadow-[0_0_18px_rgba(220,38,38,0.35)] hover:shadow-[0_0_28px_rgba(220,38,38,0.55)] transition-all">
                     Report Emergency
                   </Link>
                 </div>

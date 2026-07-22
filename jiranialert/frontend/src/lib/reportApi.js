@@ -7,8 +7,11 @@ const BACKEND_URL = getFunctionsBaseUrl()
 async function waitForAuthReady() {
   if (!auth) return null
   if (auth.currentUser) return auth.currentUser
-  await ensureAnonymous()
-  return auth.currentUser
+  const user = await ensureAnonymous()
+  if (!user) {
+    throw new Error('We could not start a secure emergency-report session. Please check your connection and try again.')
+  }
+  return user
 }
 
 async function callBackend(endpoint, method = 'GET', body = null) {

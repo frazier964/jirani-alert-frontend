@@ -140,12 +140,14 @@ export { prodAuth }
 
 async function ensureAnonymous() {
   if (!auth) return null
+  await waitForFirebaseReady()
   if (auth.currentUser) return auth.currentUser
-  if (!shouldUseAuthEmulator) return null
   try {
     const cred = await signInAnonymously(auth)
     return cred.user
   } catch (e) {
+    // The UI turns this into a clear retry message; keep the underlying error for debugging.
+    console.error('Anonymous Firebase sign-in failed:', e)
     return null
   }
 }

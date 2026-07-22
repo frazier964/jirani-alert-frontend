@@ -4,7 +4,6 @@ import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom'
 import './index.css'
 import AnnouncementBar from './components/AnnouncementBar'
 import Layout from './components/Layout'
-import { ensureAnonymous } from './lib/firebase'
 import { initAuthListener } from './lib/auth'
 
 const Home = lazy(() => import('./pages/shared/Home'))
@@ -19,6 +18,7 @@ const SignUp = lazy(() => import('./pages/shared/SignUp'))
 const VerifyEmail = lazy(() => import('./pages/shared/VerifyEmail'))
 const ResidentDashboard = lazy(() => import('./pages/resident/ResidentDashboard'))
 const ReportEmergency = lazy(() => import('./pages/resident/ReportEmergency'))
+const GuestReportTracking = lazy(() => import('./pages/shared/GuestReportTracking'))
 const LiveMap = lazy(() => import('./pages/resident/LiveMap'))
 const Notifications = lazy(() => import('./pages/resident/Notifications'))
 const Reports = lazy(() => import('./pages/resident/Reports'))
@@ -62,7 +62,9 @@ function AppRoutes() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/register" element={<SignUp />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/report" element={<Navigate to="/resident/report" replace />} />
+          <Route path="/report" element={<Navigate to="/report-emergency" replace />} />
+          <Route path="/report-emergency" element={<ReportEmergency />} />
+          <Route path="/report-emergency/:id" element={<GuestReportTracking />} />
 
           <Route element={<Layout />}>
             <Route path="/resident/dashboard" element={<ResidentDashboard />} />

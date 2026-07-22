@@ -1,19 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   AlertTriangle,
-  ArrowLeft,
   Bell,
   Car,
   CloudLightning,
-  Eye,
   Flame,
   HeartPulse,
   Info,
   MapPin,
-  MoonStar,
-  PhoneCall,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
@@ -22,7 +18,6 @@ import {
   LocateFixed,
   Navigation2,
   Siren,
-  FileText,
 } from 'lucide-react'
 import { getCurrentUser } from '../../lib/auth'
 import reportApi from '../../lib/reportApi'
@@ -32,6 +27,8 @@ const emergencyTypes = [
   { label: 'Medical Emergency', value: 'Medical', icon: HeartPulse, tone: 'from-emerald-500 to-green-500', helper: 'Get help fast and stay calm.' },
   { label: 'Security Threat', value: 'Security', icon: ShieldAlert, tone: 'from-slate-700 to-slate-900', helper: 'Protect the area and avoid confrontation.' },
   { label: 'Accident', value: 'Accident', icon: Car, tone: 'from-amber-500 to-orange-500', helper: 'Mark the scene and prevent further harm.' },
+  { label: 'Flood', value: 'Flood', icon: CloudLightning, tone: 'from-cyan-500 to-blue-600', helper: 'Move away from flood water and avoid crossings.' },
+  { label: 'Crime', value: 'Crime', icon: ShieldAlert, tone: 'from-violet-600 to-purple-700', helper: 'Move to safety and avoid confronting anyone.' },
   { label: 'Natural Disaster', value: 'Disaster', icon: CloudLightning, tone: 'from-indigo-500 to-violet-600', helper: 'Move to safety and follow official guidance.' },
   { label: 'Other Emergency', value: 'Other', icon: AlertTriangle, tone: 'from-[#2563EB] to-cyan-500', helper: 'Provide as many details as possible.' },
 ]
@@ -56,18 +53,6 @@ const recentReportsSeed = [
   { type: 'Security Threat', location: 'South B', time: '24m ago', severity: 'Medium' },
 ]
 
-function getAlerts() {
-  try {
-    return JSON.parse(localStorage.getItem('jiranialert_alerts') || '[]')
-  } catch (e) {
-    return []
-  }
-}
-
-function saveAlerts(alerts) {
-  localStorage.setItem('jiranialert_alerts', JSON.stringify(alerts || []))
-}
-
 function getSafetyTip(type) {
   switch (type) {
     case 'Fire':
@@ -91,6 +76,10 @@ export default function ReportEmergency() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [location, setLocation] = useState('')
+  const [coordinates, setCoordinates] = useState(null)
+  const [reporterName, setReporterName] = useState('')
+  const [reporterPhone, setReporterPhone] = useState('')
+  const [reporterEmail, setReporterEmail] = useState('')
   const [severity, setSeverity] = useState('Critical')
   const [anonymous, setAnonymous] = useState(false)
   const [notify, setNotify] = useState([true, true, true, true])
@@ -123,7 +112,7 @@ export default function ReportEmergency() {
         if (!mounted) return
         const items = (data.reports || []).map((r) => ({ type: r.type, location: r.location || 'Community Area', time: 'just now', severity: r.severity }))
         if (items.length) setRecentReports(items)
-      } catch (e) {
+      } catch {
         // fallback to seed
       }
     }
@@ -145,7 +134,7 @@ export default function ReportEmergency() {
     setGeoPending(true)
     setError('')
     if (!navigator.geolocation) {
-      setLocation('GPS unavailable - manual entry required')
+      setError('Your browser cannot access GPS. Please enter the nearest address or landmark manually.')
       setGeoPending(false)
       return
     }
@@ -153,11 +142,12 @@ export default function ReportEmergency() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords
+        setCoordinates({ latitude, longitude })
         setLocation(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`)
         setGeoPending(false)
       },
       () => {
-        setLocation('Location detection failed - please enter manually')
+        setError('We could not get your location. Please enter the nearest address or landmark manually.')
         setGeoPending(false)
       },
       { enableHighAccuracy: true, timeout: 8000 },
@@ -178,8 +168,16 @@ export default function ReportEmergency() {
     e.preventDefault()
     setError('')
 
-    if (!selectedType || !title.trim() || !description.trim() || !location.trim()) {
-      setError('Please complete the emergency type, title, description, and location.')
+    if (!selectedType || !description.trim() || !location.trim()) {
+      setError('Please select an emergency type, describe what is happening, and provide a location.')
+      return
+    }
+    if (reporterPhone.trim() && !/^\+?[0-9][0-9\s()-]{6,19}$/.test(reporterPhone.trim())) {
+      setError('Please enter a valid phone number, or leave it blank.')
+      return
+    }
+    if (reporterEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(reporterEmail.trim())) {
+      setError('Please enter a valid email address, or leave it blank.')
       return
     }
     setSubmitting(true)
@@ -194,13 +192,17 @@ export default function ReportEmergency() {
       // create report on backend
       const payload = {
         type: selectedType,
-        title: title.trim(),
+        title: title.trim() || `${selectedType} emergency`,
         description: description.trim(),
         location: location.trim(),
         severity,
         anonymous,
         notify,
         evidenceUrl,
+        locationCoordinates: coordinates,
+        reporterName: reporterName.trim(),
+        reporterPhone: reporterPhone.trim(),
+        reporterEmail: reporterEmail.trim(),
       }
 
       const res = await reportApi.createReport(payload)
@@ -239,7 +241,8 @@ export default function ReportEmergency() {
         responders: 'Nearby responders and community members notified',
       })
     } catch (err) {
-      setError(err.message || 'Failed to send report')
+      console.error('Emergency report submission failed:', err)
+      setError('We could not send your emergency alert right now. Please check your connection and try again.')
     } finally {
       setSubmitting(false)
     }
@@ -250,6 +253,10 @@ export default function ReportEmergency() {
     setTitle('')
     setDescription('')
     setLocation('')
+    setCoordinates(null)
+    setReporterName('')
+    setReporterPhone('')
+    setReporterEmail('')
     setSeverity('Critical')
     setAnonymous(false)
     setNotify([true, true, true, true])
@@ -260,6 +267,15 @@ export default function ReportEmergency() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 relative overflow-hidden">
+      <div className="relative z-20 mx-auto max-w-7xl px-4 pt-3 sm:px-6 lg:px-8">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-3 rounded-full bg-[#2563EB] px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-slate-950/10 transition hover:bg-[#1D4ED8] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:ring-offset-2"
+        >
+          <img src="/jirani-alert-logo.svg" alt="Jirani Alert" className="h-10 w-10 rounded-full bg-white" />
+          <span>JIRANI ALERT</span>
+        </Link>
+      </div>
       <main className="relative z-10 pt-4 pb-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8">
           <motion.section
@@ -398,13 +414,13 @@ export default function ReportEmergency() {
 
                   <div className="grid gap-5 md:grid-cols-2">
                     <div>
-                      <label className="text-sm font-semibold text-slate-700" htmlFor="title">Emergency Title</label>
+                      <label className="text-sm font-semibold text-slate-700" htmlFor="title">Emergency Title <span className="font-normal text-slate-400">(optional)</span></label>
                       <input
                         id="title"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#2563EB]/35 focus:border-[#2563EB] transition-all"
-                        placeholder="Short title for the incident"
+                        placeholder="Optional short title"
                       />
                     </div>
                     <div>
@@ -424,22 +440,37 @@ export default function ReportEmergency() {
                           className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition-colors inline-flex items-center gap-1"
                         >
                           {geoPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LocateFixed className="h-3.5 w-3.5" />}
-                          Detect
+                          Use my location
                         </button>
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-sm font-semibold text-slate-700" htmlFor="description">Description</label>
+                      <label className="text-sm font-semibold text-slate-700" htmlFor="description">What is happening?</label>
                     <textarea
                       id="description"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       rows={5}
                       className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#2563EB]/35 focus:border-[#2563EB] transition-all resize-none"
-                      placeholder="Describe what happened, who is affected, and any immediate hazards."
+                      placeholder="Briefly describe the emergency and what help is needed..."
                     />
+                  </div>
+
+                  <div className="grid gap-5 sm:grid-cols-3">
+                    <div>
+                      <label className="text-sm font-semibold text-slate-700" htmlFor="reporterName">Your Name <span className="font-normal text-slate-400">(optional)</span></label>
+                      <input id="reporterName" value={reporterName} onChange={(e) => setReporterName(e.target.value)} className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#2563EB]/35 focus:border-[#2563EB]" placeholder="Name for responders" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-slate-700" htmlFor="reporterPhone">Phone Number <span className="font-normal text-slate-400">(optional)</span></label>
+                      <input id="reporterPhone" type="tel" inputMode="tel" value={reporterPhone} onChange={(e) => setReporterPhone(e.target.value)} className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#2563EB]/35 focus:border-[#2563EB]" placeholder="e.g. 0712 345 678" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-slate-700" htmlFor="reporterEmail">Email <span className="font-normal text-slate-400">(optional)</span></label>
+                      <input id="reporterEmail" type="email" inputMode="email" value={reporterEmail} onChange={(e) => setReporterEmail(e.target.value)} className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#2563EB]/35 focus:border-[#2563EB]" placeholder="For your confirmation" />
+                    </div>
                   </div>
 
                   <div className="grid gap-5 lg:grid-cols-2">
@@ -694,7 +725,7 @@ export default function ReportEmergency() {
               <div className="mt-6 flex flex-col sm:flex-row gap-3">
                 <button
                   type="button"
-                  onClick={() => navigate(`/alerts/${success.id}`)}
+                  onClick={() => navigate(`/report-emergency/${success.id}`)}
                   className="flex-1 rounded-xl bg-[#2563EB] px-4 py-3 font-bold text-white hover:shadow-[0_0_24px_rgba(37,99,235,0.45)] transition-all"
                 >
                   Track Alert
