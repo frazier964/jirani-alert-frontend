@@ -63,6 +63,7 @@ export default function ResponderDashboard() {
           icon={ShieldCheck}
           actions={
             <>
+              <Link to="/report-emergency" className="rounded-2xl border border-red-400/35 bg-red-500/15 px-4 py-3 text-sm font-bold text-red-100">Report emergency</Link>
               <Link to="/responder/incidents" className="rounded-2xl border border-red-400/35 bg-red-500/15 px-4 py-3 text-sm font-bold text-red-100">Open incidents</Link>
               <Link to="/responder/dispatch" className="rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-3 text-sm font-bold text-cyan-100">Dispatch center</Link>
             </>

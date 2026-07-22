@@ -154,7 +154,7 @@ export default function Features() {
                   Get Started
                   <ArrowRight className="h-4 w-4" />
                 </Link>
-                <Link to="/resident/report" className="inline-flex items-center gap-2 rounded-full bg-[#E53935] px-6 py-3 font-bold text-white shadow-[0_18px_40px_rgba(229,57,53,0.28)] transition-transform hover:-translate-y-0.5">
+                <Link to="/report-emergency" className="inline-flex items-center gap-2 rounded-full bg-[#E53935] px-6 py-3 font-bold text-white shadow-[0_18px_40px_rgba(229,57,53,0.28)] transition-transform hover:-translate-y-0.5">
                   Report Emergency
                 </Link>
               </div>

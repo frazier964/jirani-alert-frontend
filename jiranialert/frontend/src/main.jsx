@@ -65,10 +65,10 @@ function AppRoutes() {
           <Route path="/report" element={<Navigate to="/report-emergency" replace />} />
           <Route path="/report-emergency" element={<ReportEmergency />} />
           <Route path="/report-emergency/:id" element={<GuestReportTracking />} />
+          <Route path="/resident/report" element={<Navigate to="/report-emergency" replace />} />
 
           <Route element={<Layout />}>
             <Route path="/resident/dashboard" element={<ResidentDashboard />} />
-            <Route path="/resident/report" element={<ReportEmergency />} />
             <Route path="/resident/map" element={<LiveMap />} />
             <Route path="/resident/notifications" element={<Notifications />} />
             <Route path="/resident/reports" element={<Reports />} />
