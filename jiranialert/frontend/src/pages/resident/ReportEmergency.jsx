@@ -20,6 +20,7 @@ import {
   Siren,
 } from 'lucide-react'
 import reportApi from '../../lib/reportApi'
+import { getCurrentUser } from '../../lib/auth'
 
 const emergencyTypes = [
   { label: 'Fire Emergency', value: 'Fire', icon: Flame, tone: 'from-red-500 to-orange-500', helper: 'Evacuate and notify responders immediately.' },
@@ -69,15 +70,20 @@ function getSafetyTip(type) {
   }
 }
 
-export default function ReportEmergency() {
+export default function ReportEmergency({ variant = 'resident' }) {
+  const isResident = variant === 'resident'
+  const account = getCurrentUser()
+  const accountName = String(account?.fullName || account?.displayName || [account?.firstName, account?.lastName].filter(Boolean).join(' ') || '').trim()
+  const accountPhone = String(account?.phone || account?.phoneNumber || '').trim()
+  const accountEmail = String(account?.email || '').trim()
   const [selectedType, setSelectedType] = useState('Fire')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [location, setLocation] = useState('')
   const [coordinates, setCoordinates] = useState(null)
-  const [reporterName, setReporterName] = useState('')
-  const [reporterPhone, setReporterPhone] = useState('')
-  const [reporterEmail, setReporterEmail] = useState('')
+  const [reporterName, setReporterName] = useState(() => (isResident ? accountName : ''))
+  const [reporterPhone, setReporterPhone] = useState(() => (isResident ? accountPhone : ''))
+  const [reporterEmail, setReporterEmail] = useState(() => (isResident ? accountEmail : ''))
   const [severity, setSeverity] = useState('Critical')
   const [anonymous, setAnonymous] = useState(false)
   const [notify, setNotify] = useState([true, true, true, true])
@@ -242,9 +248,9 @@ export default function ReportEmergency() {
     setDescription('')
     setLocation('')
     setCoordinates(null)
-    setReporterName('')
-    setReporterPhone('')
-    setReporterEmail('')
+    setReporterName(isResident ? accountName : '')
+    setReporterPhone(isResident ? accountPhone : '')
+    setReporterEmail(isResident ? accountEmail : '')
     setSeverity('Critical')
     setAnonymous(false)
     setNotify([true, true, true, true])
@@ -257,7 +263,7 @@ export default function ReportEmergency() {
     <div className="min-h-screen bg-slate-50 text-slate-900 relative overflow-hidden">
       <div className="relative z-20 mx-auto max-w-7xl px-4 pt-3 sm:px-6 lg:px-8">
         <Link
-          to="/"
+          to={isResident ? '/resident/dashboard' : '/'}
           className="inline-flex items-center gap-3 rounded-full bg-[#2563EB] px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-slate-950/10 transition hover:bg-[#1D4ED8] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:ring-offset-2"
         >
           <img src="/jirani-alert-logo.svg" alt="Jirani Alert" className="h-10 w-10 rounded-full bg-white" />
@@ -446,6 +452,12 @@ export default function ReportEmergency() {
                     />
                   </div>
 
+                  {isResident ? (
+                    <div className="rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-slate-700">
+                      <p className="font-bold text-slate-900">Reporting as your registered account</p>
+                      <p className="mt-1 text-slate-600">{accountName || 'Resident'}{accountEmail ? ` · ${accountEmail}` : ''}</p>
+                    </div>
+                  ) : (
                   <div className="grid gap-5 sm:grid-cols-3">
                     <div>
                       <label className="text-sm font-semibold text-slate-700" htmlFor="reporterName">Your Name <span className="font-normal text-slate-400">(optional)</span></label>
@@ -460,6 +472,7 @@ export default function ReportEmergency() {
                       <input id="reporterEmail" type="email" inputMode="email" value={reporterEmail} onChange={(e) => setReporterEmail(e.target.value)} className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#2563EB]/35 focus:border-[#2563EB]" placeholder="For your confirmation" />
                     </div>
                   </div>
+                  )}
 
                   <div className="grid gap-5 lg:grid-cols-2">
                     <div>
@@ -722,11 +735,11 @@ export default function ReportEmergency() {
                   type="button"
                   onClick={() => {
                     resetForm()
-                    navigate('/')
+                    navigate(isResident ? '/resident/dashboard' : '/')
                   }}
                   className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 font-bold text-slate-700 hover:bg-slate-50 transition-colors"
                 >
-                  Return Home
+                  {isResident ? 'Return to Dashboard' : 'Return Home'}
                 </button>
               </div>
             </motion.div>

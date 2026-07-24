@@ -54,7 +54,10 @@ const firestore = app ? getFirestore(app) : null
 const emulatorMode = String(import.meta.env.VITE_USE_FIREBASE_EMULATORS || '').trim().toLowerCase()
 const useEmulatorsFlag = emulatorMode === 'true' || emulatorMode === 'auto' || emulatorMode === ''
 const shouldUseEmulators = import.meta.env.DEV && useEmulatorsFlag
-const shouldUseAuthEmulator = import.meta.env.DEV && emulatorMode === 'true'
+// The Functions emulator verifies tokens against the Auth emulator.  Connecting
+// only Firestore in `auto` mode produced production tokens that the local
+// backend correctly rejected with 401 responses.
+const shouldUseAuthEmulator = import.meta.env.DEV && useEmulatorsFlag
 const shouldUseFirestoreEmulator = import.meta.env.DEV && useEmulatorsFlag
 let emulatorsConnected = false
 

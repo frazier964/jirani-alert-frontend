@@ -18,6 +18,7 @@ const SignUp = lazy(() => import('./pages/shared/SignUp'))
 const VerifyEmail = lazy(() => import('./pages/shared/VerifyEmail'))
 const ResidentDashboard = lazy(() => import('./pages/resident/ResidentDashboard'))
 const ReportEmergency = lazy(() => import('./pages/resident/ReportEmergency'))
+const GuestReportEmergency = lazy(() => import('./pages/shared/GuestReportEmergency'))
 const GuestReportTracking = lazy(() => import('./pages/shared/GuestReportTracking'))
 const LiveMap = lazy(() => import('./pages/resident/LiveMap'))
 const Notifications = lazy(() => import('./pages/resident/Notifications'))
@@ -63,12 +64,12 @@ function AppRoutes() {
           <Route path="/register" element={<SignUp />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/report" element={<Navigate to="/report-emergency" replace />} />
-          <Route path="/report-emergency" element={<ReportEmergency />} />
+          <Route path="/report-emergency" element={<GuestReportEmergency />} />
           <Route path="/report-emergency/:id" element={<GuestReportTracking />} />
-          <Route path="/resident/report" element={<Navigate to="/report-emergency" replace />} />
 
           <Route element={<Layout />}>
             <Route path="/resident/dashboard" element={<ResidentDashboard />} />
+            <Route path="/resident/report" element={<ReportEmergency />} />
             <Route path="/resident/map" element={<LiveMap />} />
             <Route path="/resident/notifications" element={<Notifications />} />
             <Route path="/resident/reports" element={<Reports />} />

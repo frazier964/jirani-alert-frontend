@@ -39,7 +39,7 @@ import { listContacts, upsertContact } from '../../lib/contactsApi'
 
 const sidebarItems = [
   { label: 'Dashboard', to: '/resident/dashboard', icon: LayoutDashboard },
-  { label: 'Report Emergency', to: '/report', icon: Siren },
+  { label: 'Report Emergency', to: '/resident/report', icon: Siren },
   { label: 'Nearby Alerts', to: '/resident/map', icon: Navigation2 },
   { label: 'Community Feed', to: '/resident/notifications', icon: MessageSquare },
   { label: 'Messages', to: '/resident/notifications', icon: FileText },

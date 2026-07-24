@@ -1700,3 +1700,153 @@ exports.sharePost = onRequest({ region: 'us-central1' }, async (req, res) => {
     sendError(res, error)
   }
 })
+
+// Resident messaging. Membership is stored per conversation so preferences and
+// leave actions remain private to each resident and survive page refreshes.
+const residentConversationSeeds = [
+  { id: 'community-safety', name: 'Community Safety Group', participants: 8 },
+  { id: 'area-chief', name: 'Area Chief - James M.', participants: 2 },
+  { id: 'emergency-response', name: 'Emergency Response Team', participants: 5 },
+]
+
+function serializeMessagingTimestamp(value) {
+  if (!value) return null
+  if (typeof value.toDate === 'function') return value.toDate().toISOString()
+  if (value instanceof Date) return value.toISOString()
+  return value
+}
+
+async function requireConversationMember(userId, conversationId) {
+  const conversationRef = db.collection('conversations').doc(conversationId)
+  const memberRef = conversationRef.collection('members').doc(userId)
+  const [conversationSnap, memberSnap] = await Promise.all([conversationRef.get(), memberRef.get()])
+  if (!conversationSnap.exists || !memberSnap.exists || memberSnap.data().isMember !== true) {
+    const error = new Error('You are no longer a member of this conversation')
+    error.status = 403
+    throw error
+  }
+  return { conversationRef, memberRef, conversation: conversationSnap.data(), membership: memberSnap.data() }
+}
+
+async function getMessagingUserName(user) {
+  const profile = await db.collection('profiles').doc(user.uid).get().catch(() => null)
+  return profile?.data?.()?.fullName || profile?.data?.()?.displayName || user.name || user.email || 'Resident'
+}
+
+exports.listResidentConversations = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+  try {
+    requireMethod(req, 'GET')
+    const user = await requireUser(req)
+    await Promise.all(residentConversationSeeds.map(async (seed) => {
+      const ref = db.collection('conversations').doc(seed.id)
+      const memberRef = ref.collection('members').doc(user.uid)
+      await db.runTransaction(async (transaction) => {
+        transaction.set(ref, { name: seed.name, participants: seed.participants, updatedAt: serverTimestampValue() }, { merge: true })
+        const membership = await transaction.get(memberRef)
+        if (!membership.exists) transaction.set(memberRef, { userId: user.uid, isMember: true, muted: false, joinedAt: serverTimestampValue(), updatedAt: serverTimestampValue() })
+      })
+    }))
+    const conversations = []
+    for (const seed of residentConversationSeeds) {
+      const ref = db.collection('conversations').doc(seed.id)
+      const member = await ref.collection('members').doc(user.uid).get()
+      if (!member.exists || member.data().isMember !== true) continue
+      const messages = await ref.collection('messages').get()
+      const latest = messages.docs.map((doc) => ({ id: doc.id, ...doc.data() })).sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))[0]
+      conversations.push({ id: seed.id, name: seed.name, participants: seed.participants, muted: Boolean(member.data().muted), lastMessage: latest?.content || '', updatedAt: serializeMessagingTimestamp(latest?.createdAt) })
+    }
+    res.json({ conversations })
+  } catch (error) { sendError(res, error) }
+})
+
+exports.listConversationMessages = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+  try {
+    requireMethod(req, 'GET')
+    const user = await requireUser(req)
+    const conversationId = requiredString(req.query.conversationId, 'conversationId')
+    const { conversationRef } = await requireConversationMember(user.uid, conversationId)
+    const snap = await conversationRef.collection('messages').get()
+    const messages = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })).sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || ''))).slice(-100).map((message) => ({ ...message, createdAt: serializeMessagingTimestamp(message.createdAt) }))
+    res.json({ messages })
+  } catch (error) { sendError(res, error) }
+})
+
+async function saveConversationMessage({ user, conversationId, content, broadcast = false }) {
+  const { conversationRef } = await requireConversationMember(user.uid, conversationId)
+  const messageRef = conversationRef.collection('messages').doc()
+  await messageRef.set({ senderId: user.uid, senderName: await getMessagingUserName(user), content, sent: true, broadcast, createdAt: serverTimestampValue() })
+  await conversationRef.set({ updatedAt: serverTimestampValue() }, { merge: true })
+  const saved = await messageRef.get()
+  return { id: messageRef.id, ...saved.data(), createdAt: serializeMessagingTimestamp(saved.data().createdAt) }
+}
+
+exports.sendConversationMessage = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireUser(req)
+    const conversationId = requiredString(req.body?.conversationId, 'conversationId')
+    const content = requiredString(req.body?.content, 'content').slice(0, 4000)
+    res.status(201).json({ message: await saveConversationMessage({ user, conversationId, content }) })
+  } catch (error) { sendError(res, error) }
+})
+
+exports.sendEmergencyBroadcast = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireUser(req)
+    const conversationId = requiredString(req.body?.conversationId, 'conversationId')
+    const content = requiredString(req.body?.content, 'content').slice(0, 4000)
+    res.status(201).json({ message: await saveConversationMessage({ user, conversationId, content: `EMERGENCY BROADCAST: ${content}`, broadcast: true }) })
+  } catch (error) { sendError(res, error) }
+})
+
+exports.recordCommunicationAction = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireUser(req)
+    const conversationId = requiredString(req.body?.conversationId, 'conversationId')
+    const type = requiredString(req.body?.type, 'type')
+    if (!['call', 'video'].includes(type)) { const error = new Error('Unsupported communication action'); error.status = 400; throw error }
+    await requireConversationMember(user.uid, conversationId)
+    const actionRef = db.collection('communicationActions').doc()
+    await actionRef.set({ userId: user.uid, conversationId, type, createdAt: serverTimestampValue() })
+    res.status(201).json({ ok: true, actionId: actionRef.id })
+  } catch (error) { sendError(res, error) }
+})
+
+exports.setConversationMuted = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireUser(req)
+    const conversationId = requiredString(req.body?.conversationId, 'conversationId')
+    const muted = Boolean(req.body?.muted)
+    const { memberRef } = await requireConversationMember(user.uid, conversationId)
+    await memberRef.update({ muted, updatedAt: serverTimestampValue() })
+    res.json({ ok: true, muted })
+  } catch (error) { sendError(res, error) }
+})
+
+exports.leaveConversation = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireUser(req)
+    const conversationId = requiredString(req.body?.conversationId, 'conversationId')
+    const { memberRef } = await requireConversationMember(user.uid, conversationId)
+    await memberRef.update({ isMember: false, muted: true, leftAt: serverTimestampValue(), updatedAt: serverTimestampValue() })
+    res.json({ ok: true, conversationId, removed: true })
+  } catch (error) { sendError(res, error) }
+})

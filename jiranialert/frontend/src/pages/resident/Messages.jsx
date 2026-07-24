@@ -1,3 +1,4 @@
+import ResidentMessagesLive from './ResidentMessagesLive'
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -150,7 +151,7 @@ function getPriorityBgColor(priority) {
   return 'bg-slate-100 text-slate-600'
 }
 
-export default function Messages() {
+function LegacyMessages() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedConversation, setSelectedConversation] = useState(conversationsSeed[0])
   const [messages, setMessages] = useState(messagesSeed)
@@ -558,3 +559,4 @@ export default function Messages() {
     </div>
   )
 }
+export default ResidentMessagesLive
