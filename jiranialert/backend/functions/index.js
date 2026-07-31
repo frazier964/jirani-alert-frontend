@@ -72,6 +72,7 @@ const allowedOrigins = new Set([
   'http://127.0.0.1:5174',
   'https://jirani-alert-frontend.vercel.app',
 ])
+const defaultFrontendAppUrl = 'https://jirani-alert-frontend.vercel.app'
 
 const allowedRoles = new Set(['resident', 'responder', 'admin'])
 let mailTransporter = null
@@ -164,17 +165,48 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;')
 }
 
-function getFrontendAppUrl(req) {
-  const origin = String(req?.get?.('origin') || '').trim()
-  if (origin && isAllowedOrigin(origin)) {
-    return origin
+function normalizeFrontendAppUrl(value) {
+  const candidate = String(value || '').trim().replace(/\/+$/, '')
+  if (!candidate || /^(null|undefined)$/i.test(candidate)) return null
+  try {
+    const parsed = new URL(candidate)
+    return ['http:', 'https:'].includes(parsed.protocol) ? parsed.toString().replace(/\/$/, '') : null
+  } catch {
+    return null
   }
+}
 
-  return getEnv('APP_URL') || 'https://jirani-alert-frontend.vercel.app'
+function getConfiguredFrontendAppUrl() {
+  return normalizeFrontendAppUrl(getEnv('APP_URL')) || defaultFrontendAppUrl
+}
+
+function getFrontendAppUrl(req) {
+  const origin = normalizeFrontendAppUrl(req?.get?.('origin'))
+  return origin && isAllowedOrigin(origin) ? origin : getConfiguredFrontendAppUrl()
+}
+
+function normalizeVerificationLink(link, appUrl) {
+  const destination = getConfiguredFrontendAppUrl() === appUrl ? appUrl : (normalizeFrontendAppUrl(appUrl) || getConfiguredFrontendAppUrl())
+  try {
+    const source = new URL(link)
+    // The Auth Emulator can generate links beginning with http://null/. Keep
+    // its one-time code but send the browser to our actual verification page.
+    if (source.hostname === 'null') {
+      const repaired = new URL(`${destination}/verify-email`)
+      for (const key of ['mode', 'oobCode']) {
+        const value = source.searchParams.get(key)
+        if (value) repaired.searchParams.set(key, value)
+      }
+      return repaired.toString()
+    }
+    return source.toString()
+  } catch {
+    return `${destination}/verify-email`
+  }
 }
 
 async function generateEmailVerificationLink(to, appUrl) {
-  const destinationAppUrl = appUrl || getEnv('APP_URL') || 'https://jirani-alert-frontend.vercel.app'
+  const destinationAppUrl = normalizeFrontendAppUrl(appUrl) || getConfiguredFrontendAppUrl()
   if (!to) {
     throw new Error('Recipient email is required for verification link generation')
   }
@@ -185,7 +217,7 @@ async function generateEmailVerificationLink(to, appUrl) {
   })
 
   console.log(`Generated verification link for ${to}`)
-  return link
+  return normalizeVerificationLink(link, destinationAppUrl)
 }
 
 async function sendSignupConfirmationEmail({ to, displayName, firstName, fullName, role, verificationLink, appUrl }) {
@@ -194,7 +226,7 @@ async function sendSignupConfirmationEmail({ to, displayName, firstName, fullNam
   if (!transporter) return { sent: false, reason: 'Email is not configured', verificationLink }
 
   const mailFrom = getMailFromAddress()
-  const resolvedAppUrl = appUrl || getEnv('APP_URL') || 'https://jirani-alert-frontend.vercel.app'
+  const resolvedAppUrl = normalizeFrontendAppUrl(appUrl) || getConfiguredFrontendAppUrl()
   const safeName = firstName || displayName || fullName || 'there'
   const roleLabel = role === 'responder' ? 'Emergency Responder' : role === 'admin' ? 'Local Admin' : 'Resident'
   const roleTone = role === 'responder' ? '#0f766e' : role === 'admin' ? '#7c2d12' : '#1d4ed8'
@@ -338,7 +370,7 @@ async function sendTestEmail({ to, subject, message, verificationLink }) {
   if (!transporter || !to) return { sent: false, reason: 'Email is not configured. Set GMAIL_APP_PASSWORD or SMTP_* in backend/functions/.env and restart the backend.' }
 
   const mailFrom = getMailFromAddress()
-  const appUrl = getEnv('APP_URL') || 'https://jirani-alert-frontend.vercel.app'
+  const appUrl = getConfiguredFrontendAppUrl()
   const safeMessage = message || 'You have been invited to Jirani Alert. Click the link below to verify your account and sign in.'
   const link = verificationLink || `${appUrl}/verify-email`
   const safeLink = escapeHtml(link)

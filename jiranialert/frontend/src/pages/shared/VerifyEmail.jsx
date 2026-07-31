@@ -14,7 +14,7 @@ export default function VerifyEmail() {
     const oobCode = searchParams.get('oobCode')
 
     if (mode !== 'verifyEmail' || !oobCode) {
-      setMessage('Your email has been verified. You can now sign in with your new account.')
+      setMessage('This verification link is incomplete or has expired. Return to login and request a fresh link.')
       return
     }
 
@@ -49,7 +49,8 @@ export default function VerifyEmail() {
           if (verified) {
             setMessage('Email verified successfully. Redirecting you to your dashboard...')
           } else {
-            setMessage('Your email has been verified. You can now sign in with your new account.')
+            setMessage('This verification link is invalid or has expired. Please request a new verification email.')
+            return
           }
         }
 
@@ -74,10 +75,7 @@ export default function VerifyEmail() {
           }, 1200)
         }
       } catch (error) {
-        setMessage('Your email has been verified. You can now sign in with your new account.')
-        window.setTimeout(() => {
-          navigate('/login?verified=true', { replace: true })
-        }, 1200)
+        setMessage('We could not verify this link. Please return to login and request a new verification email.')
       }
     }
 

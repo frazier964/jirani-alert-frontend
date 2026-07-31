@@ -372,7 +372,7 @@ export default function Login() {
                   <div>
                     <p className="text-sm font-semibold text-slate-800">Need another verification email?</p>
                     <p className="mt-1 text-xs sm:text-sm text-slate-600">
-                      Enter the same email and password you used during signup, then send a fresh verification link.
+                      Confirm the email address used during signup, then send a fresh verification link.
                     </p>
                   </div>
                   <button

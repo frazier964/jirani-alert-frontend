@@ -341,12 +341,13 @@ export async function resendVerificationEmail(email, password = '') {
       if (!res.ok) {
         throw new Error(data?.error || 'Backend resend failed')
       }
+      const delivery = data?.result || {}
       verificationEmail = {
-        sent: true,
-        reason: data?.result?.messageId ? 'Email sent via backend' : 'Email sent'
+        sent: Boolean(delivery.sent),
+        reason: delivery.reason || (delivery.messageId ? 'Email accepted by the mail server.' : 'Verification email was not accepted for delivery.'),
       }
-      if (data?.result?.verificationLink) {
-        verificationEmail.verificationLink = data.result.verificationLink
+      if (delivery.verificationLink) {
+        verificationEmail.verificationLink = delivery.verificationLink
       }
     } catch (e) {
       verificationEmail = { sent: false, reason: e?.message || 'Backend resend failed' }

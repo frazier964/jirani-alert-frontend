@@ -477,7 +477,7 @@ export default function SignUp() {
                     )}
                     <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
                       <Link
-                        to="/login?verificationPending=true"
+                        to={`/login?prefillEmail=${encodeURIComponent(formData.email)}&verificationPending=true`}
                         className="inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
                       >
                         Go to login
