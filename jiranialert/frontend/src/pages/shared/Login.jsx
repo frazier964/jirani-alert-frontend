@@ -372,13 +372,13 @@ export default function Login() {
                   <div>
                     <p className="text-sm font-semibold text-slate-800">Need another verification email?</p>
                     <p className="mt-1 text-xs sm:text-sm text-slate-600">
-                      Confirm the email address used during signup, then send a fresh verification link.
+                      Enter the email and password used during signup, then send a fresh verification link.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={handleResendVerification}
-                    disabled={resendLoading || !email.trim()}
+                    disabled={resendLoading || !email.trim() || !password}
                     className="w-full rounded-xl border border-[#2563EB] bg-white px-4 py-3 text-sm font-semibold text-[#2563EB] transition hover:bg-[#eff6ff] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {resendLoading ? 'Sending verification email...' : 'Resend verification email'}

@@ -354,7 +354,27 @@ export async function resendVerificationEmail(email, password = '') {
     }
   }
 
-  const currentUser = auth?.currentUser || prodAuth?.currentUser || null
+  // Production can use Firebase Auth's managed verification email when the
+  // optional custom Functions mail endpoint is not deployed or unavailable.
+  if (!verificationEmail.sent) {
+    if (!normalizedPassword) {
+      return { sent: false, reason: 'Enter your password to securely resend the verification email.' }
+    }
+
+    const authProviders = [...new Set([auth, prodAuth].filter(Boolean))]
+    let fallbackReason = verificationEmail.reason
+    for (const authProvider of authProviders) {
+      try {
+        const credential = await signInWithEmailAndPassword(authProvider, normalizedEmail, normalizedPassword)
+        await sendEmailVerification(credential.user)
+        return { sent: true, reason: 'Verification email sent by Firebase Auth.' }
+      } catch (fallbackError) {
+        fallbackReason = fallbackError?.message || fallbackReason
+      }
+    }
+    return { sent: false, reason: fallbackReason || 'Unable to resend verification email.' }
+  }
+
   return verificationEmail
 }
 
