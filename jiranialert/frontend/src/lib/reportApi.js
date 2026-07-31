@@ -58,4 +58,43 @@ export async function getReport(reportId) {
   return callBackend(`getEmergencyReport/${encodeURIComponent(reportId)}`, 'GET')
 }
 
-export default { uploadEvidenceFile, createReport, listReports, getReport }
+function coordinatesFromText(value) {
+  const match = String(value || '').trim().match(/^(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)$/)
+  if (!match) return null
+  const latitude = Number(match[1])
+  const longitude = Number(match[2])
+  return Number.isFinite(latitude) && Number.isFinite(longitude) && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180
+    ? { latitude, longitude }
+    : null
+}
+
+// Nominatim provides place-name lookup without requiring residents to have a maps API key.
+// Keep this to deliberate lookups (rather than every keystroke) to respect its public usage policy.
+export async function geocodeLocation(place) {
+  const query = String(place || '').trim()
+  if (!query) throw new Error('Enter a location first')
+
+  const directCoordinates = coordinatesFromText(query)
+  if (directCoordinates) {
+    return [{
+      label: `${directCoordinates.latitude.toFixed(6)}, ${directCoordinates.longitude.toFixed(6)}`,
+      ...directCoordinates,
+    }]
+  }
+
+  const countryAwareQuery = /\bkenya\b/i.test(query) ? query : `${query}, Kenya`
+  const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=ke&q=${encodeURIComponent(countryAwareQuery)}`, {
+    headers: { Accept: 'application/json' },
+  })
+  if (!response.ok) throw new Error('Location lookup is unavailable')
+  const matches = await response.json()
+  return matches
+    .map((item) => ({
+      label: item.display_name,
+      latitude: Number(item.lat),
+      longitude: Number(item.lon),
+    }))
+    .filter((item) => Number.isFinite(item.latitude) && Number.isFinite(item.longitude))
+}
+
+export default { uploadEvidenceFile, createReport, listReports, getReport, geocodeLocation }

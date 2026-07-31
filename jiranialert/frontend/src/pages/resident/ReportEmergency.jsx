@@ -81,6 +81,7 @@ export default function ReportEmergency({ variant = 'resident' }) {
   const [description, setDescription] = useState('')
   const [location, setLocation] = useState('')
   const [coordinates, setCoordinates] = useState(null)
+  const [locationMatches, setLocationMatches] = useState([])
   const [reporterName, setReporterName] = useState(() => (isResident ? accountName : ''))
   const [reporterPhone, setReporterPhone] = useState(() => (isResident ? accountPhone : ''))
   const [reporterEmail, setReporterEmail] = useState(() => (isResident ? accountEmail : ''))
@@ -89,6 +90,7 @@ export default function ReportEmergency({ variant = 'resident' }) {
   const [notify, setNotify] = useState([true, true, true, true])
   const [evidenceName, setEvidenceName] = useState('')
   const [geoPending, setGeoPending] = useState(false)
+  const [locationLookupPending, setLocationLookupPending] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(null)
@@ -148,6 +150,43 @@ export default function ReportEmergency({ variant = 'resident' }) {
     )
   }
 
+  const findLocationCoordinates = async ({ selectFirst = false } = {}) => {
+    if (!location.trim()) {
+      setError('Enter a location such as Embakasi or Juja first.')
+      return null
+    }
+    setLocationLookupPending(true)
+    setError('')
+    try {
+      const matches = await reportApi.geocodeLocation(location)
+      if (!matches.length) {
+        setLocationMatches([])
+        throw new Error('We could not find that location. Add a neighbourhood, town, or landmark and try again.')
+      }
+      setLocationMatches(matches)
+      if (selectFirst) {
+        const selected = matches[0]
+        setCoordinates({ latitude: selected.latitude, longitude: selected.longitude })
+        setLocation(selected.label)
+        setLocationMatches([])
+        return selected
+      }
+      return matches[0]
+    } catch (lookupError) {
+      setError(lookupError.message || 'We could not look up that location.')
+      return null
+    } finally {
+      setLocationLookupPending(false)
+    }
+  }
+
+  const chooseLocation = (match) => {
+    setLocation(match.label)
+    setCoordinates({ latitude: match.latitude, longitude: match.longitude })
+    setLocationMatches([])
+    setError('')
+  }
+
   const handleEvidenceChange = (file) => {
     if (file) {
       setEvidenceName(file.name)
@@ -176,6 +215,13 @@ export default function ReportEmergency({ variant = 'resident' }) {
     }
     setSubmitting(true)
     try {
+      let resolvedCoordinates = coordinates
+      if (!resolvedCoordinates) {
+        const matchedLocation = await findLocationCoordinates({ selectFirst: true })
+        if (!matchedLocation) return
+        resolvedCoordinates = { latitude: matchedLocation.latitude, longitude: matchedLocation.longitude }
+      }
+
       // upload evidence if present
       let evidenceUrl = null
       if (evidenceFile) {
@@ -193,7 +239,7 @@ export default function ReportEmergency({ variant = 'resident' }) {
         anonymous,
         notify,
         evidenceUrl,
-        locationCoordinates: coordinates,
+        locationCoordinates: resolvedCoordinates,
         reporterName: reporterName.trim(),
         reporterPhone: reporterPhone.trim(),
         reporterEmail: reporterEmail.trim(),
@@ -248,6 +294,7 @@ export default function ReportEmergency({ variant = 'resident' }) {
     setDescription('')
     setLocation('')
     setCoordinates(null)
+    setLocationMatches([])
     setReporterName(isResident ? accountName : '')
     setReporterPhone(isResident ? accountPhone : '')
     setReporterEmail(isResident ? accountEmail : '')
@@ -424,9 +471,13 @@ export default function ReportEmergency({ variant = 'resident' }) {
                         <input
                           id="location"
                           value={location}
-                          onChange={(e) => setLocation(e.target.value)}
-                          className="w-full rounded-2xl border border-slate-300 bg-white pl-11 pr-32 py-3 outline-none focus:ring-2 focus:ring-[#2563EB]/35 focus:border-[#2563EB] transition-all"
-                          placeholder="Enter your exact location"
+                          onChange={(e) => {
+                            setLocation(e.target.value)
+                            setCoordinates(null)
+                            setLocationMatches([])
+                          }}
+                          className="w-full rounded-2xl border border-slate-300 bg-white pl-11 pr-48 py-3 outline-none focus:ring-2 focus:ring-[#2563EB]/35 focus:border-[#2563EB] transition-all"
+                          placeholder="e.g. Embakasi, Juja, or a landmark"
                         />
                         <button
                           type="button"
@@ -437,6 +488,28 @@ export default function ReportEmergency({ variant = 'resident' }) {
                           Use my location
                         </button>
                       </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => findLocationCoordinates()}
+                          disabled={locationLookupPending || geoPending}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-[#2563EB] transition hover:bg-blue-100 disabled:opacity-60"
+                        >
+                          {locationLookupPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Navigation2 className="h-3.5 w-3.5" />}
+                          Find coordinates
+                        </button>
+                        {coordinates ? <span className="text-xs font-semibold text-emerald-700">Coordinates: {coordinates.latitude.toFixed(6)}, {coordinates.longitude.toFixed(6)}</span> : <span className="text-xs text-slate-500">Search a place name to attach its coordinates.</span>}
+                      </div>
+                      {locationMatches.length ? (
+                        <div className="mt-2 max-h-44 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
+                          {locationMatches.map((match) => (
+                            <button key={`${match.latitude}-${match.longitude}`} type="button" onClick={() => chooseLocation(match)} className="w-full rounded-xl px-3 py-2 text-left text-xs text-slate-700 hover:bg-blue-50">
+                              <span className="block font-semibold">{match.label}</span>
+                              <span className="text-slate-500">{match.latitude.toFixed(6)}, {match.longitude.toFixed(6)}</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
 
@@ -534,7 +607,15 @@ export default function ReportEmergency({ variant = 'resident' }) {
                       <input
                         type="checkbox"
                         checked={anonymous}
-                        onChange={(e) => setAnonymous(e.target.checked)}
+                        onChange={(e) => {
+                          const isAnonymous = e.target.checked
+                          setAnonymous(isAnonymous)
+                          if (isAnonymous) {
+                            setReporterName('')
+                            setReporterPhone('')
+                            setReporterEmail('')
+                          }
+                        }}
                         className="h-4 w-4 rounded border-slate-300 text-[#2563EB] focus:ring-[#2563EB]"
                       />
                     </label>
@@ -547,6 +628,13 @@ export default function ReportEmergency({ variant = 'resident' }) {
                       <p className="mt-1 text-sm text-slate-600">{selectedEmergency.helper}</p>
                     </div>
                   </div>
+
+                  {anonymous ? (
+                    <div className="rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-950">
+                      <p className="font-bold">Anonymous mode is on</p>
+                      <p className="mt-1">Your name, phone number, and email will not be stored or shared. Your exact location is visible only to emergency responders; other users see a private-location notice.</p>
+                    </div>
+                  ) : null}
 
                   {error && (
                     <motion.div

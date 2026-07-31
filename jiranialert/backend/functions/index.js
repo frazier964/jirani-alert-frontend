@@ -516,6 +516,11 @@ async function requireResponderUser(req) {
   return { ...user, role }
 }
 
+async function resolveRequestUserRole(user) {
+  const profileSnap = await db.collection('profiles').doc(user.uid).get().catch(() => null)
+  return normalizeRole(user.role) || normalizeRole(profileSnap?.data?.()?.role) || 'resident'
+}
+
 function sendError(res, error) {
   const status = error.status || 500
   if (status === 500) {
@@ -695,15 +700,20 @@ exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req,
     const anonymous = isAnonymousUser || Boolean(body.anonymous)
     const evidenceUrl = typeof body.evidenceUrl === 'string' && body.evidenceUrl.trim() !== '' ? body.evidenceUrl.trim() : null
     const notify = Array.isArray(body.notify) ? body.notify : []
-    const reporterName = typeof body.reporterName === 'string' ? body.reporterName.trim().slice(0, 120) : ''
-    const reporterPhone = typeof body.reporterPhone === 'string' ? body.reporterPhone.trim().slice(0, 32) : ''
+    const submittedReporterName = typeof body.reporterName === 'string' ? body.reporterName.trim().slice(0, 120) : ''
+    const submittedReporterPhone = typeof body.reporterPhone === 'string' ? body.reporterPhone.trim().slice(0, 32) : ''
     const suppliedReporterEmail = typeof body.reporterEmail === 'string' ? body.reporterEmail.trim().toLowerCase().slice(0, 254) : ''
     if (suppliedReporterEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(suppliedReporterEmail)) {
       const error = new Error('A valid reporter email is required when one is provided')
       error.status = 400
       throw error
     }
-    const reporterEmail = user.email || suppliedReporterEmail || null
+    // Never persist, display, or email a reporter's identity when anonymous mode is selected.
+    // The authenticated uid remains server-side only so the reporter can track their own report.
+    const reporterName = anonymous ? '' : submittedReporterName
+    const reporterPhone = anonymous ? '' : submittedReporterPhone
+    const reporterEmail = anonymous ? null : (user.email || suppliedReporterEmail || null)
+    const publicLocation = anonymous ? 'Exact location shared privately with emergency responders' : location
     const locationCoordinates = body.locationCoordinates
       && Number.isFinite(body.locationCoordinates.latitude)
       && Number.isFinite(body.locationCoordinates.longitude)
@@ -714,6 +724,10 @@ exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req,
     const reportRef = db.collection('reports').doc()
     const alertRef = db.collection('alerts').doc(reportRef.id)
     const notificationRef = db.collection('notifications').doc()
+    const responderProfiles = await db.collection('profiles').where('role', 'in', ['responder', 'admin']).get()
+    const responderNotificationRefs = responderProfiles.docs
+      .filter((profile) => profile.id !== user.uid)
+      .map((profile) => ({ recipientId: profile.id, ref: db.collection('notifications').doc() }))
 
     await db.runTransaction(async (transaction) => {
       transaction.set(reportRef, {
@@ -739,9 +753,10 @@ exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req,
         reportId: reportRef.id,
         type,
         title,
-        location,
+        location: publicLocation,
         description,
         severity,
+        anonymous,
         status: 'Active',
         evidenceUrl: evidenceUrl || null,
         createdAt: now,
@@ -755,6 +770,17 @@ exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req,
         reportId: reportRef.id,
         read: false,
         createdAt: now,
+      })
+
+      responderNotificationRefs.forEach(({ recipientId, ref }) => {
+        transaction.set(ref, {
+          recipientId,
+          title: `New ${type} emergency`,
+          message: `${severity} severity at ${location}. Open the incident queue to respond.`,
+          reportId: reportRef.id,
+          read: false,
+          createdAt: now,
+        })
       })
     })
 
@@ -782,6 +808,7 @@ exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req,
       reportId: reportRef.id,
       alertId: alertRef.id,
       notificationId: notificationRef.id,
+      responderNotifications: responderNotificationRefs.length,
       emailNotifications,
       report: savedReport.exists ? { id: reportRef.id, ...savedReport.data() } : { id: reportRef.id, type, title, location, description, severity, anonymous, evidenceUrl, notify },
     })
@@ -797,7 +824,7 @@ exports.listEmergencyReports = onRequest({ region: 'us-central1' }, async (req, 
   try {
     requireMethod(req, 'GET')
     const user = await requireUser(req)
-    const role = user.role || 'resident'
+    const role = await resolveRequestUserRole(user)
     const limit = Math.min(Number(req.query.limit || 25), 100)
 
     let query = db.collection('reports').orderBy('createdAt', 'desc').limit(limit)
@@ -843,7 +870,7 @@ exports.getEmergencyReport = onRequest({ region: 'us-central1' }, async (req, re
     }
 
     const data = report.data()
-    const role = user.role || 'resident'
+    const role = await resolveRequestUserRole(user)
     if (data.reporterId !== user.uid && !['admin', 'responder'].includes(role)) {
       const error = new Error('You cannot view this report')
       error.status = 403
