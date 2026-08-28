@@ -92,6 +92,7 @@ const liveAlerts = [
     status: 'Active',
     color: 'bg-red-500',
     icon: Flame,
+    to: '/responder/incidents',
   },
   {
     title: 'Medical Emergency',
@@ -99,6 +100,7 @@ const liveAlerts = [
     status: 'Responder En Route',
     color: 'bg-emerald-500',
     icon: HeartPulse,
+    to: '/responder/incidents',
   },
   {
     title: 'Security Threat',
@@ -106,6 +108,7 @@ const liveAlerts = [
     status: 'Monitoring',
     color: 'bg-amber-500',
     icon: Shield,
+    to: '/responder/incidents',
   },
 ]
 
@@ -240,11 +243,16 @@ export default function Home() {
                     {liveAlerts.map((alert) => {
                       const Icon = alert.icon
                       return (
-                        <div key={alert.title} className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm">
+                        <Link
+                          key={alert.title}
+                          to={alert.to}
+                          aria-label={`View report queue for ${alert.title}`}
+                          className="group block cursor-pointer rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#bfdbfe] hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]/50 sm:p-4"
+                        >
                           <div className="flex items-start justify-between gap-2 sm:gap-3">
                             <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                               <div className="h-8 sm:h-10 w-8 sm:w-10 rounded-xl bg-slate-100 flex items-center justify-center text-[#2563EB] flex-shrink-0">
-                                <Icon className="h-4 sm:h-5 w-4 sm:w-5" />
+                                <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                               </div>
                               <div className="min-w-0">
                                 <p className="text-xs sm:text-sm font-bold text-slate-900">{alert.title}</p>
@@ -259,7 +267,10 @@ export default function Home() {
                               {alert.status}
                             </span>
                           </div>
-                        </div>
+                          <div className="mt-2.5 text-right text-xs font-semibold text-[#2563EB] opacity-80 transition-opacity group-hover:opacity-100">
+                            View Report ->
+                          </div>
+                        </Link>
                       )
                     })}
                   </div>

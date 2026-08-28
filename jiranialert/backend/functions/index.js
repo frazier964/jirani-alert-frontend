@@ -768,6 +768,7 @@ exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req,
         location,
         description,
         severity,
+        isPublic: true,
         anonymous,
         status: 'Pending',
         evidenceUrl: evidenceUrl || null,
@@ -788,6 +789,7 @@ exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req,
         location: publicLocation,
         description,
         severity,
+        isPublic: true,
         anonymous,
         status: 'Active',
         evidenceUrl: evidenceUrl || null,
@@ -844,6 +846,99 @@ exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req,
       emailNotifications,
       report: savedReport.exists ? { id: reportRef.id, ...savedReport.data() } : { id: reportRef.id, type, title, location, description, severity, anonymous, evidenceUrl, notify },
     })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.listPublicAlerts = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'GET')
+    const limit = Math.min(Number(req.query.limit || 12), 50)
+    const activeOnly = String(req.query.activeOnly || 'true').trim().toLowerCase() !== 'false'
+    const hiddenStatuses = new Set(['resolved', 'completed', 'cancelled', 'rejected'])
+
+    const snapshot = await db.collection('alerts').orderBy('updatedAt', 'desc').limit(Math.max(limit * 3, 20)).get()
+    const alerts = snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .filter((item) => item.isPublic !== false)
+      .filter((item) => {
+        if (!activeOnly) return true
+        const status = String(item.status || '').trim().toLowerCase()
+        return !hiddenStatuses.has(status)
+      })
+      .slice(0, limit)
+      .map((item) => ({
+        id: item.id,
+        reportId: item.reportId || item.id,
+        type: item.type || 'Emergency',
+        title: item.title || `${item.type || 'Emergency'} alert`,
+        location: item.location || 'Location pending',
+        status: item.status || 'Pending',
+        severity: item.severity || 'Medium',
+        description: item.description || '',
+        createdAt: item.createdAt || null,
+        updatedAt: item.updatedAt || null,
+      }))
+
+    res.json({ alerts })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.getPublicEmergencyReport = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'GET')
+    const reportId = req.path.replace(/^\//, '') || req.query.reportId
+    if (!reportId) {
+      const error = new Error('reportId is required in path')
+      error.status = 400
+      throw error
+    }
+
+    const [reportSnap, alertSnap] = await Promise.all([
+      db.collection('reports').doc(reportId).get(),
+      db.collection('alerts').doc(reportId).get().catch(() => null),
+    ])
+
+    if (!reportSnap.exists) {
+      const error = new Error('Emergency report not found')
+      error.status = 404
+      throw error
+    }
+
+    const report = reportSnap.data() || {}
+    const alert = alertSnap?.exists ? (alertSnap.data() || {}) : {}
+    const isPublic = report.isPublic === true || alert.isPublic === true
+    if (!isPublic) {
+      const error = new Error('Emergency report not found')
+      error.status = 404
+      throw error
+    }
+
+    const publicReport = {
+      id: reportId,
+      type: report.type || alert.type || 'Emergency',
+      title: report.title || alert.title || 'Emergency report',
+      location: alert.location || report.location || 'Location pending',
+      status: alert.status || report.status || 'Pending',
+      responseStatus: report.assignmentStatus || alert.status || report.status || 'Pending',
+      severity: report.severity || alert.severity || 'Medium',
+      description: report.description || alert.description || '',
+      peopleAffected: report.peopleAffected || report.victimCount || null,
+      evidenceUrl: report.evidenceUrl || alert.evidenceUrl || null,
+      createdAt: report.createdAt || alert.createdAt || null,
+      updatedAt: report.updatedAt || alert.updatedAt || null,
+    }
+
+    res.json({ report: publicReport })
   } catch (error) {
     sendError(res, error)
   }

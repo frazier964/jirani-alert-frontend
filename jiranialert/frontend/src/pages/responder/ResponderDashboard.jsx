@@ -1,44 +1,73 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Activity, AlertTriangle, Bell, CalendarClock, CheckCircle2, Clock3, Radio, ShieldCheck, Siren, Users } from 'lucide-react'
+import { Activity, AlertTriangle, Bell, CalendarClock, CheckCircle2, ChevronRight, Clock3, Flame, HeartPulse, Radio, ShieldAlert, ShieldCheck, Siren, Users } from 'lucide-react'
 import Avatar from '../../components/UI/Avatar'
 import { getCurrentUser, getPreferredUserName } from '../../lib/auth'
 import { listNotifications } from '../../lib/notificationsApi'
 import { listResponderIncidents } from '../../lib/responderApi'
 import { EmptyState, IncidentCard, LoadingState, NotificationCard, PageHeader, ResponderShell, SectionCard, StatCard } from './ResponderComponents'
-import { fallbackIncidents, normalizeIncident } from './responderUtils'
+import { normalizeIncident, statusStyles } from './responderUtils'
+
+const inactiveStatuses = new Set(['completed', 'resolved', 'cancelled', 'rejected'])
+
+function getIncidentIcon(type) {
+  const normalized = String(type || '').trim().toLowerCase()
+  if (normalized.includes('fire')) return Flame
+  if (normalized.includes('medical')) return HeartPulse
+  if (normalized.includes('security') || normalized.includes('crime')) return ShieldAlert
+  return AlertTriangle
+}
+
+function getStatusTone(status) {
+  const value = String(status || '').trim()
+  return statusStyles[value] || 'border-slate-400/30 bg-slate-500/10 text-slate-200'
+}
 
 export default function ResponderDashboard() {
   const currentUser = getCurrentUser() || {}
   const [incidents, setIncidents] = useState([])
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
+  const [incidentsError, setIncidentsError] = useState('')
   const [online, setOnline] = useState(true)
 
   useEffect(() => {
     let cancelled = false
-    async function load() {
-      setLoading(true)
+    async function load({ silent = false } = {}) {
+      if (!silent) setLoading(true)
+      if (!silent) setIncidentsError('')
       try {
         const [incidentData, notificationData] = await Promise.all([
-          listResponderIncidents(25).catch(() => ({ reports: fallbackIncidents })),
+          listResponderIncidents(25),
           listNotifications(8).catch(() => ({ notifications: [] })),
         ])
         if (!cancelled) {
-          setIncidents((incidentData.reports || fallbackIncidents).map(normalizeIncident))
+          setIncidents((incidentData.reports || []).map(normalizeIncident))
           setNotifications(notificationData.notifications || [])
+          setIncidentsError('')
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setIncidents([])
+          setIncidentsError(error?.message || 'Unable to load live emergency alerts right now.')
         }
       } finally {
-        if (!cancelled) setLoading(false)
+        if (!cancelled && !silent) setLoading(false)
       }
     }
     load()
+
+    const refreshTimer = window.setInterval(() => {
+      load({ silent: true })
+    }, 15000)
+
     return () => {
       cancelled = true
+      window.clearInterval(refreshTimer)
     }
   }, [])
 
-  const activeIncidents = incidents.filter((item) => !['Completed', 'Rejected'].includes(item.status)).slice(0, 4)
+  const activeIncidents = incidents.filter((item) => !inactiveStatuses.has(String(item.status || '').trim().toLowerCase())).slice(0, 4)
   const assigned = incidents.filter((item) => item.assignedResponderId === currentUser.uid || item.assignmentStatus === 'Assigned' || item.status === 'Assigned')
   const criticalCount = incidents.filter((item) => item.severity === 'Critical' || item.severity === 'High').length
   const responderName = getPreferredUserName(currentUser) || 'Emergency Responder'
@@ -84,12 +113,67 @@ export default function ResponderDashboard() {
               ) : <EmptyState title="No assigned incidents yet" detail="Accepted and dispatched incidents for this responder will appear here." />}
             </SectionCard>
 
-            <SectionCard title="Active emergencies" subtitle="Live incidents requiring responder awareness" icon={AlertTriangle}>
-              {loading ? <LoadingState /> : activeIncidents.length ? (
-                <div className="grid gap-3">
-                  {activeIncidents.map((incident) => <IncidentCard key={incident.id} incident={incident} actionLabel="Details" />)}
+            <SectionCard title="Live Alert Dashboard" subtitle="Live incidents requiring responder action" icon={AlertTriangle}>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-3">
+                <p className="text-sm font-semibold text-slate-200">Monitor active emergency reports and open full incident records.</p>
+                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-emerald-100">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                  System Online
+                </span>
+              </div>
+
+              {loading ? <LoadingState label="Loading live emergency alerts..." /> : null}
+              {!loading && incidentsError ? (
+                <div className="rounded-2xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                  Could not load live alerts. {incidentsError}
                 </div>
-              ) : <EmptyState title="No active emergencies" detail="The operations queue is clear for this responder view." />}
+              ) : null}
+              {!loading && !incidentsError && !activeIncidents.length ? (
+                <EmptyState title="No active emergency alerts" detail="New incidents will appear here in real time as reports are created or updated." />
+              ) : null}
+              {!loading && !incidentsError && activeIncidents.length ? (
+                <div className="grid gap-3">
+                  {activeIncidents.map((incident) => {
+                    const Icon = getIncidentIcon(incident.type)
+                    return (
+                      <Link
+                        key={incident.id}
+                        to={`/responder/incidents/${encodeURIComponent(incident.id)}`}
+                        aria-label={`View report for ${incident.title}`}
+                        className="group block cursor-pointer rounded-[24px] border border-white/10 bg-slate-950/45 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-300/35 hover:bg-slate-900/70 hover:shadow-[0_18px_34px_rgba(8,145,178,0.15)] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/55 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020617]"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex min-w-0 items-start gap-3">
+                            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-cyan-200">
+                              <Icon className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-black text-white sm:text-base">{incident.title}</p>
+                              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{incident.type || 'Emergency'}</p>
+                              <p className="mt-2 inline-flex min-w-0 items-center gap-1.5 text-sm text-slate-300">
+                                <span className="text-slate-500">📍</span>
+                                <span className="truncate">{incident.location}</span>
+                              </p>
+                            </div>
+                          </div>
+
+                          <span className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ${getStatusTone(incident.status)}`}>
+                            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                            {incident.status || 'Pending'}
+                          </span>
+                        </div>
+
+                        <div className="mt-4 flex items-center justify-end border-t border-white/10 pt-3 text-sm font-bold text-cyan-100">
+                          <span className="inline-flex items-center gap-1 opacity-90 transition group-hover:opacity-100">
+                            View Report
+                            <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                          </span>
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
+              ) : null}
             </SectionCard>
           </div>
 

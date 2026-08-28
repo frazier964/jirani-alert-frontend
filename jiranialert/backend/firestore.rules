@@ -45,7 +45,7 @@ service cloud.firestore {
     }
 
     match /alerts/{alertId} {
-      allow read: if signedIn();
+      allow read: if signedIn() || resource.data.isPublic == true;
       allow create, update: if signedIn()
         && request.auth.token.role in ['admin', 'responder'];
       allow delete: if false;

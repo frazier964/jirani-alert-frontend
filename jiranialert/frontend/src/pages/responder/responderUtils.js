@@ -56,12 +56,17 @@ export const severityStyles = {
 export const statusStyles = {
   Pending: 'border-slate-400/30 bg-slate-500/10 text-slate-200',
   Active: 'border-red-400/35 bg-red-500/10 text-red-100',
+  Monitoring: 'border-amber-400/35 bg-amber-500/10 text-amber-100',
   Accepted: 'border-cyan-400/35 bg-cyan-500/10 text-cyan-100',
   Assigned: 'border-blue-400/35 bg-blue-500/10 text-blue-100',
   'En Route': 'border-cyan-400/35 bg-cyan-500/10 text-cyan-100',
+  'Responder En Route': 'border-cyan-400/35 bg-cyan-500/10 text-cyan-100',
   'On Scene': 'border-amber-400/35 bg-amber-500/10 text-amber-100',
   Stabilized: 'border-emerald-400/35 bg-emerald-500/10 text-emerald-100',
   Completed: 'border-emerald-400/35 bg-emerald-500/10 text-emerald-100',
+  Resolved: 'border-emerald-400/35 bg-emerald-500/10 text-emerald-100',
+  Cancelled: 'border-slate-400/30 bg-slate-500/10 text-slate-200',
+  Rejected: 'border-slate-400/30 bg-slate-500/10 text-slate-200',
 }
 
 export const fallbackIncidents = [
