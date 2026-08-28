@@ -66,6 +66,8 @@ function AppRoutes() {
           <Route path="/report" element={<Navigate to="/report-emergency" replace />} />
           <Route path="/report-emergency" element={<GuestReportEmergency />} />
           <Route path="/report-emergency/:id" element={<GuestReportTracking />} />
+          <Route path="/alerts" element={<Reports />} />
+          <Route path="/alerts/:id" element={<AlertDetails />} />
 
           <Route element={<Layout />}>
             <Route path="/resident/dashboard" element={<ResidentDashboard />} />
@@ -76,7 +78,6 @@ function AppRoutes() {
             <Route path="/resident/messages" element={<Messages />} />
             <Route path="/resident/contacts" element={<EmergencyContacts />} />
             <Route path="/resident/profile" element={<Profile />} />
-            <Route path="/alerts/:id" element={<AlertDetails />} />
 
             <Route path="/responder/dashboard" element={<ResponderDashboard />} />
             <Route path="/responder/incidents" element={<ResponderWorkspacePage page="incidents" />} />

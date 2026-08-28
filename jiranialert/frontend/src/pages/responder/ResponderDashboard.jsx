@@ -138,7 +138,7 @@ export default function ResponderDashboard() {
                     return (
                       <Link
                         key={incident.id}
-                        to={`/responder/incidents/${encodeURIComponent(incident.id)}`}
+                        to={`/alerts/${encodeURIComponent(incident.id)}`}
                         aria-label={`View report for ${incident.title}`}
                         className="group block cursor-pointer rounded-[24px] border border-white/10 bg-slate-950/45 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-300/35 hover:bg-slate-900/70 hover:shadow-[0_18px_34px_rgba(8,145,178,0.15)] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/55 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020617]"
                       >

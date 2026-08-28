@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   FileText,
   MapPin,
@@ -127,6 +127,17 @@ export default function Reports() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 overflow-hidden">
       <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <div className="mb-4 flex items-start justify-between">
+          <Link
+            to="/home"
+            className="inline-flex items-center gap-3 rounded-full bg-[#2563EB] px-4 py-3 text-sm font-semibold text-white shadow-[0_0_18px_rgba(37,99,235,0.45)] transition-all hover:bg-[#1d4ed8] hover:shadow-[0_0_28px_rgba(37,99,235,0.6)] active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+            aria-label="Return to home page"
+          >
+            <img src="/jirani-alert-logo.svg" alt="Jirani Alert" className="h-10 w-10 rounded-full bg-white" />
+            <span className="tracking-wide">JIRANI ALERT</span>
+          </Link>
+        </div>
+
         <div className="space-y-4">
           {/* Header Section */}
           <motion.section
@@ -146,26 +157,32 @@ export default function Reports() {
                   <Sparkles className="h-4 w-4" />
                   My reports
                 </div>
-                <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl">Your Submitted Reports</h1>
-                <p className="mt-3 text-lg text-blue-100">Track the status of all your emergency reports and submissions.</p>
+                <h1 className="mt-4 max-w-2xl text-4xl font-black tracking-tight leading-[1.05] text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)] sm:text-5xl">
+                  Your Submitted Reports
+                </h1>
+                <p className="mt-3 max-w-2xl text-lg text-blue-50/95 drop-shadow-[0_1px_4px_rgba(0,0,0,0.35)]">
+                  Track the status of all your emergency reports and submissions.
+                </p>
               </div>
 
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 lg:w-full lg:max-w-2xl">
-                <div className="rounded-3xl border border-white/15 bg-white/10 p-3 backdrop-blur">
+              <div className="grid gap-2 sm:grid-cols-2 lg:w-full lg:max-w-2xl">
+                <div className="grid gap-2 sm:grid-cols-2 lg:col-span-2 lg:grid-cols-3">
+                  <div className="rounded-3xl border border-white/15 bg-white/10 p-3 backdrop-blur">
                   <p className="text-xs uppercase tracking-[0.18em] text-white/70">Total</p>
                   <p className="mt-2 text-2xl font-black">{stats.total}</p>
                 </div>
-                <div className="rounded-3xl border border-white/15 bg-white/10 p-3 backdrop-blur">
+                  <div className="rounded-3xl border border-white/15 bg-white/10 p-3 backdrop-blur">
                   <p className="text-xs uppercase tracking-[0.18em] text-white/70">Pending</p>
                   <p className="mt-2 text-2xl font-black text-blue-300">{stats.pending}</p>
                 </div>
-                <div className="rounded-3xl border border-white/15 bg-white/10 p-3 backdrop-blur">
+                  <div className="rounded-3xl border border-white/15 bg-white/10 p-3 backdrop-blur">
                   <p className="text-xs uppercase tracking-[0.18em] text-white/70">Under Review</p>
                   <p className="mt-2 text-2xl font-black text-amber-300">{stats.underReview}</p>
                 </div>
-                <div className="rounded-3xl border border-white/15 bg-white/10 p-3 backdrop-blur">
+                  <div className="rounded-3xl border border-white/15 bg-white/10 p-3 backdrop-blur">
                   <p className="text-xs uppercase tracking-[0.18em] text-white/70">Resolved</p>
                   <p className="mt-2 text-2xl font-black text-emerald-300">{stats.resolved}</p>
+                  </div>
                 </div>
               </div>
             </div>

@@ -27,7 +27,7 @@ export default function Layout() {
   const isResident = location.pathname.startsWith('/resident')
   const isResponder = location.pathname.startsWith('/responder')
   const isAdmin = location.pathname.startsWith('/admin')
-  const isProtectedRoute = ['/resident', '/responder', '/admin', '/alerts'].some((prefix) =>
+  const isProtectedRoute = ['/resident', '/responder', '/admin'].some((prefix) =>
     location.pathname.startsWith(prefix),
   )
   const [authChecked, setAuthChecked] = useState(!isProtectedRoute)

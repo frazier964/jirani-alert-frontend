@@ -90,7 +90,7 @@ const liveAlerts = [
     status: 'Active',
     color: 'bg-red-500',
     icon: Flame,
-    to: '/responder/incidents',
+    to: '/alerts',
   },
   {
     title: 'Medical Emergency',
@@ -98,7 +98,7 @@ const liveAlerts = [
     status: 'Responder En Route',
     color: 'bg-emerald-500',
     icon: HeartPulse,
-    to: '/responder/incidents',
+    to: '/alerts',
   },
   {
     title: 'Security Threat',
@@ -106,7 +106,7 @@ const liveAlerts = [
     status: 'Monitoring',
     color: 'bg-amber-500',
     icon: Shield,
-    to: '/responder/incidents',
+    to: '/alerts',
   },
 ]
 
@@ -244,7 +244,7 @@ export default function Home() {
                         <Link
                           key={alert.title}
                           to={alert.to}
-                          aria-label={`View report queue for ${alert.title}`}
+                          aria-label={`View reports for ${alert.title}`}
                           className="group block cursor-pointer rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#bfdbfe] hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]/50 sm:p-4"
                         >
                           <div className="flex items-start justify-between gap-2 sm:gap-3">
@@ -266,7 +266,7 @@ export default function Home() {
                             </span>
                           </div>
                           <div className="mt-2.5 text-right text-xs font-semibold text-[#2563EB] opacity-80 transition-opacity group-hover:opacity-100">
-                            View Report {'>'}
+                            View Reports {'>'}
                           </div>
                         </Link>
                       )

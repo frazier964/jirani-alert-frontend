@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeft, MessageSquare, CheckCircle2, Clock, User, MapPin, AlertCircle, Send } from 'lucide-react'
 import { getReport } from '../../lib/reportApi'
@@ -25,7 +25,6 @@ function formatDate(isoString) {
 
 export default function AlertDetails() {
   const { id } = useParams()
-  const navigate = useNavigate()
   const [alert, setAlert] = useState(null)
   const [comment, setComment] = useState('')
   const [loading, setLoading] = useState(true)
@@ -100,13 +99,13 @@ export default function AlertDetails() {
           transition={{ duration: 0.4 }}
           className="max-w-2xl mx-auto"
         >
-          <button
-            onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6"
+          <Link
+            to="/alerts"
+            className="mb-6 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
           >
-            <ArrowLeft className="h-5 w-5" />
-            Back
-          </button>
+            <ArrowLeft className="h-4 w-4" />
+            Back to reports
+          </Link>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
             <div className="flex justify-center mb-4">
@@ -115,10 +114,10 @@ export default function AlertDetails() {
             <h2 className="text-2xl font-bold text-slate-900">Alert not found</h2>
             <p className="mt-2 text-slate-600">The alert you're looking for doesn't exist or may have been removed.</p>
             <Link
-              to="/resident/dashboard"
+              to="/alerts"
               className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#2563EB] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1d4ed8]"
             >
-              Go to Dashboard
+              Go to reports
             </Link>
           </div>
         </motion.div>
@@ -141,25 +140,25 @@ export default function AlertDetails() {
         transition={{ duration: 0.3 }}
         className="max-w-3xl mx-auto"
       >
-        <button
-          onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6 font-semibold"
+        <Link
+          to="/alerts"
+          className="mb-6 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
         >
-          <ArrowLeft className="h-5 w-5" />
-          Back
-        </button>
+          <ArrowLeft className="h-4 w-4" />
+          Back to reports
+        </Link>
 
         <motion.article
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm space-y-6"
+          className="space-y-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8"
         >
           {/* Header */}
-          <div className="flex items-start justify-between gap-4 pb-6 border-b border-slate-100">
-            <div>
-              <h1 className="text-3xl font-black text-slate-900">{alert.type}</h1>
-              <p className="mt-2 text-lg text-slate-600">{alert.title}</p>
+          <div className="flex flex-col gap-4 border-b border-slate-100 pb-6 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="break-words text-3xl font-black text-slate-900">{alert.type}</h1>
+              <p className="mt-2 break-words text-lg text-slate-600">{alert.title}</p>
             </div>
             <span
               className={`inline-block shrink-0 rounded-full border px-4 py-2 text-sm font-bold whitespace-nowrap ${
@@ -209,7 +208,7 @@ export default function AlertDetails() {
           <div className="space-y-3">
             <h3 className="text-lg font-bold text-slate-900">Details</h3>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-slate-700 leading-6">{alert.description}</p>
+              <p className="break-words text-slate-700 leading-6">{alert.description}</p>
             </div>
           </div>
 
@@ -220,7 +219,7 @@ export default function AlertDetails() {
               <h3 className="text-lg font-bold text-slate-900">Live Updates ({(alert.comments || []).length})</h3>
             </div>
 
-            <div className="space-y-3 max-h-80 overflow-y-auto">
+            <div className="max-h-80 space-y-3 overflow-y-auto">
               {(alert.comments || []).length === 0 ? (
                 <p className="text-slate-500 text-sm py-6 text-center">No updates yet. Be the first to comment.</p>
               ) : (
@@ -242,7 +241,7 @@ export default function AlertDetails() {
           {/* Comment Input */}
           <div className="space-y-3 pt-4 border-t border-slate-100">
             <label className="block text-sm font-semibold text-slate-900">Add an update</label>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 type="text"
                 value={comment}
@@ -251,12 +250,12 @@ export default function AlertDetails() {
                   if (e.key === 'Enter') addComment()
                 }}
                 placeholder="Share your observation or status update..."
-                className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
+                className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
               />
               <button
                 onClick={addComment}
                 disabled={!comment.trim()}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#2563EB] px-4 py-3 text-sm font-semibold text-white hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#2563EB] px-4 py-3 text-sm font-semibold text-white hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Send className="h-4 w-4" />
                 Post
