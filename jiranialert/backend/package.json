@@ -5,8 +5,8 @@
   "description": "Firebase backend for Jirani Alert.",
   "scripts": {
     "clean:emulator": "node ./scripts/kill-stale-emulators.js",
-    "dev": "npm run clean:emulator && firebase emulators:start --config firebase.json --project jiranialert --only auth,functions,firestore",
-    "emulators": "npm run clean:emulator && firebase emulators:start --config firebase.json --project jiranialert --only auth,functions,firestore",
+    "dev": "npm run clean:emulator && set NO_UPDATE_NOTIFIER=1&& set FUNCTIONS_DISCOVERY_TIMEOUT=30000&& firebase emulators:start --config firebase.json --project jiranialert --only auth,functions,firestore",
+    "emulators": "npm run clean:emulator && set NO_UPDATE_NOTIFIER=1&& set FUNCTIONS_DISCOVERY_TIMEOUT=30000&& firebase emulators:start --config firebase.json --project jiranialert --only auth,functions,firestore",
     "deploy": "firebase deploy",
     "deploy:functions": "firebase deploy --only functions",
     "deploy:firestore": "firebase deploy --only firestore",

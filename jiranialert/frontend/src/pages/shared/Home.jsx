@@ -20,7 +20,7 @@ import {
   ShieldCheck,
   Siren,
   Star,
-  Twitter,
+  X,
   Zap,
 } from 'lucide-react'
 
@@ -512,13 +512,13 @@ export default function Home() {
             <div>
               <h3 className="font-semibold text-white">Follow Us</h3>
               <div className="mt-4 flex items-center gap-3">
-                <a href="#" className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#2563EB] transition-colors" aria-label="Twitter">
-                  <Twitter className="h-4 w-4" />
+                <a href="https://x.com/LilFraz17" target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#2563EB] transition-colors" aria-label="X (formerly Twitter)">
+                  <X className="h-4 w-4" />
                 </a>
-                <a href="#" className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#2563EB] transition-colors" aria-label="Instagram">
+                <a href="https://www.instagram.com/officialdiaryofhillary/" target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#2563EB] transition-colors" aria-label="Instagram">
                   <Instagram className="h-4 w-4" />
                 </a>
-                <a href="#" className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#2563EB] transition-colors" aria-label="Send">
+                <a href="https://t.me/Fraziermw" target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#2563EB] transition-colors" aria-label="Telegram">
                   <Send className="h-4 w-4" />
                 </a>
               </div>
