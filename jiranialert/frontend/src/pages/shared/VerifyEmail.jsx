@@ -20,7 +20,8 @@ export default function VerifyEmail() {
 
     async function verify() {
       try {
-        const currentUser = auth?.currentUser || prodAuth?.currentUser
+        const currentUser = [auth?.currentUser, prodAuth?.currentUser].find((user) => user?.emailVerified)
+        let verificationAuth = null
         if (currentUser && currentUser.emailVerified) {
           setMessage('Your email is already verified. Redirecting you to your dashboard...')
         } else {
@@ -30,12 +31,14 @@ export default function VerifyEmail() {
             try {
               await applyActionCode(auth, oobCode)
               verified = true
+              verificationAuth = auth
             } catch (e) {
               // Try production if emulator fails
               if (prodAuth) {
                 try {
                   await applyActionCode(prodAuth, oobCode)
                   verified = true
+                  verificationAuth = prodAuth
                 } catch (prodError) {
                   // Both failed
                 }
@@ -44,6 +47,7 @@ export default function VerifyEmail() {
           } else if (prodAuth) {
             await applyActionCode(prodAuth, oobCode)
             verified = true
+            verificationAuth = prodAuth
           }
           
           if (verified) {
@@ -54,7 +58,11 @@ export default function VerifyEmail() {
           }
         }
 
-        const verifiedUser = auth?.currentUser || prodAuth?.currentUser
+        const verifiedUser = [
+          verificationAuth?.currentUser,
+          auth?.currentUser,
+          prodAuth?.currentUser,
+        ].find((user) => user?.emailVerified)
         if (verifiedUser) {
           await verifiedUser.reload()
           const tokenResult = await getIdTokenResult(verifiedUser, true)

@@ -28,6 +28,8 @@ const EmergencyContacts = lazy(() => import('./pages/resident/EmergencyContacts'
 const Profile = lazy(() => import('./pages/resident/Profile'))
 const ResponderDashboard = lazy(() => import('./pages/responder/ResponderDashboard'))
 const ResponderWorkspacePage = lazy(() => import('./pages/responder/ResponderWorkspacePage'))
+const WorkspaceOperations = lazy(() => import('./pages/responder/WorkspaceOperations'))
+const ResponderReportEmergency = lazy(() => import('./pages/responder/ResponderReportEmergency'))
 const ResponderIncidentDetails = lazy(() => import('./pages/responder/IncidentDetails'))
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
 const AlertDetails = lazy(() => import('./pages/alerts/AlertDetails'))
@@ -80,6 +82,13 @@ function AppRoutes() {
             <Route path="/resident/profile" element={<Profile />} />
 
             <Route path="/responder/dashboard" element={<ResponderDashboard />} />
+            <Route path="/responder/report-emergency" element={<ResponderReportEmergency />} />
+            <Route path="/responder/workspace/assignments" element={<WorkspaceOperations page="assignments" />} />
+            <Route path="/responder/workspace/map" element={<WorkspaceOperations page="map" />} />
+            <Route path="/responder/workspace/team" element={<WorkspaceOperations page="team" />} />
+            <Route path="/responder/workspace/communications" element={<WorkspaceOperations page="communications" />} />
+            <Route path="/responder/workspace/resources" element={<WorkspaceOperations page="resources" />} />
+            <Route path="/responder/workspace/shift" element={<WorkspaceOperations page="shift" />} />
             <Route path="/responder/incidents" element={<ResponderWorkspacePage page="incidents" />} />
             <Route path="/responder/incidents/:id" element={<ResponderIncidentDetails />} />
             <Route path="/responder/assigned" element={<ResponderWorkspacePage page="assigned" />} />

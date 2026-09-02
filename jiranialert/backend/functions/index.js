@@ -1441,7 +1441,29 @@ exports.getUserProfile = onRequest({ region: 'us-central1' }, async (req, res) =
     }
 
     if (authUser) {
-      resolvedProfile.emailVerified = Boolean(currentProfile.emailVerified ?? authUser.emailVerified)
+      // Firebase Auth owns email verification. A profile document can be
+      // temporarily stale immediately after a user follows the one-time
+      // verification link, so never let that old false value override the
+      // durable Auth record.
+      const emailVerified = Boolean(authUser.emailVerified || currentProfile.emailVerified)
+      resolvedProfile.emailVerified = emailVerified
+      const accountStatus = String(currentProfile.accountStatus || '').toLowerCase() === 'deactivated'
+        ? 'deactivated'
+        : emailVerified
+        ? 'active'
+        : 'pending_verification'
+      resolvedProfile.accountStatus = accountStatus
+
+      if (currentProfile.emailVerified !== emailVerified || currentProfile.accountStatus !== accountStatus) {
+        await db.collection('profiles').doc(userId).set(
+          {
+            emailVerified,
+            accountStatus,
+            updatedAt: serverTimestampValue(),
+          },
+          { merge: true },
+        )
+      }
     }
 
     res.json({ profile: resolvedProfile })
@@ -1500,8 +1522,8 @@ exports.updateUserProfile = onRequest({ region: 'us-central1' }, async (req, res
     if (!updates.fullName && (updates.firstName || updates.lastName || updates.displayName)) {
       updates.fullName = [updates.firstName || updates.displayName || '', updates.lastName || ''].filter(Boolean).join(' ')
     }
-    if (typeof body.emailVerified === 'boolean') updates.emailVerified = body.emailVerified
-    if (typeof body.accountStatus === 'string') updates.accountStatus = body.accountStatus.trim()
+    // Do not accept verification or account-state values from the browser.
+    // They are derived from Firebase Auth whenever the profile is read.
     updates.updatedAt = serverTimestampValue()
 
     await db.collection('profiles').doc(userId).set(updates, { merge: true })

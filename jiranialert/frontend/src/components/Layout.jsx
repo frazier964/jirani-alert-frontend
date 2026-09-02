@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { getIdTokenResult, onAuthStateChanged } from 'firebase/auth'
 import TopNav from './Layout/TopNav'
-import { getCurrentUser, resolveAccountRole, normalizeAccountRole } from '../lib/auth'
+import { getActiveUser, getCurrentUser, resolveAccountRole, normalizeAccountRole } from '../lib/auth'
 import { auth, prodAuth } from '../lib/firebase'
 
 const TEXT_SIZE_OPTIONS = new Set(['Small', 'Medium', 'Large'])
@@ -59,7 +59,7 @@ export default function Layout() {
         return
       }
 
-      const user = auth?.currentUser || prodAuth?.currentUser
+      const user = getActiveUser()
       const profile = getCurrentUser()
       const cachedRole = resolveAccountRole(profile)
       const tokenResult = user ? await getIdTokenResult(user, true).catch(() => null) : null

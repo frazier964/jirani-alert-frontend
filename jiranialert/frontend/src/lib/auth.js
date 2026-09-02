@@ -233,10 +233,17 @@ async function waitForAuthReady() {
 }
 
 export function getActiveUser() {
+  // In explicit emulator mode, a production verification link can leave an
+  // old emulator session beside the verified production session. Prefer the
+  // verified identity so route guards and profile sync use the right account.
+  if (auth?.currentUser?.emailVerified) return auth.currentUser
+  if (prodAuth?.currentUser?.emailVerified) return prodAuth.currentUser
   return auth?.currentUser || prodAuth?.currentUser || null
 }
 
 export function getActiveAuth() {
+  if (auth?.currentUser?.emailVerified) return auth
+  if (prodAuth?.currentUser?.emailVerified) return prodAuth
   if (auth?.currentUser) return auth
   if (prodAuth?.currentUser) return prodAuth
   return auth || prodAuth
@@ -578,6 +585,11 @@ export async function loginUser({ email, password }) {
       if (prodUser.emailVerified) {
         authSource = 'production'
         user = prodUser
+        // Do not leave an unverified emulator session ahead of the verified
+        // account in route guards after the fallback succeeds.
+        if (auth?.currentUser && !auth.currentUser.emailVerified) {
+          await fbSignOut(auth).catch(() => null)
+        }
       }
     } catch (prodError) {
       // ignore production fallback failures here, normal verification flow remains
@@ -779,11 +791,7 @@ export async function loginUser({ email, password }) {
 }
 
 export async function logout() {
-  try {
-    if (auth) await fbSignOut(auth)
-  } catch (e) {
-    // ignore
-  }
+  await Promise.all([auth, prodAuth].filter(Boolean).map((provider) => fbSignOut(provider).catch(() => null)))
   setCurrentUserLocal(null)
   emitProfileUpdated(null)
 }

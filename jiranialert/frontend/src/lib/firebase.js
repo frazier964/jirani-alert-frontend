@@ -52,7 +52,11 @@ const storage = app ? getStorage(app) : null
 const firestore = app ? getFirestore(app) : null
 
 const emulatorMode = String(import.meta.env.VITE_USE_FIREBASE_EMULATORS || '').trim().toLowerCase()
-const useEmulatorsFlag = emulatorMode === 'true' || emulatorMode === 'auto' || emulatorMode === ''
+// Local development should use the same Firebase project as production unless
+// an emulator is explicitly requested.  The previous empty-string default
+// silently created a second (emulator) account whose verification state could
+// never be updated by a production email-verification link.
+const useEmulatorsFlag = emulatorMode === 'true' || emulatorMode === 'auto'
 const shouldUseEmulators = import.meta.env.DEV && useEmulatorsFlag
 // The Functions emulator verifies tokens against the Auth emulator.  Connecting
 // only Firestore in `auto` mode produced production tokens that the local
@@ -84,7 +88,7 @@ async function connectEmulatorsIfAvailable() {
     return authAvailable && firestoreAvailable && functionsAvailable
   }
 
-  const available = shouldUseEmulators ? true : (emulatorMode === 'true' ? true : await tryConnect())
+  const available = emulatorMode === 'true' ? true : await tryConnect()
   if (!available) {
     console.warn('Firebase emulators not available, using production Firebase services instead.')
     return false

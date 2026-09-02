@@ -1,231 +1,26 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Activity, AlertTriangle, Bell, CalendarClock, CheckCircle2, ChevronRight, Clock3, Flame, HeartPulse, Radio, ShieldAlert, ShieldCheck, Siren, Users } from 'lucide-react'
-import Avatar from '../../components/UI/Avatar'
+import { Activity, AlertTriangle, Bell, CalendarClock, CheckCircle2, ClipboardList, Radio, ShieldCheck, Siren } from 'lucide-react'
 import { getCurrentUser, getPreferredUserName } from '../../lib/auth'
 import { listNotifications } from '../../lib/notificationsApi'
 import { listResponderIncidents } from '../../lib/responderApi'
-import { EmptyState, IncidentCard, LoadingState, NotificationCard, PageHeader, ResponderShell, SectionCard, StatCard } from './ResponderComponents'
-import { normalizeIncident, statusStyles } from './responderUtils'
+import { ResponderShell } from './ResponderComponents'
+import { normalizeIncident } from './responderUtils'
 
-const inactiveStatuses = new Set(['completed', 'resolved', 'cancelled', 'rejected'])
-
-function getIncidentIcon(type) {
-  const normalized = String(type || '').trim().toLowerCase()
-  if (normalized.includes('fire')) return Flame
-  if (normalized.includes('medical')) return HeartPulse
-  if (normalized.includes('security') || normalized.includes('crime')) return ShieldAlert
-  return AlertTriangle
-}
-
-function getStatusTone(status) {
-  const value = String(status || '').trim()
-  return statusStyles[value] || 'border-slate-400/30 bg-slate-500/10 text-slate-200'
-}
+const closed = new Set(['completed', 'resolved', 'cancelled', 'rejected'])
+const activity = [['System check completed', 'All systems operational', '2h ago', CheckCircle2, 'bg-emerald-100 text-emerald-600'], ['New training module available', 'First Aid Refresher Course', '5h ago', ClipboardList, 'bg-violet-100 text-violet-600'], ['Equipment inventory updated', '3 items updated', '8h ago', ShieldCheck, 'bg-amber-100 text-amber-600'], ['Community alert sent', 'Heavy rainfall expected', '1d ago', Bell, 'bg-blue-100 text-blue-600']]
+function Metric({ icon: Icon, value, label, detail, tone }) { return <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><div className="flex gap-4"><span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${tone}`}><Icon className="h-7 w-7" /></span><div><p className="text-3xl font-extrabold leading-7 text-slate-800">{value}</p><h2 className="mt-1 font-semibold text-slate-700">{label}</h2><p className="mt-2 text-sm leading-5 text-slate-500">{detail}</p></div></div></article> }
 
 export default function ResponderDashboard() {
-  const currentUser = getCurrentUser() || {}
-  const [incidents, setIncidents] = useState([])
-  const [notifications, setNotifications] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [incidentsError, setIncidentsError] = useState('')
-  const [online, setOnline] = useState(true)
-
-  useEffect(() => {
-    let cancelled = false
-    async function load({ silent = false } = {}) {
-      if (!silent) setLoading(true)
-      if (!silent) setIncidentsError('')
-      try {
-        const [incidentData, notificationData] = await Promise.all([
-          listResponderIncidents(25),
-          listNotifications(8).catch(() => ({ notifications: [] })),
-        ])
-        if (!cancelled) {
-          setIncidents((incidentData.reports || []).map(normalizeIncident))
-          setNotifications(notificationData.notifications || [])
-          setIncidentsError('')
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setIncidents([])
-          setIncidentsError(error?.message || 'Unable to load live emergency alerts right now.')
-        }
-      } finally {
-        if (!cancelled && !silent) setLoading(false)
-      }
-    }
-    load()
-
-    const refreshTimer = window.setInterval(() => {
-      load({ silent: true })
-    }, 15000)
-
-    return () => {
-      cancelled = true
-      window.clearInterval(refreshTimer)
-    }
-  }, [])
-
-  const activeIncidents = incidents.filter((item) => !inactiveStatuses.has(String(item.status || '').trim().toLowerCase())).slice(0, 4)
-  const assigned = incidents.filter((item) => item.assignedResponderId === currentUser.uid || item.assignmentStatus === 'Assigned' || item.status === 'Assigned')
-  const criticalCount = incidents.filter((item) => item.severity === 'Critical' || item.severity === 'High').length
-  const responderName = getPreferredUserName(currentUser) || 'Emergency Responder'
-
-  const stats = useMemo(
-    () => [
-      { label: 'Active emergencies', value: activeIncidents.length || 0, detail: 'Live incidents requiring monitoring', icon: Siren, tone: 'text-red-200' },
-      { label: 'Assigned today', value: assigned.length || 0, detail: 'Incidents linked to this shift', icon: CalendarClock, tone: 'text-cyan-200' },
-      { label: 'Critical load', value: criticalCount, detail: 'High severity items in queue', icon: AlertTriangle, tone: 'text-orange-200' },
-      { label: 'Unread notices', value: notifications.filter((item) => !item.read).length, detail: 'Command updates and alerts', icon: Bell, tone: 'text-amber-200' },
-    ],
-    [activeIncidents.length, assigned.length, criticalCount, notifications],
-  )
-
-  return (
-    <ResponderShell>
-      <div className="grid gap-5">
-        <PageHeader
-          eyebrow="Responder summary"
-          title="Emergency Responder Dashboard"
-          description="A focused command summary for your current shift. Detailed operations live in the Workspace menu."
-          icon={ShieldCheck}
-          actions={
-            <>
-              <Link to="/report-emergency" className="rounded-2xl border border-red-400/35 bg-red-500/15 px-4 py-3 text-sm font-bold text-red-100">Report emergency</Link>
-              <Link to="/responder/incidents" className="rounded-2xl border border-red-400/35 bg-red-500/15 px-4 py-3 text-sm font-bold text-red-100">Open incidents</Link>
-              <Link to="/responder/dispatch" className="rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-3 text-sm font-bold text-cyan-100">Dispatch center</Link>
-            </>
-          }
-        />
-
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {stats.map((item) => <StatCard key={item.label} {...item} />)}
-        </div>
-
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(340px,0.75fr)]">
-          <div className="grid gap-5">
-            <SectionCard title="Today's assignments" subtitle="Assigned incidents and operational priorities" icon={CalendarClock}>
-              {loading ? <LoadingState /> : assigned.length ? (
-                <div className="grid gap-3">
-                  {assigned.slice(0, 3).map((incident) => <IncidentCard key={incident.id} incident={incident} actionLabel="Review" />)}
-                </div>
-              ) : <EmptyState title="No assigned incidents yet" detail="Accepted and dispatched incidents for this responder will appear here." />}
-            </SectionCard>
-
-            <SectionCard title="Live Alert Dashboard" subtitle="Live incidents requiring responder action" icon={AlertTriangle}>
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-3">
-                <p className="text-sm font-semibold text-slate-200">Monitor active emergency reports and open full incident records.</p>
-                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-emerald-100">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                  System Online
-                </span>
-              </div>
-
-              {loading ? <LoadingState label="Loading live emergency alerts..." /> : null}
-              {!loading && incidentsError ? (
-                <div className="rounded-2xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-                  Could not load live alerts. {incidentsError}
-                </div>
-              ) : null}
-              {!loading && !incidentsError && !activeIncidents.length ? (
-                <EmptyState title="No active emergency alerts" detail="New incidents will appear here in real time as reports are created or updated." />
-              ) : null}
-              {!loading && !incidentsError && activeIncidents.length ? (
-                <div className="grid gap-3">
-                  {activeIncidents.map((incident) => {
-                    const Icon = getIncidentIcon(incident.type)
-                    return (
-                      <Link
-                        key={incident.id}
-                        to={`/alerts/${encodeURIComponent(incident.id)}`}
-                        aria-label={`View report for ${incident.title}`}
-                        className="group block cursor-pointer rounded-[24px] border border-white/10 bg-slate-950/45 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-300/35 hover:bg-slate-900/70 hover:shadow-[0_18px_34px_rgba(8,145,178,0.15)] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/55 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020617]"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex min-w-0 items-start gap-3">
-                            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-cyan-200">
-                              <Icon className="h-5 w-5" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-black text-white sm:text-base">{incident.title}</p>
-                              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{incident.type || 'Emergency'}</p>
-                              <p className="mt-2 inline-flex min-w-0 items-center gap-1.5 text-sm text-slate-300">
-                                <span className="text-slate-500">📍</span>
-                                <span className="truncate">{incident.location}</span>
-                              </p>
-                            </div>
-                          </div>
-
-                          <span className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ${getStatusTone(incident.status)}`}>
-                            <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                            {incident.status || 'Pending'}
-                          </span>
-                        </div>
-
-                        <div className="mt-4 flex items-center justify-end border-t border-white/10 pt-3 text-sm font-bold text-cyan-100">
-                          <span className="inline-flex items-center gap-1 opacity-90 transition group-hover:opacity-100">
-                            View Report
-                            <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-                          </span>
-                        </div>
-                      </Link>
-                    )
-                  })}
-                </div>
-              ) : null}
-            </SectionCard>
-          </div>
-
-          <aside className="grid gap-5 content-start">
-            <SectionCard title="Responder summary" subtitle="Identity and shift status" icon={Users}>
-              <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/45 p-4">
-                <Avatar src={currentUser.profileImageUrl} alt={responderName} size={52} />
-                <div className="min-w-0">
-                  <p className="truncate text-lg font-black text-white">{responderName}</p>
-                  <p className="text-sm text-slate-400">Emergency Responder</p>
-                </div>
-              </div>
-              <div className="mt-4 flex items-center justify-between rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-3">
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">Shift status</p>
-                  <p className="mt-1 text-sm font-bold text-white">{online ? 'Online and available' : 'Offline standby'}</p>
-                </div>
-                <button type="button" onClick={() => setOnline((value) => !value)} className={`relative h-7 w-14 rounded-full transition ${online ? 'bg-emerald-500' : 'bg-slate-600'}`}>
-                  <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${online ? 'left-8' : 'left-1'}`} />
-                </button>
-              </div>
-            </SectionCard>
-
-            <SectionCard title="Quick actions" subtitle="Fast operational routes" icon={Radio}>
-              <div className="grid gap-2">
-                {[
-                  ['Active Incidents', '/responder/incidents', Siren],
-                  ['Assigned Incidents', '/responder/assigned', CheckCircle2],
-                  ['Communications', '/responder/communications', Radio],
-                  ['Analytics', '/responder/analytics', Activity],
-                ].map(([label, to, Icon]) => (
-                  <Link key={to} to={to} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-slate-100 transition hover:border-cyan-300/30 hover:bg-white/10">
-                    <Icon className="h-4 w-4 text-cyan-200" />
-                    {label}
-                  </Link>
-                ))}
-              </div>
-            </SectionCard>
-
-            <SectionCard title="Recent notifications" subtitle="Latest command updates" icon={Bell}>
-              {notifications.length ? <div className="grid gap-3">{notifications.slice(0, 3).map((item) => <NotificationCard key={item.id || item.title} item={item} />)}</div> : <EmptyState title="No recent notifications" detail="Command notifications will appear here." />}
-            </SectionCard>
-
-            <SectionCard title="Readiness timer" subtitle="Shift cadence" icon={Clock3}>
-              <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4">
-                <p className="text-3xl font-black text-emerald-100">Ready</p>
-                <p className="mt-2 text-sm leading-6 text-emerald-50/80">Status pings are active. Keep this page open during your shift.</p>
-              </div>
-            </SectionCard>
-          </aside>
-        </div>
-      </div>
-    </ResponderShell>
-  )
+  const user = getCurrentUser() || {}; const [incidents, setIncidents] = useState([]); const [notifications, setNotifications] = useState([]); const [loading, setLoading] = useState(true); const [online, setOnline] = useState(true)
+  useEffect(() => { let cancelled = false; const load = async () => { try { const [data, notices] = await Promise.all([listResponderIncidents(25), listNotifications(8).catch(() => ({ notifications: [] }))]); if (!cancelled) { setIncidents((data.reports || []).map(normalizeIncident)); setNotifications(notices.notifications || []) } } catch { if (!cancelled) setIncidents([]) } finally { if (!cancelled) setLoading(false) } }; load(); const timer = window.setInterval(load, 15000); return () => { cancelled = true; window.clearInterval(timer) } }, [])
+  const active = incidents.filter((item) => !closed.has(String(item.status || '').toLowerCase())); const assigned = active.filter((item) => item.assignedResponderId === user.uid || item.assignmentStatus === 'Assigned' || item.status === 'Assigned'); const critical = active.filter((item) => ['Critical', 'High'].includes(item.severity)).length; const unread = notifications.filter((item) => !item.read).length; const name = getPreferredUserName(user) || 'Responder'
+  const metrics = useMemo(() => [{ icon: Siren, value: active.length, label: 'Active Emergencies', detail: 'Live incidents requiring attention', tone: 'bg-red-50 text-red-500' }, { icon: CalendarClock, value: assigned.length, label: 'Assigned Today', detail: 'Incidents assigned to you', tone: 'bg-blue-50 text-blue-500' }, { icon: AlertTriangle, value: critical, label: 'Critical Load', detail: 'High severity items in queue', tone: 'bg-amber-50 text-amber-500' }, { icon: Bell, value: unread, label: 'Unread Notices', detail: 'Updates and alerts pending', tone: 'bg-emerald-50 text-emerald-500' }], [active.length, assigned.length, critical, unread])
+  return <ResponderShell><section className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between"><div><h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Good morning, {name} <span aria-hidden="true">👋</span></h1><p className="mt-2 text-lg text-slate-500">Here's what's happening in your area today.</p></div><div className="flex flex-wrap gap-3"><Link to="/responder/report-emergency" className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-5 py-3 font-bold text-white shadow-lg shadow-red-200 hover:bg-red-700"><Siren className="h-5 w-5" />Report Emergency</Link><Link to="/responder/incidents" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 font-bold text-slate-700 hover:bg-slate-50"><ClipboardList className="h-5 w-5" />Open Incidents</Link><Link to="/responder/dispatch" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 font-bold text-slate-700 hover:bg-slate-50"><Radio className="h-5 w-5" />Dispatch Center</Link></div></section>
+    <section className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">{metrics.map((item) => <Metric key={item.label} {...item} />)}</section>
+    <section className="mt-6 grid gap-6 xl:grid-cols-[1.05fr_.9fr_.9fr]">
+      <article className="min-h-[390px] rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center justify-between"><h2 className="flex items-center gap-3 text-lg font-bold text-slate-800"><ClipboardList className="h-5 w-5 text-red-500" />Today's Assignments</h2><Link to="/responder/assigned" className="text-sm font-semibold text-red-500">View all</Link></div>{loading ? <p className="py-20 text-center text-sm text-slate-500">Loading assignments...</p> : assigned.length ? <div className="mt-5 grid gap-3">{assigned.slice(0, 3).map((item) => <Link key={item.id} to={`/responder/incidents/${encodeURIComponent(item.id)}`} className="rounded-xl border border-slate-200 p-4 hover:border-red-200"><strong className="block text-slate-800">{item.title}</strong><span className="mt-2 block text-sm text-slate-500">{item.location}</span></Link>)}</div> : <div className="flex min-h-[300px] flex-col items-center justify-center text-center"><span className="flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-slate-400"><ClipboardList className="h-9 w-9" /></span><h3 className="mt-5 text-lg font-bold text-slate-600">No assignments yet</h3><p className="mt-2 max-w-xs text-sm leading-6 text-slate-500">You're all caught up! New assignments will appear here.</p></div>}</article>
+      <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center justify-between"><h2 className="flex items-center gap-3 text-lg font-bold text-slate-800"><Activity className="h-5 w-5 text-red-500" />Recent Activity</h2><Link to="/responder/notifications" className="text-sm font-semibold text-red-500">View all</Link></div><div className="mt-5 grid gap-5">{activity.map(([title, text, time, Icon, tone]) => <div key={title} className="flex gap-3"><span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${tone}`}><Icon className="h-5 w-5" /></span><div className="min-w-0 flex-1"><div className="flex justify-between gap-2"><strong className="text-sm text-slate-700">{title}</strong><time className="whitespace-nowrap text-xs text-slate-400">{time}</time></div><p className="mt-1 text-sm text-slate-500">{text}</p></div></div>)}</div><Link to="/responder/notifications" className="mt-6 flex justify-center rounded-xl border border-red-300 py-3 text-sm font-bold text-red-600 hover:bg-red-50">View full activity log</Link></article>
+      <div className="grid gap-6 content-start"><article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="flex items-center gap-3 text-lg font-bold text-slate-800"><Activity className="h-5 w-5 text-red-500" />Quick Stats</h2><div className="mt-6 flex items-center gap-7"><div className="flex h-32 w-32 shrink-0 flex-col items-center justify-center rounded-full border-[18px] border-slate-200"><strong className="text-4xl text-slate-800">{active.length}</strong><span className="text-sm text-slate-500">Total</span></div><ul className="grid gap-3 text-sm text-slate-500"><li><i className="mr-2 inline-block h-3 w-3 rounded-full bg-red-500" />{active.length} Active</li><li><i className="mr-2 inline-block h-3 w-3 rounded-full bg-blue-500" />{assigned.length} Assigned</li><li><i className="mr-2 inline-block h-3 w-3 rounded-full bg-emerald-500" />0 Resolved</li><li><i className="mr-2 inline-block h-3 w-3 rounded-full bg-slate-300" />0 Cancelled</li></ul></div></article><article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center justify-between"><h2 className="flex items-center gap-3 text-lg font-bold text-slate-800"><ShieldCheck className="h-5 w-5 text-red-500" />System Status</h2><Link to="/responder/resources" className="text-sm font-semibold text-red-500">View all</Link></div><div className="mt-4 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4"><CheckCircle2 className="h-7 w-7 text-emerald-600" /><div><strong className="text-sm text-emerald-800">All Systems Operational</strong><p className="mt-1 text-xs text-emerald-700">Last checked: Just now</p></div></div></article><button type="button" onClick={() => setOnline((value) => !value)} className={`rounded-2xl border p-4 text-left shadow-sm ${online ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-white'}`}><strong className={online ? 'text-emerald-800' : 'text-slate-700'}>{online ? 'You are online and ready' : 'You are currently offline'}</strong><span className="mt-1 block text-sm text-slate-500">Click to change availability.</span></button></div>
+    </section><footer className="pt-9 text-center text-sm text-slate-500">© 2026 Jirani Alert Emergency Responder Portal. All rights reserved.</footer></ResponderShell>
 }
