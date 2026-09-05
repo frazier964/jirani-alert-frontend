@@ -76,11 +76,18 @@ export default function ReportEmergency({ variant = 'resident' }) {
   const accountName = String(account?.fullName || account?.displayName || [account?.firstName, account?.lastName].filter(Boolean).join(' ') || '').trim()
   const accountPhone = String(account?.phone || account?.phoneNumber || '').trim()
   const accountEmail = String(account?.email || '').trim()
-  const [selectedType, setSelectedType] = useState('Fire')
+  const [activation] = useState(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem('jiranialert_emergency_activation') || 'null')
+    } catch {
+      return null
+    }
+  })
+  const [selectedType, setSelectedType] = useState(activation ? 'Other' : 'Fire')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [location, setLocation] = useState('')
-  const [coordinates, setCoordinates] = useState(null)
+  const [location, setLocation] = useState(activation?.locationCoordinates ? `${activation.locationCoordinates.latitude}, ${activation.locationCoordinates.longitude}` : '')
+  const [coordinates, setCoordinates] = useState(activation?.locationCoordinates || null)
   const [locationMatches, setLocationMatches] = useState([])
   const [reporterName, setReporterName] = useState(() => (isResident ? accountName : ''))
   const [reporterPhone, setReporterPhone] = useState(() => (isResident ? accountPhone : ''))
@@ -201,8 +208,8 @@ export default function ReportEmergency({ variant = 'resident' }) {
     e.preventDefault()
     setError('')
 
-    if (!selectedType || !description.trim() || !location.trim()) {
-      setError('Please select an emergency type, describe what is happening, and provide a location.')
+    if (!selectedType || (!activation && (!description.trim() || !location.trim()))) {
+      setError(activation ? 'Please select an emergency type.' : 'Please select an emergency type, describe what is happening, and provide a location.')
       return
     }
     if (reporterPhone.trim() && !/^\+?[0-9][0-9\s()-]{6,19}$/.test(reporterPhone.trim())) {
@@ -216,7 +223,7 @@ export default function ReportEmergency({ variant = 'resident' }) {
     setSubmitting(true)
     try {
       let resolvedCoordinates = coordinates
-      if (!resolvedCoordinates) {
+      if (!resolvedCoordinates && !activation) {
         const matchedLocation = await findLocationCoordinates({ selectFirst: true })
         if (!matchedLocation) return
         resolvedCoordinates = { latitude: matchedLocation.latitude, longitude: matchedLocation.longitude }
@@ -234,7 +241,7 @@ export default function ReportEmergency({ variant = 'resident' }) {
         type: selectedType,
         title: title.trim() || `${selectedType} emergency`,
         description: description.trim(),
-        location: location.trim(),
+        location: location.trim() || 'Location unavailable',
         severity,
         anonymous,
         notify,
@@ -245,7 +252,9 @@ export default function ReportEmergency({ variant = 'resident' }) {
         reporterEmail: reporterEmail.trim(),
       }
 
-      const res = await reportApi.createReport(payload)
+      const res = activation?.reportId
+        ? await reportApi.updateEmergencyReport({ ...payload, reportId: activation.reportId, guestIdentifier: activation.guestIdentifier })
+        : await reportApi.createReport(payload)
 
       const reportRecord = res.report || {
         id: res.reportId,
@@ -260,7 +269,7 @@ export default function ReportEmergency({ variant = 'resident' }) {
 
       // update recent reports UI
       const newReport = {
-        id: reportRecord.id || res.reportId,
+        id: reportRecord.id || res.reportId || activation?.reportId,
         type: reportRecord.type || selectedType,
         title: reportRecord.title || title.trim(),
         location: reportRecord.location || location.trim(),
@@ -272,7 +281,7 @@ export default function ReportEmergency({ variant = 'resident' }) {
       setRecentReports((prev) => [newReport, ...prev].slice(0, 3))
 
       setSuccess({
-        id: res.reportId,
+        id: res.reportId || activation?.reportId,
         title: reportRecord.title || title.trim(),
         type: reportRecord.type || selectedType,
         location: reportRecord.location || location.trim(),
@@ -280,6 +289,7 @@ export default function ReportEmergency({ variant = 'resident' }) {
         responseTime: '3-7 minutes',
         responders: 'Nearby responders and community members notified',
       })
+      if (activation?.reportId) sessionStorage.removeItem('jiranialert_emergency_activation')
     } catch (err) {
       console.error('Emergency report submission failed:', err)
       setError('We could not send your emergency alert right now. Please check your connection and try again.')
@@ -350,6 +360,13 @@ export default function ReportEmergency({ variant = 'resident' }) {
               </div>
             </div>
           </motion.section>
+
+          {activation?.reportId ? (
+            <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900 shadow-sm" role="status">
+              <h2 className="text-xl font-black">🚨 Emergency Alert Sent</h2>
+              <p className="mt-2 text-sm leading-6">Responders have been notified. You can now provide additional information about the emergency.</p>
+            </section>
+          ) : null}
 
           <section className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-6">
@@ -655,7 +672,7 @@ export default function ReportEmergency({ variant = 'resident' }) {
                     <span className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <span className="relative inline-flex items-center justify-center gap-2">
                       {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Bell className="h-5 w-5 animate-pulse" />}
-                      Send Emergency Alert
+                      {activation?.reportId ? 'Update Emergency Details' : 'Send Emergency Alert'}
                     </span>
                   </button>
                 </form>

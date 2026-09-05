@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom'
 import './index.css'
 import AnnouncementBar from './components/AnnouncementBar'
 import EmergencyButton from './components/EmergencyButton'
+import LogoutToast from './components/LogoutToast'
 import Layout from './components/Layout'
 import { initAuthListener } from './lib/auth'
 
@@ -20,6 +21,7 @@ const VerifyEmail = lazy(() => import('./pages/shared/VerifyEmail'))
 const ResidentDashboard = lazy(() => import('./pages/resident/ResidentDashboard'))
 const ReportEmergency = lazy(() => import('./pages/resident/ReportEmergency'))
 const GuestReportEmergency = lazy(() => import('./pages/shared/GuestReportEmergency'))
+const EmergencyActivation = lazy(() => import('./pages/shared/EmergencyActivation'))
 const GuestReportTracking = lazy(() => import('./pages/shared/GuestReportTracking'))
 const LiveMap = lazy(() => import('./pages/resident/LiveMap'))
 const Notifications = lazy(() => import('./pages/resident/Notifications'))
@@ -60,6 +62,7 @@ function AppRoutes() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <EmergencyButton />
+      <LogoutToast />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -74,7 +77,8 @@ function AppRoutes() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/register" element={<SignUp />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/report" element={<Navigate to="/report-emergency" replace />} />
+          <Route path="/report" element={<Navigate to="/emergency-activation" replace />} />
+          <Route path="/emergency-activation" element={<EmergencyActivation />} />
           <Route path="/report-emergency" element={<GuestReportEmergency />} />
           <Route path="/report-emergency/:id" element={<GuestReportTracking />} />
           <Route path="/alerts" element={<Reports />} />
@@ -82,7 +86,7 @@ function AppRoutes() {
 
           <Route element={<Layout />}>
             <Route path="/resident/dashboard" element={<ResidentDashboard />} />
-            <Route path="/resident/report" element={<ReportEmergency />} />
+            <Route path="/resident/report" element={<Navigate to="/emergency-activation" replace />} />
             <Route path="/resident/map" element={<LiveMap />} />
             <Route path="/resident/notifications" element={<Notifications />} />
             <Route path="/resident/reports" element={<Reports />} />
@@ -91,7 +95,7 @@ function AppRoutes() {
             <Route path="/resident/profile" element={<Profile />} />
 
             <Route path="/responder/dashboard" element={<ResponderDashboard />} />
-            <Route path="/responder/report-emergency" element={<ResponderReportEmergency />} />
+            <Route path="/responder/report-emergency" element={<Navigate to="/emergency-activation" replace />} />
             <Route path="/responder/workspace/assignments" element={<AssignmentsPage />} />
             <Route path="/responder/workspace/map" element={<ResponderMapPage />} />
             <Route path="/responder/workspace/team" element={<TeamWorkspacePage />} />

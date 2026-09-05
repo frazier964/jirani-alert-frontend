@@ -26,6 +26,22 @@ async function callBackend(endpoint, method = 'GET', body = null) {
   return data
 }
 
+async function callOptionalBackend(endpoint, body) {
+  if (!BACKEND_URL) throw new Error('Backend is not configured')
+  let token = null
+  try {
+    token = await auth?.currentUser?.getIdToken()
+  } catch {
+    token = null
+  }
+  const headers = { 'Content-Type': 'application/json' }
+  if (token) headers.Authorization = `Bearer ${token}`
+  const res = await fetch(`${BACKEND_URL}/${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || 'Backend error')
+  return data
+}
+
 export async function uploadEvidenceFile(file) {
   if (!storage) throw new Error('Storage not configured')
   await waitForAuthReady()
@@ -56,6 +72,14 @@ export async function listReports(limit = 10) {
 
 export async function getReport(reportId) {
   return callBackend(`getEmergencyReport/${encodeURIComponent(reportId)}`, 'GET')
+}
+
+export function activateEmergency(payload) {
+  return callOptionalBackend('activateEmergency', payload)
+}
+
+export function updateEmergencyReport(payload) {
+  return callOptionalBackend('updateEmergencyReport', payload)
 }
 
 function coordinatesFromText(value) {
@@ -97,4 +121,4 @@ export async function geocodeLocation(place) {
     .filter((item) => Number.isFinite(item.latitude) && Number.isFinite(item.longitude))
 }
 
-export default { uploadEvidenceFile, createReport, listReports, getReport, geocodeLocation }
+export default { uploadEvidenceFile, createReport, updateEmergencyReport, activateEmergency, listReports, getReport, geocodeLocation }

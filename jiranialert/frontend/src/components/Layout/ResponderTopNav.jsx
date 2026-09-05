@@ -20,6 +20,8 @@ import {
 } from 'lucide-react'
 import Avatar from '../UI/Avatar'
 import { getCurrentUser, getPreferredUserName, logout as logoutUser, resolveAccountRole } from '../../lib/auth'
+import LogoutConfirmModal from '../LogoutConfirmModal'
+import { setLogoutNotice } from '../LogoutToast'
 
 const navItems = [
   { label: 'Dashboard', target: 'responder-dashboard', icon: LayoutDashboard },
@@ -53,6 +55,8 @@ export default function ResponderTopNav() {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeSection, setActiveSection] = useState('responder-dashboard')
   const [status, setStatus] = useState('online')
+  const [logoutOpen, setLogoutOpen] = useState(false)
+  const [logoutBusy, setLogoutBusy] = useState(false)
 
   const mobileRef = useRef(null)
   const alertsRef = useRef(null)
@@ -130,10 +134,12 @@ export default function ResponderTopNav() {
   }
 
   const handleLogout = async () => {
-    const shouldLogout = window.confirm('Are you sure you want to log out?')
-    if (!shouldLogout) return
+    setLogoutBusy(true)
     await logoutUser()
+    setLogoutNotice()
+    setLogoutOpen(false)
     window.location.href = '/login'
+    setLogoutBusy(false)
   }
 
   const filteredSearchResults = useMemo(() => {
@@ -550,7 +556,7 @@ export default function ResponderTopNav() {
                 </button>
                 <button
                   type="button"
-                  onClick={handleLogout}
+                  onClick={() => setLogoutOpen(true)}
                   className="flex items-center justify-between rounded-2xl bg-white/5 px-3 py-3 text-sm font-semibold text-red-200"
                 >
                   <span className="flex items-center gap-2">
@@ -564,6 +570,7 @@ export default function ResponderTopNav() {
           </motion.div>
         ) : null}
       </AnimatePresence>
+      <LogoutConfirmModal open={logoutOpen} onCancel={() => setLogoutOpen(false)} onConfirm={handleLogout} busy={logoutBusy} />
     </header>
   )
 }

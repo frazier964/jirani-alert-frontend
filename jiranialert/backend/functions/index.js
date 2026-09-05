@@ -536,10 +536,22 @@ async function requireUser(req) {
   }
 }
 
+async function optionalUser(req) {
+  const header = req.get('authorization') || ''
+  const match = header.match(/^Bearer (.+)$/)
+  if (!match) return null
+  try {
+    return await admin.auth().verifyIdToken(match[1])
+  } catch {
+    return null
+  }
+}
+
 async function requireResponderUser(req) {
   const user = await requireUser(req)
   const profileSnap = await db.collection('profiles').doc(user.uid).get().catch(() => null)
-  const role = normalizeRole(user.role) || normalizeRole(profileSnap?.data?.()?.role)
+  const profile = profileSnap?.data?.() || {}
+  const role = normalizeRole(user.role) || normalizeRole(profile.role) || normalizeRole(profile.accountType)
   if (!['responder', 'admin'].includes(role)) {
     const error = new Error('Responder access is required')
     error.status = 403
@@ -550,7 +562,18 @@ async function requireResponderUser(req) {
 
 async function resolveRequestUserRole(user) {
   const profileSnap = await db.collection('profiles').doc(user.uid).get().catch(() => null)
-  return normalizeRole(user.role) || normalizeRole(profileSnap?.data?.()?.role) || 'resident'
+  const profile = profileSnap?.data?.() || {}
+  return normalizeRole(user.role) || normalizeRole(profile.role) || normalizeRole(profile.accountType) || 'resident'
+}
+
+async function getResponderProfiles() {
+  const [roleSnapshot, accountTypeSnapshot] = await Promise.all([
+    db.collection('profiles').where('role', 'in', ['responder', 'admin']).get(),
+    db.collection('profiles').where('accountType', 'in', ['responder', 'admin']).get(),
+  ])
+  const profiles = new Map()
+  roleSnapshot.docs.concat(accountTypeSnapshot.docs).forEach((profile) => profiles.set(profile.id, profile))
+  return [...profiles.values()]
 }
 
 function sendError(res, error) {
@@ -756,8 +779,8 @@ exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req,
     const reportRef = db.collection('reports').doc()
     const alertRef = db.collection('alerts').doc(reportRef.id)
     const notificationRef = db.collection('notifications').doc()
-    const responderProfiles = await db.collection('profiles').where('role', 'in', ['responder', 'admin']).get()
-    const responderNotificationRefs = responderProfiles.docs
+    const responderProfiles = await getResponderProfiles()
+    const responderNotificationRefs = responderProfiles
       .filter((profile) => profile.id !== user.uid)
       .map((profile) => ({ recipientId: profile.id, ref: db.collection('notifications').doc() }))
 
@@ -849,6 +872,111 @@ exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req,
   } catch (error) {
     sendError(res, error)
   }
+})
+
+exports.activateEmergency = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const body = req.body || {}
+    const idempotencyKey = requiredString(body.idempotencyKey, 'idempotencyKey').slice(0, 120)
+    const guestIdentifier = requiredString(body.guestIdentifier, 'guestIdentifier').slice(0, 120)
+    const user = await optionalUser(req)
+    const activationRef = db.collection('emergencyActivations').doc(idempotencyKey)
+    const existingActivation = await activationRef.get()
+    if (existingActivation.exists) {
+      const existing = existingActivation.data()
+      return res.status(200).json({ emergencyId: existing.reportId, reportId: existing.reportId, alreadyActivated: true })
+    }
+
+    const now = serverTimestampValue()
+    const reportRef = db.collection('reports').doc()
+    const alertRef = db.collection('alerts').doc(reportRef.id)
+    const responderProfiles = await getResponderProfiles()
+    const responderNotifications = responderProfiles
+      .filter((profile) => profile.id !== user?.uid)
+      .map((profile) => ({ recipientId: profile.id, ref: db.collection('notifications').doc() }))
+    const locationCoordinates = body.locationCoordinates
+      && Number.isFinite(Number(body.locationCoordinates.latitude))
+      && Number.isFinite(Number(body.locationCoordinates.longitude))
+      ? { latitude: Number(body.locationCoordinates.latitude), longitude: Number(body.locationCoordinates.longitude) }
+      : null
+
+    await db.runTransaction(async (transaction) => {
+      transaction.create(activationRef, { reportId: reportRef.id, userId: user?.uid || null, guestIdentifier, createdAt: now })
+      transaction.set(reportRef, {
+        type: 'Emergency',
+        title: 'Emergency alert',
+        description: '',
+        location: locationCoordinates ? `${locationCoordinates.latitude}, ${locationCoordinates.longitude}` : 'Location unavailable',
+        locationCoordinates,
+        severity: 'Critical',
+        status: 'ACTIVE',
+        activationMethod: 'HOLD_TO_ALERT',
+        userId: user?.uid || null,
+        reporterId: user?.uid || null,
+        guestIdentifier: user ? null : guestIdentifier,
+        isPublic: true,
+        anonymous: !user,
+        createdAt: now,
+        updatedAt: now,
+      })
+      transaction.set(alertRef, {
+        reportId: reportRef.id,
+        type: 'Emergency',
+        title: 'Emergency alert',
+        location: locationCoordinates ? `${locationCoordinates.latitude}, ${locationCoordinates.longitude}` : 'Location unavailable',
+        severity: 'Critical',
+        status: 'ACTIVE',
+        activationMethod: 'HOLD_TO_ALERT',
+        isPublic: true,
+        createdAt: now,
+        updatedAt: now,
+      })
+      responderNotifications.forEach(({ recipientId, ref }) => transaction.set(ref, {
+        recipientId,
+        title: 'ACTIVE emergency alert',
+        message: 'A hold-to-alert emergency was activated. Open the incident queue immediately.',
+        reportId: reportRef.id,
+        read: false,
+        createdAt: now,
+      }))
+    })
+
+    res.status(201).json({ emergencyId: reportRef.id, reportId: reportRef.id, status: 'ACTIVE', responderNotifications: responderNotifications.length })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.updateEmergencyReport = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+  try {
+    requireMethod(req, 'POST')
+    const body = req.body || {}
+    const reportId = requiredString(body.reportId, 'reportId')
+    const guestIdentifier = String(body.guestIdentifier || '').trim()
+    const user = await optionalUser(req)
+    const reportRef = db.collection('reports').doc(reportId)
+    const reportSnap = await reportRef.get()
+    if (!reportSnap.exists) { const error = new Error('Emergency report not found'); error.status = 404; throw error }
+    const report = reportSnap.data()
+    if (report.userId && report.userId !== user?.uid) { const error = new Error('You cannot update this emergency'); error.status = 403; throw error }
+    if (!report.userId && report.guestIdentifier !== guestIdentifier) { const error = new Error('Guest emergency session does not match'); error.status = 403; throw error }
+    const updates = { updatedAt: serverTimestampValue() }
+    for (const field of ['type', 'title', 'description', 'location', 'severity', 'reporterName', 'reporterPhone', 'reporterEmail', 'evidenceUrl']) {
+      if (typeof body[field] === 'string') updates[field] = body[field].trim().slice(0, 4000)
+    }
+    if (body.locationCoordinates && Number.isFinite(Number(body.locationCoordinates.latitude)) && Number.isFinite(Number(body.locationCoordinates.longitude))) updates.locationCoordinates = { latitude: Number(body.locationCoordinates.latitude), longitude: Number(body.locationCoordinates.longitude) }
+    if (body.peopleAffected !== undefined) updates.peopleAffected = String(body.peopleAffected).slice(0, 40)
+    await reportRef.set(updates, { merge: true })
+    await db.collection('alerts').doc(reportId).set({ ...updates, status: 'ACTIVE', updatedAt: updates.updatedAt }, { merge: true })
+    const saved = await reportRef.get()
+    res.json({ report: { id: reportId, ...saved.data() } })
+  } catch (error) { sendError(res, error) }
 })
 
 exports.listPublicAlerts = onRequest({ region: 'us-central1' }, async (req, res) => {
