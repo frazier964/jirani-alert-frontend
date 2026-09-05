@@ -36,9 +36,20 @@ async function callOptionalBackend(endpoint, body) {
   }
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers.Authorization = `Bearer ${token}`
-  const res = await fetch(`${BACKEND_URL}/${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.error || 'Backend error')
+  let res
+  try {
+    res = await fetch(`${BACKEND_URL}/${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) })
+  } catch (error) {
+    throw new Error(`Unable to reach emergency service: ${error?.message || 'network error'}`)
+  }
+  const responseText = await res.text()
+  let data = {}
+  try {
+    data = responseText ? JSON.parse(responseText) : {}
+  } catch {
+    data = { error: responseText.slice(0, 300) }
+  }
+  if (!res.ok) throw new Error(data.error || `Emergency service returned HTTP ${res.status}`)
   return data
 }
 
