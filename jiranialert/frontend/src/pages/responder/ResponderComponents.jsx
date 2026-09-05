@@ -133,9 +133,9 @@ export function IncidentCard({ incident, onAccept, onReject, actionLabel = 'Open
           <span>{item.createdLabel}</span>
         </div>
         <div className="flex flex-wrap gap-2">
-          {onReject ? <button type="button" onClick={() => onReject(item)} className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-slate-200 transition hover:bg-white/10">Reject</button> : null}
-          {onAccept ? <button type="button" onClick={() => onAccept(item)} className="rounded-full border border-red-400/35 bg-red-500/15 px-3 py-2 text-xs font-bold text-red-100 transition hover:bg-red-500/25">Accept</button> : null}
-          <Link to={`/responder/incidents/${encodeURIComponent(item.id)}`} className="inline-flex items-center gap-1 rounded-full border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-100 transition hover:bg-cyan-500/20">
+          {onReject ? <button type="button" onClick={() => onReject(item)} className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">Reject</button> : null}
+          {onAccept ? <button type="button" onClick={() => onAccept(item)} className="rounded-full border border-red-600 bg-red-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-red-700">Accept</button> : null}
+          <Link to={`/responder/incidents/${encodeURIComponent(item.id)}`} className="inline-flex items-center gap-1 rounded-full border border-cyan-700 bg-cyan-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-cyan-700">
             {actionLabel}
             <ChevronRight className="h-3.5 w-3.5" />
           </Link>

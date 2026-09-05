@@ -1018,6 +1018,7 @@ exports.listAssignedIncidents = onRequest({ region: 'us-central1' }, async (req,
     requireMethod(req, 'GET')
     const user = await requireResponderUser(req)
     const limit = Math.min(Number(req.query.limit || 50), 100)
+    const search = String(req.query.search || '').trim().toLowerCase()
     const snapshot = await db
       .collection('reports')
       .where('assignedResponderId', '==', user.uid)
@@ -1025,12 +1026,14 @@ exports.listAssignedIncidents = onRequest({ region: 'us-central1' }, async (req,
       .limit(limit)
       .get()
 
-    res.json({
-      incidents: snapshot.docs.map((doc) => ({
+    const incidents = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
-      })),
-    })
+      }))
+      .filter((incident) => !search || [incident.id, incident.title, incident.type, incident.location, incident.severity, incident.status]
+        .some((value) => String(value || '').toLowerCase().includes(search)))
+
+    res.json({ incidents })
   } catch (error) {
     sendError(res, error)
   }
@@ -1232,6 +1235,86 @@ exports.addIncidentNote = onRequest({ region: 'us-central1' }, async (req, res) 
   } catch (error) {
     sendError(res, error)
   }
+})
+
+exports.listResponderTeam = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+  try {
+    requireMethod(req, 'GET')
+    await requireResponderUser(req)
+    const snapshot = await db.collection('profiles').where('role', 'in', ['responder', 'admin']).limit(100).get()
+    res.json({ members: snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) })
+  } catch (error) { sendError(res, error) }
+})
+
+exports.updateResponderAvailability = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireResponderUser(req)
+    const availability = requiredString(req.body?.availability, 'availability')
+    if (!['Online', 'Busy', 'Offline'].includes(availability)) {
+      const error = new Error('Unsupported availability')
+      error.status = 400
+      throw error
+    }
+    const profileRef = db.collection('profiles').doc(user.uid)
+    await profileRef.set({ availability, updatedAt: serverTimestampValue() }, { merge: true })
+    const saved = await profileRef.get()
+    res.json({ member: { id: saved.id, ...saved.data() } })
+  } catch (error) { sendError(res, error) }
+})
+
+exports.listResponderResources = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+  try {
+    requireMethod(req, 'GET')
+    await requireResponderUser(req)
+    const snapshot = await db.collection('responderResources').orderBy('name', 'asc').limit(100).get()
+    res.json({ resources: snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) })
+  } catch (error) { sendError(res, error) }
+})
+
+exports.updateResponderResource = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireResponderUser(req)
+    const resourceId = requiredString(req.body?.resourceId, 'resourceId')
+    const status = requiredString(req.body?.status, 'status')
+    if (!['Available', 'In Use', 'Maintenance', 'Unavailable'].includes(status)) {
+      const error = new Error('Unsupported resource status')
+      error.status = 400
+      throw error
+    }
+    const resourceRef = db.collection('responderResources').doc(resourceId)
+    await resourceRef.set({ status, updatedAt: serverTimestampValue(), updatedBy: user.uid }, { merge: true })
+    const saved = await resourceRef.get()
+    res.json({ resource: { id: saved.id, ...saved.data() } })
+  } catch (error) { sendError(res, error) }
+})
+
+exports.recordDispatchAction = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+  try {
+    requireMethod(req, 'POST')
+    const user = await requireResponderUser(req)
+    const reportId = requiredString(req.body?.reportId, 'reportId')
+    const action = requiredString(req.body?.action, 'action')
+    if (!['transfer', 'backup'].includes(action)) {
+      const error = new Error('Unsupported dispatch action')
+      error.status = 400
+      throw error
+    }
+    const actionRef = db.collection('dispatchActions').doc()
+    await actionRef.set({ reportId, action, requestedBy: user.uid, createdAt: serverTimestampValue() })
+    res.status(201).json({ ok: true, actionId: actionRef.id, action })
+  } catch (error) { sendError(res, error) }
 })
 
 exports.listNotifications = onRequest({ region: 'us-central1' }, async (req, res) => {
@@ -1505,6 +1588,8 @@ exports.updateUserProfile = onRequest({ region: 'us-central1' }, async (req, res
       const alertTone = body.alertTone.trim()
       if (['Gentle', 'Loud', 'Siren'].includes(alertTone)) updates.alertTone = alertTone
     }
+    if (typeof body.shiftStatus === 'string' && ['Online', 'Busy', 'Offline'].includes(body.shiftStatus)) updates.shiftStatus = body.shiftStatus
+    if (typeof body.handoverNote === 'string') updates.handoverNote = body.handoverNote.trim().slice(0, 4000)
     if (typeof body.role === 'string') {
       const requestedRole = body.role.trim()
       if (allowedRoles.has(requestedRole)) {
@@ -1883,6 +1968,7 @@ const residentConversationSeeds = [
   { id: 'community-safety', name: 'Community Safety Group', participants: 8 },
   { id: 'area-chief', name: 'Area Chief - James M.', participants: 2 },
   { id: 'emergency-response', name: 'Emergency Response Team', participants: 5 },
+  { id: 'command-operations', name: 'Command Operations', participants: 4 },
 ]
 
 function serializeMessagingTimestamp(value) {

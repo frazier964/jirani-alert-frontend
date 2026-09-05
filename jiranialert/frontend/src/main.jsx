@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom'
 import './index.css'
 import AnnouncementBar from './components/AnnouncementBar'
+import EmergencyButton from './components/EmergencyButton'
 import Layout from './components/Layout'
 import { initAuthListener } from './lib/auth'
 
@@ -28,6 +29,13 @@ const EmergencyContacts = lazy(() => import('./pages/resident/EmergencyContacts'
 const Profile = lazy(() => import('./pages/resident/Profile'))
 const ResponderDashboard = lazy(() => import('./pages/responder/ResponderDashboard'))
 const ResponderWorkspacePage = lazy(() => import('./pages/responder/ResponderWorkspacePage'))
+const AssignmentsPage = lazy(() => import('./pages/responder/AssignmentsPage'))
+const ResponderMapPage = lazy(() => import('./pages/responder/ResponderMapPage'))
+const TeamWorkspacePage = lazy(() => import('./pages/responder/TeamWorkspacePage'))
+const CommunicationsWorkspacePage = lazy(() => import('./pages/responder/CommunicationsWorkspacePage'))
+const ResourcesWorkspacePage = lazy(() => import('./pages/responder/ResourcesWorkspacePage'))
+const ShiftWorkspacePage = lazy(() => import('./pages/responder/ShiftWorkspacePage'))
+const SettingsWorkspacePage = lazy(() => import('./pages/responder/SettingsWorkspacePage'))
 const WorkspaceOperations = lazy(() => import('./pages/responder/WorkspaceOperations'))
 const ResponderReportEmergency = lazy(() => import('./pages/responder/ResponderReportEmergency'))
 const ResponderIncidentDetails = lazy(() => import('./pages/responder/IncidentDetails'))
@@ -51,6 +59,7 @@ function AppRoutes() {
 
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <EmergencyButton />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -83,12 +92,12 @@ function AppRoutes() {
 
             <Route path="/responder/dashboard" element={<ResponderDashboard />} />
             <Route path="/responder/report-emergency" element={<ResponderReportEmergency />} />
-            <Route path="/responder/workspace/assignments" element={<WorkspaceOperations page="assignments" />} />
-            <Route path="/responder/workspace/map" element={<WorkspaceOperations page="map" />} />
-            <Route path="/responder/workspace/team" element={<WorkspaceOperations page="team" />} />
-            <Route path="/responder/workspace/communications" element={<WorkspaceOperations page="communications" />} />
-            <Route path="/responder/workspace/resources" element={<WorkspaceOperations page="resources" />} />
-            <Route path="/responder/workspace/shift" element={<WorkspaceOperations page="shift" />} />
+            <Route path="/responder/workspace/assignments" element={<AssignmentsPage />} />
+            <Route path="/responder/workspace/map" element={<ResponderMapPage />} />
+            <Route path="/responder/workspace/team" element={<TeamWorkspacePage />} />
+            <Route path="/responder/workspace/communications" element={<CommunicationsWorkspacePage />} />
+            <Route path="/responder/workspace/resources" element={<ResourcesWorkspacePage />} />
+            <Route path="/responder/workspace/shift" element={<ShiftWorkspacePage />} />
             <Route path="/responder/incidents" element={<ResponderWorkspacePage page="incidents" />} />
             <Route path="/responder/incidents/:id" element={<ResponderIncidentDetails />} />
             <Route path="/responder/assigned" element={<ResponderWorkspacePage page="assigned" />} />
@@ -100,10 +109,10 @@ function AppRoutes() {
             <Route path="/responder/equipment" element={<ResponderWorkspacePage page="equipment" />} />
             <Route path="/responder/reports" element={<ResponderWorkspacePage page="reports" />} />
             <Route path="/responder/analytics" element={<ResponderWorkspacePage page="analytics" />} />
-            <Route path="/responder/resources" element={<ResponderWorkspacePage page="resources" />} />
+            <Route path="/responder/resources" element={<ResourcesWorkspacePage />} />
             <Route path="/responder/announcements" element={<ResponderWorkspacePage page="announcements" />} />
             <Route path="/responder/profile" element={<ResponderWorkspacePage page="profile" />} />
-            <Route path="/responder/settings" element={<ResponderWorkspacePage page="settings" />} />
+            <Route path="/responder/settings" element={<SettingsWorkspacePage />} />
             <Route path="/responder/notifications" element={<ResponderWorkspacePage page="notifications" />} />
             <Route path="/responder/help" element={<ResponderWorkspacePage page="help" />} />
             <Route path="/responder" element={<Navigate to="/responder/dashboard" replace />} />

@@ -24,7 +24,9 @@ import {
 } from 'lucide-react'
 import { getCurrentUser, getPreferredUserName } from '../../lib/auth'
 import { listNotifications } from '../../lib/notificationsApi'
-import { acceptIncident, listAssignedIncidents, listResponderIncidents, rejectIncident, updateIncidentStatus } from '../../lib/responderApi'
+import { acceptIncident, assignIncident, listAssignedIncidents, listResponderIncidents, rejectIncident, updateIncidentStatus } from '../../lib/responderApi'
+import { auth } from '../../lib/firebase'
+import { recordDispatchAction } from '../../lib/responderWorkspaceApi'
 import { EmptyState, FilterBar, IncidentCard, LoadingState, NotificationCard, PageHeader, ResponderShell, SearchBar, SectionCard, StatCard, StatusBadge } from './ResponderComponents'
 import { facilities, fallbackIncidents, normalizeIncident, responderUnits } from './responderUtils'
 
@@ -143,8 +145,8 @@ function ActiveIncidentsPage() {
         <div className="grid gap-3">
           <StatCard label="Visible incidents" value={filtered.length} detail="After search and filters" icon={AlertTriangle} tone="text-red-200" />
           <StatCard label="Critical / High" value={incidents.filter((item) => ['Critical', 'High'].includes(item.severity)).length} detail="Escalated attention required" icon={SirenIcon} tone="text-orange-200" />
-          <button type="button" onClick={reload} className="rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-3 text-sm font-bold text-cyan-100">Refresh queue</button>
-          <button type="button" onClick={() => navigate('/responder/map')} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-slate-100">Open incident map</button>
+          <button type="button" onClick={reload} className="rounded-2xl border border-cyan-300 bg-cyan-50 px-4 py-3 text-sm font-bold text-cyan-800 hover:bg-cyan-100">Refresh queue</button>
+          <button type="button" onClick={() => navigate('/responder/map')} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-800 hover:bg-slate-50">Open incident map</button>
         </div>
       </SectionCard>
     </div>
@@ -178,7 +180,7 @@ function AssignedIncidentsPage() {
             </div>
             <div className="mt-4 grid grid-cols-2 gap-2">
               {['En Route', 'On Scene', 'Stabilized', 'Completed'].map((status) => (
-                <button key={status} type="button" onClick={() => updateStatus(incident, status)} className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-slate-100 transition hover:bg-white/10">{status}</button>
+                <button key={status} type="button" onClick={() => updateStatus(incident, status)} className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-800 transition hover:border-red-300 hover:bg-red-50">{status}</button>
               ))}
             </div>
           </div>
@@ -234,7 +236,26 @@ function IncidentMapPage() {
 }
 
 function DispatchPage() {
-  const { incidents } = useResponderIncidents(false)
+  const { incidents, setIncidents, error } = useResponderIncidents(false)
+  const [notice, setNotice] = useState('')
+  const [busyId, setBusyId] = useState('')
+  const dispatchAction = async (incident, action) => {
+    setBusyId(incident.id)
+    try {
+      if (action === 'assign') {
+        const data = await assignIncident(incident.id, auth.currentUser?.uid)
+        setIncidents((items) => items.map((item) => item.id === incident.id ? normalizeIncident(data.incident) : item))
+        setNotice(`${incident.title} assigned to you.`)
+      } else {
+        await recordDispatchAction(incident.id, action)
+        setNotice(`${action === 'transfer' ? 'Transfer' : 'Backup request'} logged for ${incident.title}.`)
+      }
+    } catch (requestError) {
+      setNotice(requestError?.message || 'Dispatch action failed')
+    } finally {
+      setBusyId('')
+    }
+  }
   return (
     <div className="grid gap-5 xl:grid-cols-2">
       <SectionCard title="Available units" subtitle="Assign responder resources" icon={Radio}>
@@ -259,15 +280,17 @@ function DispatchPage() {
         </div>
       </SectionCard>
       <SectionCard title="Dispatch queue" subtitle="Assign, transfer, and request backup" icon={AlertTriangle}>
+        {notice ? <p className="mb-3 border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800">{notice}</p> : null}
+        {error ? <p className="mb-3 border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-800">{error}</p> : null}
         <div className="grid gap-3">
           {incidents.slice(0, 5).map((incident) => (
             <div key={incident.id} className="rounded-2xl border border-white/10 bg-slate-950/45 p-4">
               <p className="font-bold text-white">{incident.title}</p>
               <p className="mt-1 text-sm text-slate-400">{incident.location}</p>
               <div className="mt-3 flex flex-wrap gap-2">
-                <button type="button" className="rounded-full border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-100">Assign responder</button>
-                <button type="button" className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-slate-100">Transfer</button>
-                <button type="button" className="rounded-full border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-100">Request backup</button>
+                <button type="button" disabled={busyId === incident.id} onClick={() => dispatchAction(incident, 'assign')} className="rounded-full border border-cyan-300 bg-cyan-500 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Assign to me</button>
+                <button type="button" disabled={busyId === incident.id} onClick={() => dispatchAction(incident, 'transfer')} className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-800 disabled:opacity-50">Log transfer</button>
+                <button type="button" disabled={busyId === incident.id} onClick={() => dispatchAction(incident, 'backup')} className="rounded-full border border-red-300 bg-red-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Request backup</button>
               </div>
             </div>
           ))}
@@ -314,13 +337,35 @@ function EquipmentPage() {
 }
 
 function ReportsPage() {
-  const { incidents } = useResponderIncidents(false)
+  const { incidents, setIncidents } = useResponderIncidents(false)
+  const [notice, setNotice] = useState('')
+  const exportReport = () => {
+    const csv = ['Incident,Type,Severity,Location,Status', ...incidents.map((incident) => [incident.title, incident.type, incident.severity, incident.location, incident.status].map((value) => `"${String(value || '').replaceAll('"', '""')}"`).join(','))].join('\n')
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    link.download = 'jirani-responder-report.csv'
+    link.click()
+    URL.revokeObjectURL(link.href)
+    setNotice('Report exported.')
+  }
+  const submitLatest = async () => {
+    const incident = incidents[0]
+    if (!incident) return setNotice('There are no incidents to submit.')
+    try {
+      const data = await updateIncidentStatus(incident.id, 'Completed', 'Responder submitted incident report')
+      setIncidents((items) => items.map((item) => item.id === incident.id ? normalizeIncident(data.incident) : item))
+      setNotice(`Report submitted for ${incident.title}.`)
+    } catch (requestError) {
+      setNotice(requestError?.message || 'Unable to submit report')
+    }
+  }
   return (
     <SectionCard title="Incident reports" subtitle="Completed reports, export actions, and submission queue" icon={FileText}>
       <div className="mb-4 flex flex-wrap gap-2">
-        <button type="button" className="inline-flex items-center gap-2 rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-3 text-sm font-bold text-cyan-100"><Download className="h-4 w-4" /> Export report</button>
-        <button type="button" className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-100">Submit report</button>
+        <button type="button" onClick={exportReport} className="inline-flex items-center gap-2 rounded-2xl border border-cyan-700 bg-cyan-600 px-4 py-3 text-sm font-bold text-white hover:bg-cyan-700"><Download className="h-4 w-4" /> Export report</button>
+        <button type="button" onClick={submitLatest} className="rounded-2xl border border-red-700 bg-red-600 px-4 py-3 text-sm font-bold text-white hover:bg-red-700">Submit latest report</button>
       </div>
+      {notice ? <p className="mb-4 border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800">{notice}</p> : null}
       <div className="grid gap-3 lg:grid-cols-2">
         {incidents.slice(0, 6).map((incident) => <IncidentCard key={incident.id} incident={incident} actionLabel="Report details" />)}
       </div>

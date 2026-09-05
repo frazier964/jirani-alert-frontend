@@ -38,6 +38,7 @@ service cloud.firestore {
         && request.resource.data.reporterId == request.auth.uid;
       allow read: if signedIn()
         && (resource.data.reporterId == request.auth.uid
+          || resource.data.assignedResponderId == request.auth.uid
           || request.auth.token.role in ['admin', 'responder']);
       allow update: if signedIn()
         && request.auth.token.role in ['admin', 'responder'];

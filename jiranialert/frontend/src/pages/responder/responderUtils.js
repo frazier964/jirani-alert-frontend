@@ -47,26 +47,26 @@ export const accountLinks = [
 export const dashboardLink = { label: 'Dashboard', to: '/responder/dashboard', icon: LayoutDashboard }
 
 export const severityStyles = {
-  Critical: 'border-red-400/40 bg-red-500/15 text-red-100',
-  High: 'border-orange-400/40 bg-orange-500/15 text-orange-100',
-  Medium: 'border-amber-400/40 bg-amber-500/15 text-amber-100',
-  Low: 'border-emerald-400/40 bg-emerald-500/15 text-emerald-100',
+  Critical: 'border-red-200 bg-red-50 text-red-700',
+  High: 'border-orange-200 bg-orange-50 text-orange-700',
+  Medium: 'border-amber-200 bg-amber-50 text-amber-700',
+  Low: 'border-emerald-200 bg-emerald-50 text-emerald-700',
 }
 
 export const statusStyles = {
-  Pending: 'border-slate-400/30 bg-slate-500/10 text-slate-200',
-  Active: 'border-red-400/35 bg-red-500/10 text-red-100',
-  Monitoring: 'border-amber-400/35 bg-amber-500/10 text-amber-100',
-  Accepted: 'border-cyan-400/35 bg-cyan-500/10 text-cyan-100',
-  Assigned: 'border-blue-400/35 bg-blue-500/10 text-blue-100',
-  'En Route': 'border-cyan-400/35 bg-cyan-500/10 text-cyan-100',
-  'Responder En Route': 'border-cyan-400/35 bg-cyan-500/10 text-cyan-100',
-  'On Scene': 'border-amber-400/35 bg-amber-500/10 text-amber-100',
-  Stabilized: 'border-emerald-400/35 bg-emerald-500/10 text-emerald-100',
-  Completed: 'border-emerald-400/35 bg-emerald-500/10 text-emerald-100',
-  Resolved: 'border-emerald-400/35 bg-emerald-500/10 text-emerald-100',
-  Cancelled: 'border-slate-400/30 bg-slate-500/10 text-slate-200',
-  Rejected: 'border-slate-400/30 bg-slate-500/10 text-slate-200',
+  Pending: 'border-slate-200 bg-slate-50 text-slate-700',
+  Active: 'border-red-200 bg-red-50 text-red-700',
+  Monitoring: 'border-amber-200 bg-amber-50 text-amber-700',
+  Accepted: 'border-cyan-200 bg-cyan-50 text-cyan-700',
+  Assigned: 'border-blue-200 bg-blue-50 text-blue-700',
+  'En Route': 'border-cyan-200 bg-cyan-50 text-cyan-700',
+  'Responder En Route': 'border-cyan-200 bg-cyan-50 text-cyan-700',
+  'On Scene': 'border-amber-200 bg-amber-50 text-amber-700',
+  Stabilized: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  Completed: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  Resolved: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  Cancelled: 'border-slate-200 bg-slate-50 text-slate-700',
+  Rejected: 'border-slate-200 bg-slate-50 text-slate-700',
 }
 
 export const fallbackIncidents = [
