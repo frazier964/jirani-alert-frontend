@@ -122,6 +122,38 @@ async function seedResponderAssignments(responderId = process.env.RESPONDER_UID 
       createdAt: FieldValue.serverTimestamp(),
     }, { merge: true })
   }
+
+  const activeEmergencies = [
+    { id: 'demo-active-fire', type: 'Fire', title: 'Active warehouse fire alert', location: 'Industrial Area, Nairobi', severity: 'Critical', locationCoordinates: { latitude: -1.2966, longitude: 36.8452 } },
+    { id: 'demo-active-medical', type: 'Medical', title: 'Medical assistance requested', location: 'Kilimani Block C', severity: 'High', locationCoordinates: { latitude: -1.2921, longitude: 36.782 } },
+  ]
+  for (const emergency of activeEmergencies) {
+    const timestamp = FieldValue.serverTimestamp()
+    await db.collection('reports').doc(emergency.id).set({
+      ...emergency,
+      description: 'Seeded active emergency for responder testing.',
+      status: 'ACTIVE',
+      activationMethod: 'HOLD_TO_ALERT',
+      isPublic: true,
+      anonymous: true,
+      reporterId: null,
+      guestIdentifier: `seed-${emergency.id}`,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }, { merge: true })
+    await db.collection('alerts').doc(emergency.id).set({
+      reportId: emergency.id,
+      type: emergency.type,
+      title: emergency.title,
+      location: emergency.location,
+      severity: emergency.severity,
+      status: 'ACTIVE',
+      activationMethod: 'HOLD_TO_ALERT',
+      isPublic: true,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }, { merge: true })
+  }
 }
 
 module.exports = { seedCommunityPosts, seedResponderAssignments }
