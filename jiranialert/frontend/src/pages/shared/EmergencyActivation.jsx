@@ -63,17 +63,31 @@ export default function EmergencyActivation() {
   const [location, setLocation] = useState(null)
   const [battery, setBattery] = useState(87)
   const [signal, setSignal] = useState(92)
+  const [connectionType] = useState(() => navigator.connection?.effectiveType || navigator.mozConnection?.effectiveType || navigator.webkitConnection?.effectiveType || 'unknown')
   const [activityLog, setActivityLog] = useState([])
   const holdStartRef = useRef(0)
   const holdingRef = useRef(false)
   const frameRef = useRef(null)
+  const progressCircleRef = useRef(null)
+  const progressRef = useRef(0)
+  const lastLabelUpdateRef = useRef(0)
   const activatedRef = useRef(false)
   const idempotencyKeyRef = useRef(createId())
 
   useEffect(() => {
     if (!navigator.geolocation) return undefined
-    navigator.geolocation.getCurrentPosition(({ coords }) => setLocation({ latitude: coords.latitude, longitude: coords.longitude }), () => {}, { enableHighAccuracy: true, maximumAge: 120000, timeout: 1500 })
+    navigator.geolocation.getCurrentPosition(({ coords }) => setLocation({ latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy }), () => {}, { enableHighAccuracy: true, maximumAge: 120000, timeout: 1500 })
     return undefined
+  }, [])
+
+  useEffect(() => {
+    if (!navigator.getBattery) return undefined
+    let mounted = true
+    navigator.getBattery().then((batteryManager) => {
+      if (!mounted) return
+      setBattery(Math.round(batteryManager.level * 100))
+    }).catch(() => {})
+    return () => { mounted = false }
   }, [])
 
   useEffect(() => {
@@ -103,8 +117,10 @@ export default function EmergencyActivation() {
     if (frameRef.current) cancelAnimationFrame(frameRef.current)
     frameRef.current = null
     holdingRef.current = false
+    progressRef.current = 0
     setHolding(false)
     setProgress(0)
+    if (progressCircleRef.current) progressCircleRef.current.style.strokeDasharray = `0 ${RING_LENGTH}`
     if (showMessage) setMessage('Hold continuously for the full 3 seconds to send.')
   }
 
@@ -113,17 +129,26 @@ export default function EmergencyActivation() {
     activatedRef.current = true
     setHolding(false)
     setSending(true)
+    progressRef.current = 1
     setProgress(1)
+    if (progressCircleRef.current) progressCircleRef.current.style.strokeDasharray = `${RING_LENGTH} 0`
     setMessage('Broadcasting emergency alert...')
     try {
-      const response = await reportApi.activateEmergency({ idempotencyKey: idempotencyKeyRef.current, guestIdentifier: getGuestIdentifier(), locationCoordinates: location })
+      const response = await reportApi.activateEmergency({
+        idempotencyKey: idempotencyKeyRef.current,
+        guestIdentifier: getGuestIdentifier(),
+        locationCoordinates: location,
+        device_telemetry: { battery_level: battery / 100, connection_type: connectionType },
+      })
       sessionStorage.setItem(ACTIVATION_KEY, JSON.stringify({ reportId: response.reportId || response.emergencyId, guestIdentifier: getGuestIdentifier(), locationCoordinates: location, status: 'ACTIVE' }))
       setSending(false)
       setDispatched(true)
     } catch (error) {
       activatedRef.current = false
       setSending(false)
+      progressRef.current = 0
       setProgress(0)
+      if (progressCircleRef.current) progressCircleRef.current.style.strokeDasharray = `0 ${RING_LENGTH}`
       setMessage(`Unable to send emergency alert. ${error?.message || 'Please try again.'}`)
     }
   }
@@ -131,7 +156,12 @@ export default function EmergencyActivation() {
   const updateHold = (timestamp) => {
     if (!holdingRef.current || activatedRef.current) return
     const nextProgress = Math.min((timestamp - holdStartRef.current) / HOLD_MS, 1)
-    setProgress(nextProgress)
+    progressRef.current = nextProgress
+    if (progressCircleRef.current) progressCircleRef.current.style.strokeDasharray = `${RING_LENGTH * nextProgress} ${RING_LENGTH}`
+    if (timestamp - lastLabelUpdateRef.current >= 80 || nextProgress >= 1) {
+      lastLabelUpdateRef.current = timestamp
+      setProgress(nextProgress)
+    }
     if (nextProgress >= 1) { frameRef.current = null; void activate(); return }
     frameRef.current = requestAnimationFrame(updateHold)
   }
@@ -142,13 +172,26 @@ export default function EmergencyActivation() {
     setMessage('')
     holdingRef.current = true
     setHolding(true)
-    holdStartRef.current = performance.now()
-    frameRef.current = requestAnimationFrame(updateHold)
+    frameRef.current = requestAnimationFrame((timestamp) => {
+      holdStartRef.current = timestamp
+      lastLabelUpdateRef.current = timestamp
+      updateHold(timestamp)
+    })
   }
 
   const releaseHold = (event) => {
     if (!holdingRef.current || sending) return
+    if (event?.type === 'pointerleave' && event.currentTarget.hasPointerCapture?.(event.pointerId)) return
     event?.currentTarget?.releasePointerCapture?.(event.pointerId)
+    if (performance.now() - holdStartRef.current >= HOLD_MS) {
+      if (frameRef.current) cancelAnimationFrame(frameRef.current)
+      frameRef.current = null
+      progressRef.current = 1
+      setProgress(1)
+      if (progressCircleRef.current) progressCircleRef.current.style.strokeDasharray = `${RING_LENGTH} 0`
+      void activate()
+      return
+    }
     cancelHold(true)
   }
 
@@ -157,5 +200,5 @@ export default function EmergencyActivation() {
 
   if (dispatched) return <main className="emergency-page dispatched-page"><div className="dispatch-shell"><div className="dispatch-banner"><span className="live-dot" /> CRITICAL ALERT BROADCASTED</div><div className="dispatch-icon"><Check /></div><p className="eyebrow amber-text">JIRANIALERT / DISPATCH CONTROL</p><h1>DISPATCHED</h1><p className="dispatch-summary">Your emergency signal is active. Nearby responders have been notified and your location is being shared securely.</p><div className="dispatch-grid"><section className="dispatch-log"><div className="panel-heading"><div><span className="panel-kicker"><Activity /> Activity stream</span><h2>Response timeline</h2></div><span className="panel-chip secure-chip">LIVE</span></div><div className="activity-list">{activityLog.map(({ text, icon: Icon }) => <div className="activity-entry" key={text}><Icon /><span>{text}</span><Check /></div>)}{activityLog.length < 4 && <div className="activity-pending"><Loader2 /> Establishing secure response route...</div>}</div></section><section className="audio-card"><div className="panel-heading"><div><span className="panel-kicker"><Radio /> Evidence capture</span><h2>Scene audio</h2></div><span className="recording-status"><span className="record-dot" /> REC</span></div><Waveform /><p>Recording locally for responder context</p></section></div><div className="dispatch-actions"><span><MapPin /> GPS shared with authorities</span><button type="button" onClick={() => navigate('/report-emergency', { replace: true })}>Continue to details <ArrowLeft /></button></div></div></main>
 
-  return <main className="emergency-page"><header className="emergency-header"><button type="button" className="back-button" onClick={() => navigate(-1)} aria-label="Go back"><ArrowLeft /></button><div className="brand-lockup"><Siren /><span>JIRAN<span>ALERT</span></span></div><div className="system-state"><span className="live-dot" /> System secure</div></header><TelemetryBar location={location} battery={battery} signal={signal} /><div className="emergency-layout"><TacticalGrid location={location} /><section className="controls-panel"><div className="controls-heading"><div><p className="eyebrow crimson-text">Emergency activation</p><h1>Need help now?</h1><p>Hold the button to broadcast your location to emergency responders.</p></div><div className="secure-badge"><ShieldCheck /> Secure</div></div><div className={`sos-stage ${holding ? 'is-holding' : ''}`}><span className="sos-ripple ripple-one" /><span className="sos-ripple ripple-two" /><svg className="sos-progress" viewBox="0 0 256 256" aria-hidden="true"><circle cx="128" cy="128" r="112" /><circle cx="128" cy="128" r="112" style={{ strokeDasharray: `${ringProgress} ${RING_LENGTH}` }} /></svg><button type="button" className="sos-button" disabled={sending} onPointerDown={startHold} onPointerUp={releaseHold} onPointerCancel={releaseHold} onPointerLeave={releaseHold} onTouchStart={startHold} onTouchEnd={releaseHold} onTouchCancel={releaseHold} aria-label="Hold to alert responders">{sending ? <Loader2 className="spin-icon" /> : <Siren />}<strong>{sending ? 'SENDING' : holding ? `HOLD ${remaining}s` : 'HOLD 3s TO SOS'}</strong><span>{holding ? 'Keep holding' : 'Release to cancel'}</span></button></div><div className="hold-instruction"><Gauge /> {message || 'Continuous pressure activates the emergency broadcast.'}</div><div className="controls-footer"><span><MapPin /> GPS Active: Shared with authorities</span><span><Cpu /> Device ID verified</span></div></section></div></main>
+  return <main className="emergency-page"><header className="emergency-header"><button type="button" className="back-button" onClick={() => navigate(-1)} aria-label="Go back"><ArrowLeft /></button><div className="brand-lockup"><Siren /><span>JIRAN<span>ALERT</span></span></div><div className="system-state"><span className="live-dot" /> System secure</div></header><TelemetryBar location={location} battery={battery} signal={signal} /><div className="emergency-layout"><TacticalGrid location={location} /><section className="controls-panel"><div className="controls-heading"><div><p className="eyebrow crimson-text">Emergency activation</p><h1>Need help now?</h1><p>Hold the button to broadcast your location to emergency responders.</p></div><div className="secure-badge"><ShieldCheck /> Secure</div></div><div className={`sos-stage ${holding ? 'is-holding' : ''}`}><span className="sos-ripple ripple-one" /><span className="sos-ripple ripple-two" /><svg className="sos-progress" viewBox="0 0 256 256" aria-hidden="true"><circle cx="128" cy="128" r="112" /><circle ref={progressCircleRef} cx="128" cy="128" r="112" style={{ strokeDasharray: `${ringProgress} ${RING_LENGTH}` }} /></svg><button type="button" className="sos-button" disabled={sending} onPointerDown={startHold} onPointerUp={releaseHold} onPointerCancel={releaseHold} onPointerLeave={releaseHold} onTouchStart={startHold} onTouchEnd={releaseHold} onTouchCancel={releaseHold} aria-label="Hold to alert responders">{sending ? <Loader2 className="spin-icon" /> : <Siren />}<strong>{sending ? 'SENDING' : holding ? `HOLD ${remaining}s` : 'HOLD 3s TO SOS'}</strong><span>{holding ? 'Keep holding' : 'Release to cancel'}</span></button></div><div className="hold-instruction"><Gauge /> {message || 'Continuous pressure activates the emergency broadcast.'}</div><div className="controls-footer"><span><MapPin /> GPS Active: Shared with authorities</span><span><Cpu /> Device ID verified</span></div></section></div></main>
 }

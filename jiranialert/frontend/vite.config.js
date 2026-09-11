@@ -7,6 +7,7 @@ export default defineConfig({
   server: {
     // open the full localhost URL so the browser lands on the app root
     open: 'http://localhost:5173',
+    host: true,
     port: 5173,
     strictPort: true,
     watch: {
@@ -21,7 +22,7 @@ export default defineConfig({
       '/api': {
         target: 'http://127.0.0.1:5005',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '/jiranialert/us-central1'),
+        rewrite: (path) => path.replace(/^\/api\/emergency\/trigger$/, '/jiranialert/us-central1/activateEmergency').replace(/^\/api/, '/jiranialert/us-central1'),
       },
     },
   },

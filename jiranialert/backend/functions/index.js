@@ -5,6 +5,7 @@ const { getFirestore } = firestoreAdmin
 const nodemailer = require('nodemailer')
 const fs = require('fs')
 const path = require('path')
+const crypto = require('crypto')
 
 function loadLocalEnv() {
   const envFile = path.join(__dirname, '.env')
@@ -945,7 +946,15 @@ exports.activateEmergency = onRequest({ region: 'us-central1' }, async (req, res
       }))
     })
 
-    res.status(201).json({ emergencyId: reportRef.id, reportId: reportRef.id, status: 'ACTIVE', responderNotifications: responderNotifications.length })
+    const confirmationToken = crypto.randomBytes(24).toString('base64url')
+    res.status(201).json({
+      emergencyId: reportRef.id,
+      reportId: reportRef.id,
+      incident_id: crypto.createHash('sha256').update(reportRef.id).digest('hex'),
+      confirmationToken,
+      status: 'ACTIVE',
+      responderNotifications: responderNotifications.length,
+    })
   } catch (error) {
     sendError(res, error)
   }

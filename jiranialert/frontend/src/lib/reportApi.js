@@ -28,27 +28,18 @@ async function callBackend(endpoint, method = 'GET', body = null) {
 
 async function callOptionalBackend(endpoint, body) {
   if (!BACKEND_URL) throw new Error('Backend is not configured')
-  let token = null
-  try {
-    token = await auth?.currentUser?.getIdToken()
-  } catch {
-    token = null
-  }
+  const token = await auth?.currentUser?.getIdToken().catch(() => null)
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers.Authorization = `Bearer ${token}`
   let res
   try {
     res = await fetch(`${BACKEND_URL}/${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) })
   } catch (error) {
-    throw new Error(`Unable to reach emergency service: ${error?.message || 'network error'}`)
+    throw new Error(`Unable to reach emergency service: ${error?.message || 'network error'}`, { cause: error })
   }
   const responseText = await res.text()
-  let data = {}
-  try {
-    data = responseText ? JSON.parse(responseText) : {}
-  } catch {
-    data = { error: responseText.slice(0, 300) }
-  }
+  let data
+  try { data = responseText ? JSON.parse(responseText) : {} } catch { data = { error: responseText.slice(0, 300) } }
   if (!res.ok) throw new Error(data.error || `Emergency service returned HTTP ${res.status}`)
   return data
 }
@@ -86,7 +77,48 @@ export async function getReport(reportId) {
 }
 
 export function activateEmergency(payload) {
-  return callOptionalBackend('activateEmergency', payload)
+  const endpoint = '/api/emergency/trigger'
+  const queueKey = 'jiranialert_emergency_offline_queue'
+  const requestPayload = {
+    status: 'CRITICAL_ALERT',
+    timestamp: new Date().toISOString(),
+    location: payload.locationCoordinates || null,
+    ...payload,
+  }
+
+  const queueFailure = () => {
+    try {
+      const queue = JSON.parse(localStorage.getItem(queueKey) || '[]')
+      queue.push({ ...requestPayload, queuedAt: new Date().toISOString() })
+      localStorage.setItem(queueKey, JSON.stringify(queue.slice(-10)))
+    } catch {
+      // Storage may be unavailable in private browsing; the request error remains visible.
+    }
+  }
+
+  return (async () => {
+    let lastError
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestPayload),
+          keepalive: true,
+        })
+        const responseText = await response.text()
+        let data = {}
+        try { data = responseText ? JSON.parse(responseText) : {} } catch { data = { error: responseText } }
+        if (!response.ok) throw new Error(data.error || `Emergency service returned HTTP ${response.status}`)
+        return data
+      } catch (error) {
+        lastError = error
+        if (attempt < 2) await new Promise((resolve) => window.setTimeout(resolve, 150 * (attempt + 1)))
+      }
+    }
+    queueFailure()
+    throw lastError || new Error('Emergency service unavailable')
+  })()
 }
 
 export function updateEmergencyReport(payload) {
