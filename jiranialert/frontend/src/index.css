@@ -61,6 +61,130 @@ body {
   color: var(--text);
 }
 
+/* Emergency activation is intentionally isolated from the account theme. */
+main:has(button[aria-label='Hold to alert responders']) {
+  position: relative;
+  overflow: hidden;
+  min-height: calc(100svh - var(--announcement-bar-height)) !important;
+  padding: 24px 20px 28px !important;
+  color: #f8fafc !important;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(127, 29, 29, 0.2), transparent 34%),
+    radial-gradient(circle at 50% 100%, rgba(245, 158, 11, 0.06), transparent 38%),
+    #08090c !important;
+}
+
+main:has(button[aria-label='Hold to alert responders']) > section {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 480px) !important;
+  max-width: 480px !important;
+}
+
+main:has(button[aria-label='Hold to alert responders']) > section > button {
+  display: inline-flex;
+  width: 42px;
+  height: 42px;
+  margin: 0 0 34px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+main:has(button[aria-label='Hold to alert responders']) > section > button svg {
+  width: 18px;
+}
+
+main:has(button[aria-label='Hold to alert responders']) > section > div {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+main:has(button[aria-label='Hold to alert responders']) h1 {
+  margin: 0 !important;
+  color: #f8fafc !important;
+  font-size: 0 !important;
+  letter-spacing: 0.04em !important;
+  line-height: 1 !important;
+  text-transform: uppercase;
+}
+
+main:has(button[aria-label='Hold to alert responders']) h1::after {
+  content: 'Emergency SOS';
+  display: block;
+  color: #f8fafc;
+  font-size: clamp(2rem, 9vw, 3rem);
+}
+
+main:has(button[aria-label='Hold to alert responders']) h1 + p {
+  max-width: 290px;
+  margin: 14px auto 0;
+  color: #94a3b8 !important;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+main:has(button[aria-label='Hold to alert responders']) > section > div > div {
+  width: min(80vw, 330px) !important;
+  height: min(80vw, 330px) !important;
+  margin: 34px auto 0 !important;
+}
+
+main:has(button[aria-label='Hold to alert responders']) svg {
+  filter: drop-shadow(0 0 8px rgba(255, 59, 59, 0.22));
+}
+
+main:has(button[aria-label='Hold to alert responders']) svg circle:first-child {
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 4;
+}
+
+main:has(button[aria-label='Hold to alert responders']) svg circle:last-child {
+  stroke: #ff3b3b;
+  stroke-width: 5;
+  filter: drop-shadow(0 0 8px rgba(255, 59, 59, 0.8));
+}
+
+main:has(button[aria-label='Hold to alert responders']) button[aria-label='Hold to alert responders'] {
+  inset: 28px !important;
+  border: 1px solid rgba(255, 173, 173, 0.65) !important;
+  background: radial-gradient(circle at 35% 25%, #ff5a5a, #c8102e 72%) !important;
+  box-shadow: 0 0 0 10px rgba(220, 38, 38, 0.08), 0 0 42px rgba(239, 68, 68, 0.55), inset 0 -18px 30px rgba(91, 0, 10, 0.3) !important;
+}
+
+main:has(button[aria-label='Hold to alert responders']) button[aria-label='Hold to alert responders'] span {
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+main:has(button[aria-label='Hold to alert responders']) button[aria-label='Hold to alert responders'] span::first-line {
+  color: #fff;
+}
+
+main:has(button[aria-label='Hold to alert responders']) > section > div > p {
+  color: #94a3b8 !important;
+}
+
+main:has(button[aria-label='Hold to alert responders']) > section > div > p:last-child {
+  margin-top: 32px;
+  color: #fbbf24 !important;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+@media (min-width: 640px) {
+  main:has(button[aria-label='Hold to alert responders']) {
+    padding: 32px 32px 40px !important;
+  }
+}
+
 html[data-account-theme='dark'] {
   --background: #020617;
   --text: #e2e8f0;
