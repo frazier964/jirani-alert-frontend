@@ -212,10 +212,10 @@ export default function Home() {
                 </p>
 
                 <div className="mt-6 flex flex-wrap gap-3">
-                  <Link to="/signup" className="px-4 sm:px-6 py-3 rounded-xl bg-[#2563EB] text-white font-bold text-sm sm:text-base shadow-[0_0_18px_rgba(37,99,235,0.45)] hover:shadow-[0_0_28px_rgba(37,99,235,0.6)] transition-all">
+                  <Link to="/signup" className="px-4 sm:px-6 py-3 rounded-xl border-2 border-[#1D4ED8] bg-[#2563EB] text-white font-bold text-sm sm:text-base shadow-[0_0_18px_rgba(37,99,235,0.45)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#1E40AF] hover:bg-[#1D4ED8] hover:shadow-[0_0_28px_rgba(37,99,235,0.6)] active:translate-y-0 active:scale-95 active:shadow-[0_0_12px_rgba(37,99,235,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] focus-visible:ring-offset-2">
                     Get Started
                   </Link>
-                  <Link to="/report-emergency" className="px-4 sm:px-6 py-3 rounded-xl bg-[#DC2626] text-white font-bold text-sm sm:text-base shadow-[0_0_18px_rgba(220,38,38,0.35)] hover:shadow-[0_0_28px_rgba(220,38,38,0.55)] transition-all">
+                  <Link to="/report-emergency" className="px-4 sm:px-6 py-3 rounded-xl border-2 border-[#B91C1C] bg-[#DC2626] text-white font-bold text-sm sm:text-base shadow-[0_0_18px_rgba(220,38,38,0.35)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#991B1B] hover:bg-[#B91C1C] hover:shadow-[0_0_28px_rgba(220,38,38,0.55)] active:translate-y-0 active:scale-95 active:shadow-[0_0_12px_rgba(220,38,38,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2">
                     Report Emergency
                   </Link>
                 </div>

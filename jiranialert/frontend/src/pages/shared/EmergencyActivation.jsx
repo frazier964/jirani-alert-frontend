@@ -31,17 +31,37 @@ function formatCoordinate(value, positive, negative) {
   return `${Math.abs(value).toFixed(5)}° ${value >= 0 ? positive : negative}`
 }
 
+function getNetworkSnapshot() {
+  const connection = typeof navigator !== 'undefined'
+    ? navigator.connection || navigator.mozConnection || navigator.webkitConnection
+    : null
+  if (!connection) return { percent: null, type: 'unknown', detail: 'Unavailable' }
+
+  const typeScores = { 'slow-2g': 15, '2g': 35, '3g': 65, '4g': 95 }
+  const measuredScore = Number.isFinite(connection.downlink)
+    ? Math.min(100, Math.round(connection.downlink * 20))
+    : null
+  const percent = measuredScore === null
+    ? (typeScores[connection.effectiveType] || null)
+    : Math.min(typeScores[connection.effectiveType] || 100, measuredScore)
+  const detail = connection.effectiveType
+    ? `${connection.effectiveType.toUpperCase()}${Number.isFinite(connection.rtt) ? ` / ${connection.rtt}ms` : ''}`
+    : 'Measured'
+  return { percent, type: connection.effectiveType || 'unknown', detail }
+}
+
 function Waveform() {
   return <div className="emergency-waveform" aria-label="Scene audio recording active">
     {Array.from({ length: 28 }, (_, index) => <span key={index} style={{ '--wave-delay': `${index * -0.08}s`, '--wave-height': `${22 + ((index * 17) % 58)}%` }} />)}
   </div>
 }
 
-function TelemetryBar({ location, battery, signal }) {
+function TelemetryBar({ location, battery, signal, gpsStatus }) {
+  const signalLevel = signal.percent === null ? 0 : signal.percent >= 75 ? 4 : signal.percent >= 50 ? 3 : signal.percent >= 25 ? 2 : 1
   return <div className="emergency-telemetry" aria-label="Live device telemetry">
-    <div className="telemetry-cell"><Wifi className="telemetry-icon" /><div><span>Signal</span><strong>{signal}%</strong></div><i className="signal-bars" aria-hidden="true"><b /><b /><b /><b /></i></div>
-    <div className="telemetry-cell"><BatteryMedium className="telemetry-icon" /><div><span>Battery</span><strong>{battery}%</strong></div></div>
-    <div className="telemetry-cell telemetry-gps"><MapPin className="telemetry-icon" /><div><span>GPS lock</span><strong>{formatCoordinate(location?.latitude, 'N', 'S')} / {formatCoordinate(location?.longitude, 'E', 'W')}</strong></div></div>
+    <div className="telemetry-cell"><Wifi className="telemetry-icon" /><div><span>Network signal</span><strong>{signal.percent === null ? signal.detail : `${signal.percent}%`}</strong></div><i className={`signal-bars signal-level-${signalLevel}`} aria-hidden="true"><b /><b /><b /><b /></i></div>
+    <div className="telemetry-cell"><BatteryMedium className="telemetry-icon" /><div><span>Battery</span><strong>{battery === null ? 'Unavailable' : `${battery}%`}</strong></div></div>
+    <div className="telemetry-cell telemetry-gps"><MapPin className="telemetry-icon" /><div><span>GPS lock</span><strong>{gpsStatus === 'locked' ? `${formatCoordinate(location?.latitude, 'N', 'S')} / ${formatCoordinate(location?.longitude, 'E', 'W')}` : gpsStatus}</strong></div></div>
   </div>
 }
 
@@ -61,9 +81,9 @@ export default function EmergencyActivation() {
   const [dispatched, setDispatched] = useState(false)
   const [message, setMessage] = useState('')
   const [location, setLocation] = useState(null)
-  const [battery, setBattery] = useState(87)
-  const [signal, setSignal] = useState(92)
-  const [connectionType] = useState(() => navigator.connection?.effectiveType || navigator.mozConnection?.effectiveType || navigator.webkitConnection?.effectiveType || 'unknown')
+  const [gpsStatus, setGpsStatus] = useState('Acquiring...')
+  const [battery, setBattery] = useState(null)
+  const [signal, setSignal] = useState(getNetworkSnapshot)
   const [activityLog, setActivityLog] = useState([])
   const holdStartRef = useRef(0)
   const holdingRef = useRef(false)
@@ -76,26 +96,40 @@ export default function EmergencyActivation() {
 
   useEffect(() => {
     if (!navigator.geolocation) return undefined
-    navigator.geolocation.getCurrentPosition(({ coords }) => setLocation({ latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy }), () => {}, { enableHighAccuracy: true, maximumAge: 120000, timeout: 1500 })
-    return undefined
+    const watchId = navigator.geolocation.watchPosition(({ coords }) => {
+      setLocation({ latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy })
+      setGpsStatus('locked')
+    }, (error) => {
+      setGpsStatus(error.code === error.PERMISSION_DENIED ? 'Permission denied' : 'Unavailable')
+    }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 })
+    return () => navigator.geolocation.clearWatch(watchId)
   }, [])
 
   useEffect(() => {
     if (!navigator.getBattery) return undefined
     let mounted = true
-    navigator.getBattery().then((batteryManager) => {
+    let batteryManager
+    const updateBattery = () => {
+      if (mounted && batteryManager) setBattery(Math.round(batteryManager.level * 100))
+    }
+    navigator.getBattery().then((manager) => {
       if (!mounted) return
-      setBattery(Math.round(batteryManager.level * 100))
+      batteryManager = manager
+      updateBattery()
+      batteryManager.addEventListener('levelchange', updateBattery)
     }).catch(() => {})
-    return () => { mounted = false }
+    return () => {
+      mounted = false
+      batteryManager?.removeEventListener('levelchange', updateBattery)
+    }
   }, [])
 
   useEffect(() => {
-    const interval = window.setInterval(() => {
-      setBattery((value) => Math.max(42, value - (Math.random() > 0.7 ? 1 : 0)))
-      setSignal((value) => Math.min(98, Math.max(76, value + (Math.random() > 0.5 ? 1 : -1))))
-    }, 2600)
-    return () => window.clearInterval(interval)
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection
+    if (!connection) return undefined
+    const updateSignal = () => setSignal(getNetworkSnapshot())
+    connection.addEventListener?.('change', updateSignal)
+    return () => connection.removeEventListener?.('change', updateSignal)
   }, [])
 
   useEffect(() => () => { if (frameRef.current) cancelAnimationFrame(frameRef.current) }, [])
@@ -138,7 +172,7 @@ export default function EmergencyActivation() {
         idempotencyKey: idempotencyKeyRef.current,
         guestIdentifier: getGuestIdentifier(),
         locationCoordinates: location,
-        device_telemetry: { battery_level: battery / 100, connection_type: connectionType },
+        device_telemetry: { battery_level: battery === null ? null : battery / 100, connection_type: signal.type },
       })
       sessionStorage.setItem(ACTIVATION_KEY, JSON.stringify({ reportId: response.reportId || response.emergencyId, guestIdentifier: getGuestIdentifier(), locationCoordinates: location, status: 'ACTIVE' }))
       setSending(false)
@@ -200,5 +234,5 @@ export default function EmergencyActivation() {
 
   if (dispatched) return <main className="emergency-page dispatched-page"><div className="dispatch-shell"><div className="dispatch-banner"><span className="live-dot" /> CRITICAL ALERT BROADCASTED</div><div className="dispatch-icon"><Check /></div><p className="eyebrow amber-text">JIRANIALERT / DISPATCH CONTROL</p><h1>DISPATCHED</h1><p className="dispatch-summary">Your emergency signal is active. Nearby responders have been notified and your location is being shared securely.</p><div className="dispatch-grid"><section className="dispatch-log"><div className="panel-heading"><div><span className="panel-kicker"><Activity /> Activity stream</span><h2>Response timeline</h2></div><span className="panel-chip secure-chip">LIVE</span></div><div className="activity-list">{activityLog.map(({ text, icon: Icon }) => <div className="activity-entry" key={text}><Icon /><span>{text}</span><Check /></div>)}{activityLog.length < 4 && <div className="activity-pending"><Loader2 /> Establishing secure response route...</div>}</div></section><section className="audio-card"><div className="panel-heading"><div><span className="panel-kicker"><Radio /> Evidence capture</span><h2>Scene audio</h2></div><span className="recording-status"><span className="record-dot" /> REC</span></div><Waveform /><p>Recording locally for responder context</p></section></div><div className="dispatch-actions"><span><MapPin /> GPS shared with authorities</span><button type="button" onClick={() => navigate('/report-emergency', { replace: true })}>Continue to details <ArrowLeft /></button></div></div></main>
 
-  return <main className="emergency-page"><header className="emergency-header"><button type="button" className="back-button" onClick={() => navigate(-1)} aria-label="Go back"><ArrowLeft /></button><div className="brand-lockup"><Siren /><span>JIRAN<span>ALERT</span></span></div><div className="system-state"><span className="live-dot" /> System secure</div></header><TelemetryBar location={location} battery={battery} signal={signal} /><div className="emergency-layout"><TacticalGrid location={location} /><section className="controls-panel"><div className="controls-heading"><div><p className="eyebrow crimson-text">Emergency activation</p><h1>Need help now?</h1><p>Hold the button to broadcast your location to emergency responders.</p></div><div className="secure-badge"><ShieldCheck /> Secure</div></div><div className={`sos-stage ${holding ? 'is-holding' : ''}`}><span className="sos-ripple ripple-one" /><span className="sos-ripple ripple-two" /><svg className="sos-progress" viewBox="0 0 256 256" aria-hidden="true"><circle cx="128" cy="128" r="112" /><circle ref={progressCircleRef} cx="128" cy="128" r="112" style={{ strokeDasharray: `${ringProgress} ${RING_LENGTH}` }} /></svg><button type="button" className="sos-button" disabled={sending} onPointerDown={startHold} onPointerUp={releaseHold} onPointerCancel={releaseHold} onPointerLeave={releaseHold} onTouchStart={startHold} onTouchEnd={releaseHold} onTouchCancel={releaseHold} aria-label="Hold to alert responders">{sending ? <Loader2 className="spin-icon" /> : <Siren />}<strong>{sending ? 'SENDING' : holding ? `HOLD ${remaining}s` : 'HOLD 3s TO SOS'}</strong><span>{holding ? 'Keep holding' : 'Release to cancel'}</span></button></div><div className="hold-instruction"><Gauge /> {message || 'Continuous pressure activates the emergency broadcast.'}</div><div className="controls-footer"><span><MapPin /> GPS Active: Shared with authorities</span><span><Cpu /> Device ID verified</span></div></section></div></main>
+  return <main className="emergency-page"><header className="emergency-header"><button type="button" className="back-button" onClick={() => navigate(-1)} aria-label="Go back"><ArrowLeft /></button><div className="brand-lockup"><img src="/jirani-alert-logo.svg" alt="Jirani Alert" /><span>JIRAN<span>ALERT</span></span></div><div className="system-state"><span className="live-dot" /> System secure</div></header><TelemetryBar location={location} battery={battery} signal={signal} gpsStatus={gpsStatus} /><div className="emergency-layout"><TacticalGrid location={location} /><section className="controls-panel"><div className="controls-heading"><div><p className="eyebrow crimson-text">Emergency activation</p><h1>Need help now?</h1><p>Hold the button to broadcast your location to emergency responders.</p></div><div className="secure-badge"><ShieldCheck /> Secure</div></div><div className={`sos-stage ${holding ? 'is-holding' : ''}`}><span className="sos-ripple ripple-one" /><span className="sos-ripple ripple-two" /><svg className="sos-progress" viewBox="0 0 256 256" aria-hidden="true"><circle cx="128" cy="128" r="112" /><circle ref={progressCircleRef} cx="128" cy="128" r="112" style={{ strokeDasharray: `${ringProgress} ${RING_LENGTH}` }} /></svg><button type="button" className="sos-button" disabled={sending} onPointerDown={startHold} onPointerUp={releaseHold} onPointerCancel={releaseHold} onPointerLeave={releaseHold} onTouchStart={startHold} onTouchEnd={releaseHold} onTouchCancel={releaseHold} aria-label="Hold to alert responders">{sending ? <Loader2 className="spin-icon" /> : <Siren />}<strong>{sending ? 'SENDING' : holding ? `HOLD ${remaining}s` : 'HOLD 3s TO SOS'}</strong><span>{holding ? 'Keep holding' : 'Release to cancel'}</span></button></div><div className="hold-instruction"><Gauge /> {message || 'Continuous pressure activates the emergency broadcast.'}</div><div className="controls-footer"><span><MapPin /> GPS Active: {gpsStatus === 'locked' ? 'Shared with authorities' : gpsStatus}</span><span><Cpu /> Device ID verified</span></div></section></div></main>
 }

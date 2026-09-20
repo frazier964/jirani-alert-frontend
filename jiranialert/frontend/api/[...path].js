@@ -2,7 +2,7 @@ const DEFAULT_BACKEND_ORIGIN = 'https://us-central1-jiranialert.cloudfunctions.n
 
 function getBackendOrigin() {
   const explicitOrigin = String(process.env.VERCEL_BACKEND_ORIGIN || process.env.BACKEND_ORIGIN || '').trim()
-  return explicitOrigin || DEFAULT_BACKEND_ORIGIN
+  return (explicitOrigin || DEFAULT_BACKEND_ORIGIN).replace(/\/+$/, '')
 }
 
 function readBody(req) {
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   try {
     const requestUrl = new URL(req.url, 'http://localhost')
     const backendOrigin = getBackendOrigin()
-    const requestedPath = requestUrl.pathname.replace(/^\/api\/?/, '')
+    const requestedPath = requestUrl.pathname.replace(/^\/api\/?/, '').replace(/^\/+|\/+$/g, '')
     const proxyPath = requestedPath === 'emergency/trigger' ? 'activateEmergency' : requestedPath
     const targetUrl = `${backendOrigin}/${proxyPath}${requestUrl.search}`
 
