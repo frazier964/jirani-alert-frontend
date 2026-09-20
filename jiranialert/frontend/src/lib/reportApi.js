@@ -77,11 +77,8 @@ export async function getReport(reportId) {
 }
 
 export function activateEmergency(payload) {
-  const configuredBackend = String(import.meta.env.VITE_BACKEND_URL || '').trim().replace(/\/+$/, '')
-  const directEndpoint = /^https:\/\/[a-z0-9-]+-[a-z0-9-]+\.cloudfunctions\.net$/i.test(configuredBackend)
-    ? `${configuredBackend}/activateEmergency`
-    : null
-  const endpoint = directEndpoint || '/api/emergency/trigger'
+  // Keep this same-origin so production browsers do not need a Cloud Functions CORS preflight.
+  const endpoint = '/api/emergency/trigger'
   const queueKey = 'jiranialert_emergency_offline_queue'
   const requestPayload = {
     status: 'CRITICAL_ALERT',
