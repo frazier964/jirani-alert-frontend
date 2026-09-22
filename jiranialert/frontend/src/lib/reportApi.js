@@ -78,7 +78,7 @@ export async function getReport(reportId) {
 
 export function activateEmergency(payload) {
   // Keep this same-origin so production browsers do not need a Cloud Functions CORS preflight.
-  const endpoint = '/api/emergency/trigger'
+  const endpoint = '/api/activateEmergency'
   const queueKey = 'jiranialert_emergency_offline_queue'
   const requestPayload = {
     status: 'CRITICAL_ALERT',

@@ -27,8 +27,7 @@ export default async function handler(req, res) {
     const requestUrl = new URL(req.url, 'http://localhost')
     const backendOrigin = getBackendOrigin()
     const requestedPath = requestUrl.pathname.replace(/^\/api\/?/, '').replace(/^\/+|\/+$/g, '')
-    const proxyPath = requestedPath === 'emergency/trigger' ? 'activateEmergency' : requestedPath
-    const targetUrl = `${backendOrigin}/${proxyPath}${requestUrl.search}`
+    const targetUrl = `${backendOrigin}/${requestedPath}${requestUrl.search}`
 
     const headers = new Headers()
     for (const [key, value] of Object.entries(req.headers)) {
