@@ -110,10 +110,14 @@ export function activateEmergency(payload) {
         const responseText = await response.text()
         let data = {}
         try { data = responseText ? JSON.parse(responseText) : {} } catch { data = { error: responseText } }
+        if (response.status === 404) {
+          throw new Error('Emergency service is not deployed. Ask the administrator to deploy Firebase Functions, then try again.')
+        }
         if (!response.ok) throw new Error(data.error || `Emergency service returned HTTP ${response.status}`)
         return data
       } catch (error) {
         lastError = error
+        if (error?.message?.includes('Emergency service is not deployed')) break
         if (attempt < 2) await new Promise((resolve) => window.setTimeout(resolve, 150 * (attempt + 1)))
       }
     }
