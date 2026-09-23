@@ -57,6 +57,7 @@ npx firebase deploy --only functions,firestore:indexes
 
 - `health`: checks that the backend is running.
 - `createEmergencyReport`: creates a report, alert, and reporter notification.
+- `activateEmergency`: creates an idempotent public emergency alert and notifies responders.
 - `listEmergencyReports`: returns reports for a user, or all reports for responders/admins.
 - `listNotifications`: returns notifications for a user.
 - `markNotificationRead`: marks a notification as read.
@@ -70,6 +71,15 @@ Requests should include a Firebase Auth ID token:
 ```http
 Authorization: Bearer <firebase-id-token>
 ```
+
+After changing functions, deploy them from this directory with `npm run deploy:functions`.
+The Firebase project must be on the Blaze (pay-as-you-go) plan because Cloud Functions deployment requires Cloud Build and Artifact Registry. Verify the deployment with:
+
+```bash
+curl https://us-central1-jiranialert.cloudfunctions.net/health
+```
+
+The response should be JSON with `"ok": true`, not the Firebase `404 Page not found` HTML page.
 
 ## Verification email delivery
 
