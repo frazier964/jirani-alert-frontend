@@ -1,8 +1,7 @@
 const { execSync, spawnSync } = require('child_process')
-const path = require('path')
 const isWindows = process.platform === 'win32'
 
-const knownPorts = [4021, 9198, 8181, 4400, 4500, 9150]
+const knownPorts = [4022, 9099, 9001, 5005, 4400, 4500, 4021, 9198, 8181, 9150]
 
 function getPidsFromWindows() {
   try {
@@ -25,19 +24,16 @@ function getPidsFromWindows() {
 
 function getPidsFromWindowsPorts() {
   try {
-    const ports = knownPorts.join(',')
-    const command = [
-      'powershell',
-      '-NoProfile',
-      '-Command',
-      `Get-NetTCPConnection -LocalPort ${ports} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess | Sort-Object -Unique`,
-    ]
-    const output = execSync(command.join(' '), { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' })
-    return output
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter((line) => line !== '' && /^\d+$/.test(line))
-      .map(Number)
+    const output = execSync('netstat -ano -p tcp', { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' })
+    const ports = new Set(knownPorts.map(String))
+    const pids = []
+    for (const line of output.split(/\r?\n/)) {
+      // Windows netstat uses both IPv4 endpoints (0.0.0.0:9001) and bracketed
+      // IPv6 endpoints ([::]:9001). Match the final colon so both are handled.
+      const match = line.match(/^\s*TCP\s+\S+:(\d+)\s+\S+\s+LISTENING\s+(\d+)\s*$/i)
+      if (match && ports.has(match[1])) pids.push(Number(match[2]))
+    }
+    return Array.from(new Set(pids))
   } catch (error) {
     return []
   }
@@ -83,7 +79,7 @@ function getBlockedPortsFromWindows() {
       'powershell',
       '-NoProfile',
       '-Command',
-      `Get-NetTCPConnection -LocalPort ${knownPorts.join(',')} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty LocalPort | Sort-Object -Unique`,
+      `Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { @(${knownPorts.join(',')}) -contains $_.LocalPort } | Select-Object -ExpandProperty LocalPort | Sort-Object -Unique`,
     ]
     const output = execSync(command.join(' '), { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' })
     return output

@@ -43,6 +43,9 @@ module.exports = async function handler(req, res) {
   } catch (error) {
     res.statusCode = 502
     res.setHeader('Content-Type', 'application/json')
-    res.end(JSON.stringify({ error: error?.message || 'Backend proxy failed' }))
+    res.end(JSON.stringify({
+      error: 'Backend proxy failed',
+      details: error?.message || 'Unknown upstream error',
+    }))
   }
 }

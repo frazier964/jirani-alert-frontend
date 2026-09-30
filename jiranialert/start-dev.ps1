@@ -38,7 +38,9 @@ while ($attempt -lt $maxAttempts -and -not $backendReady) {
 if ($backendReady) {
     Write-Host "✅ Backend is ready! (took $attempt seconds)" -ForegroundColor Green
 } else {
-    Write-Host "⚠️  Backend didn't start within $maxAttempts seconds. Starting frontend anyway..." -ForegroundColor Yellow
+    Write-Host "❌ Backend didn't start within $maxAttempts seconds." -ForegroundColor Red
+    Write-Host "   Check the Firebase emulator window for the startup error, then run this script again." -ForegroundColor Yellow
+    exit 1
 }
 
 # Start frontend
