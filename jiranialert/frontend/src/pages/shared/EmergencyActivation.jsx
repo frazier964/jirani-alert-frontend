@@ -78,6 +78,7 @@ export default function EmergencyActivation() {
   const [progress, setProgress] = useState(0)
   const [holding, setHolding] = useState(false)
   const [sending, setSending] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const [dispatched, setDispatched] = useState(false)
   const [message, setMessage] = useState('')
   const [location, setLocation] = useState(null)
@@ -168,7 +169,7 @@ export default function EmergencyActivation() {
     if (progressCircleRef.current) progressCircleRef.current.style.strokeDasharray = `${RING_LENGTH} 0`
     setMessage('Broadcasting emergency alert...')
     try {
-      const response = await reportApi.activateEmergency({
+      const response = await reportApi.submitEmergencyAlert({
         idempotencyKey: idempotencyKeyRef.current,
         guestIdentifier: getGuestIdentifier(),
         locationCoordinates: location,
@@ -196,12 +197,19 @@ export default function EmergencyActivation() {
       lastLabelUpdateRef.current = timestamp
       setProgress(nextProgress)
     }
-    if (nextProgress >= 1) { frameRef.current = null; void activate(); return }
+    if (nextProgress >= 1) {
+      frameRef.current = null
+      holdingRef.current = false
+      setHolding(false)
+      setConfirming(true)
+      setMessage('Confirm to send your emergency alert.')
+      return
+    }
     frameRef.current = requestAnimationFrame(updateHold)
   }
 
   const startHold = (event) => {
-    if (sending || dispatched || activatedRef.current || holdingRef.current) return
+    if (sending || confirming || dispatched || activatedRef.current || holdingRef.current) return
     event.currentTarget.setPointerCapture?.(event.pointerId)
     setMessage('')
     holdingRef.current = true
@@ -223,7 +231,10 @@ export default function EmergencyActivation() {
       progressRef.current = 1
       setProgress(1)
       if (progressCircleRef.current) progressCircleRef.current.style.strokeDasharray = `${RING_LENGTH} 0`
-      void activate()
+      holdingRef.current = false
+      setHolding(false)
+      setConfirming(true)
+      setMessage('Confirm to send your emergency alert.')
       return
     }
     cancelHold(true)
@@ -232,7 +243,15 @@ export default function EmergencyActivation() {
   const ringProgress = RING_LENGTH * progress
   const remaining = Math.max(0, 3 - progress * 3).toFixed(1)
 
+  const cancelConfirmation = () => {
+    setConfirming(false)
+    setProgress(0)
+    progressRef.current = 0
+    if (progressCircleRef.current) progressCircleRef.current.style.strokeDasharray = `0 ${RING_LENGTH}`
+    setMessage('Alert cancelled. Hold continuously for 3 seconds when you are ready.')
+  }
+
   if (dispatched) return <main className="emergency-page dispatched-page"><div className="dispatch-shell"><div className="dispatch-banner"><span className="live-dot" /> CRITICAL ALERT BROADCASTED</div><div className="dispatch-icon"><Check /></div><p className="eyebrow amber-text">JIRANIALERT / DISPATCH CONTROL</p><h1>DISPATCHED</h1><p className="dispatch-summary">Your emergency signal is active. Nearby responders have been notified and your location is being shared securely.</p><div className="dispatch-grid"><section className="dispatch-log"><div className="panel-heading"><div><span className="panel-kicker"><Activity /> Activity stream</span><h2>Response timeline</h2></div><span className="panel-chip secure-chip">LIVE</span></div><div className="activity-list">{activityLog.map(({ text, icon: Icon }) => <div className="activity-entry" key={text}><Icon /><span>{text}</span><Check /></div>)}{activityLog.length < 4 && <div className="activity-pending"><Loader2 /> Establishing secure response route...</div>}</div></section><section className="audio-card"><div className="panel-heading"><div><span className="panel-kicker"><Radio /> Evidence capture</span><h2>Scene audio</h2></div><span className="recording-status"><span className="record-dot" /> REC</span></div><Waveform /><p>Recording locally for responder context</p></section></div><div className="dispatch-actions"><span><MapPin /> GPS shared with authorities</span><button type="button" onClick={() => navigate('/report-emergency', { replace: true })}>Continue to details <ArrowLeft /></button></div></div></main>
 
-  return <main className="emergency-page"><header className="emergency-header"><button type="button" className="back-button" onClick={() => navigate(-1)} aria-label="Go back"><ArrowLeft /></button><div className="brand-lockup"><img src="/jirani-alert-logo.svg" alt="Jirani Alert" /><span>JIRAN<span>ALERT</span></span></div><div className="system-state"><span className="live-dot" /> System secure</div></header><TelemetryBar location={location} battery={battery} signal={signal} gpsStatus={gpsStatus} /><div className="emergency-layout"><TacticalGrid location={location} /><section className="controls-panel"><div className="controls-heading"><div><p className="eyebrow crimson-text">Emergency activation</p><h1>Need help now?</h1><p>Hold the button to broadcast your location to emergency responders.</p></div><div className="secure-badge"><ShieldCheck /> Secure</div></div><div className={`sos-stage ${holding ? 'is-holding' : ''}`}><span className="sos-ripple ripple-one" /><span className="sos-ripple ripple-two" /><svg className="sos-progress" viewBox="0 0 256 256" aria-hidden="true"><circle cx="128" cy="128" r="112" /><circle ref={progressCircleRef} cx="128" cy="128" r="112" style={{ strokeDasharray: `${ringProgress} ${RING_LENGTH}` }} /></svg><button type="button" className="sos-button" disabled={sending} onPointerDown={startHold} onPointerUp={releaseHold} onPointerCancel={releaseHold} onPointerLeave={releaseHold} onTouchStart={startHold} onTouchEnd={releaseHold} onTouchCancel={releaseHold} aria-label="Hold to alert responders">{sending ? <Loader2 className="spin-icon" /> : <Siren />}<strong>{sending ? 'SENDING' : holding ? `HOLD ${remaining}s` : 'HOLD 3s TO SOS'}</strong><span>{holding ? 'Keep holding' : 'Release to cancel'}</span></button></div><div className="hold-instruction"><Gauge /> {message || 'Continuous pressure activates the emergency broadcast.'}</div><div className="controls-footer"><span><MapPin /> GPS Active: {gpsStatus === 'locked' ? 'Shared with authorities' : gpsStatus}</span><span><Cpu /> Device ID verified</span></div></section></div></main>
+  return <main className="emergency-page"><header className="emergency-header"><button type="button" className="back-button" onClick={() => navigate(-1)} aria-label="Go back"><ArrowLeft /></button><div className="brand-lockup"><img src="/jirani-alert-logo.svg" alt="Jirani Alert" /><span>JIRAN<span>ALERT</span></span></div><div className="system-state"><span className="live-dot" /> System secure</div></header><TelemetryBar location={location} battery={battery} signal={signal} gpsStatus={gpsStatus} /><div className="emergency-layout"><TacticalGrid location={location} /><section className="controls-panel"><div className="controls-heading"><div><p className="eyebrow crimson-text">Emergency activation</p><h1>Need help now?</h1><p>Hold the button to broadcast your location to emergency responders.</p></div><div className="secure-badge"><ShieldCheck /> Secure</div></div><div className={`sos-stage ${holding ? 'is-holding' : ''}`}><span className="sos-ripple ripple-one" /><span className="sos-ripple ripple-two" /><svg className="sos-progress" viewBox="0 0 256 256" aria-hidden="true"><circle cx="128" cy="128" r="112" /><circle ref={progressCircleRef} cx="128" cy="128" r="112" style={{ strokeDasharray: `${ringProgress} ${RING_LENGTH}` }} /></svg><button type="button" className="sos-button" disabled={sending || confirming} onPointerDown={startHold} onPointerUp={releaseHold} onPointerCancel={releaseHold} onPointerLeave={releaseHold} onTouchStart={startHold} onTouchEnd={releaseHold} onTouchCancel={releaseHold} aria-label="Hold to alert responders">{sending ? <Loader2 className="spin-icon" /> : <Siren />}<strong>{sending ? 'SENDING' : holding ? `HOLD ${remaining}s` : 'HOLD 3s TO SOS'}</strong><span>{holding ? 'Keep holding' : 'Release to cancel'}</span></button></div><div className="hold-instruction"><Gauge /> {message || 'Continuous pressure activates the emergency broadcast.'}</div><div className="controls-footer"><span><MapPin /> GPS Active: {gpsStatus === 'locked' ? 'Shared with authorities' : gpsStatus}</span><span><Cpu /> Device ID verified</span></div></section></div>{confirming && <div className="confirmation-backdrop" role="presentation"><section className="confirmation-dialog" role="dialog" aria-modal="true" aria-labelledby="emergency-confirm-title"><p className="eyebrow crimson-text">Confirm emergency</p><h2 id="emergency-confirm-title">Send an emergency alert?</h2><p>Your location and emergency signal will be shared with responders. You can add more details after the alert is received.</p><div className="confirmation-actions"><button type="button" onClick={cancelConfirmation}>Cancel</button><button type="button" disabled={sending} onClick={() => { setConfirming(false); void activate() }}>{sending ? 'Sending…' : 'Confirm and send'}</button></div></section></div>}</main>
 }

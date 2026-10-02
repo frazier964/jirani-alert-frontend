@@ -19,6 +19,11 @@ export default defineConfig({
       protocol: 'ws',
     },
     proxy: {
+      // Run `vercel dev` from this frontend directory to serve the emergency API locally.
+      '/api/emergency/trigger': {
+        target: 'http://127.0.0.1:3000',
+        changeOrigin: true,
+      },
       '/api': {
         target: 'http://127.0.0.1:5005',
         changeOrigin: true,

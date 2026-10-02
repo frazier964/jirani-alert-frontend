@@ -76,54 +76,39 @@ export async function getReport(reportId) {
   return callBackend(`getEmergencyReport/${encodeURIComponent(reportId)}`, 'GET')
 }
 
-export function activateEmergency(payload) {
-  // Keep this same-origin so production browsers do not need a Cloud Functions CORS preflight.
-  const endpoint = '/api/activateEmergency'
-  const queueKey = 'jiranialert_emergency_offline_queue'
+export async function submitEmergencyAlert(payload) {
+  const endpoint = '/api/emergency/trigger'
   const requestPayload = {
     status: 'CRITICAL_ALERT',
     timestamp: new Date().toISOString(),
     location: payload.locationCoordinates || null,
     ...payload,
   }
+  const headers = { 'Content-Type': 'application/json' }
+  const token = await auth?.currentUser?.getIdToken().catch(() => null)
+  if (token) headers.Authorization = `Bearer ${token}`
 
-  const queueFailure = () => {
-    try {
-      const queue = JSON.parse(localStorage.getItem(queueKey) || '[]')
-      queue.push({ ...requestPayload, queuedAt: new Date().toISOString() })
-      localStorage.setItem(queueKey, JSON.stringify(queue.slice(-10)))
-    } catch {
-      // Storage may be unavailable in private browsing; the request error remains visible.
-    }
+  let response
+  try {
+    response = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestPayload),
+      keepalive: true,
+    })
+  } catch (error) {
+    throw new Error(`Unable to reach the emergency service. Check your connection and try again. ${error?.message || ''}`.trim(), { cause: error })
   }
 
-  return (async () => {
-    let lastError
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      try {
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestPayload),
-          keepalive: true,
-        })
-        const responseText = await response.text()
-        let data = {}
-        try { data = responseText ? JSON.parse(responseText) : {} } catch { data = { error: responseText } }
-        if (response.status === 404) {
-          throw new Error('Emergency service is not deployed. Ask the administrator to deploy Firebase Functions, then try again.')
-        }
-        if (!response.ok) throw new Error(data.error || `Emergency service returned HTTP ${response.status}`)
-        return data
-      } catch (error) {
-        lastError = error
-        if (error?.message?.includes('Emergency service is not deployed')) break
-        if (attempt < 2) await new Promise((resolve) => window.setTimeout(resolve, 150 * (attempt + 1)))
-      }
-    }
-    queueFailure()
-    throw lastError || new Error('Emergency service unavailable')
-  })()
+  const responseText = await response.text()
+  let data
+  try { data = responseText ? JSON.parse(responseText) : {} } catch { data = { error: responseText.slice(0, 300) } }
+  if (!response.ok) {
+    if (response.status === 401) throw new Error(data.error || 'Your session has expired. Sign in again and retry.')
+    throw new Error(data.error || `Emergency service returned HTTP ${response.status}`)
+  }
+  if (!data.reportId) throw new Error('The emergency service did not confirm that the alert was saved. Please retry.')
+  return data
 }
 
 export function updateEmergencyReport(payload) {
@@ -169,4 +154,4 @@ export async function geocodeLocation(place) {
     .filter((item) => Number.isFinite(item.latitude) && Number.isFinite(item.longitude))
 }
 
-export default { uploadEvidenceFile, createReport, updateEmergencyReport, activateEmergency, listReports, getReport, geocodeLocation }
+export default { uploadEvidenceFile, createReport, updateEmergencyReport, submitEmergencyAlert, listReports, getReport, geocodeLocation }

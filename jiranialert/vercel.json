@@ -2,6 +2,12 @@
   "functions": {
     "api/[...path].js": {
       "maxDuration": 30
+    },
+    "api/emergency/trigger.js": {
+      "maxDuration": 30
+    },
+    "api/listEmergencyReports.js": {
+      "maxDuration": 30
     }
   },
   "headers": [
