@@ -18,6 +18,8 @@ export default function SignUp() {
     password: '',
     confirmPassword: '',
     role: 'resident',
+    estateId: '',
+    estateName: '',
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -58,6 +60,7 @@ export default function SignUp() {
     
     if (!formData.confirmPassword) newErrors.confirmPassword = 'Confirm password'
     else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match'
+    if (formData.role === 'admin' && !formData.estateId.trim()) newErrors.estateId = 'Estate ID is required for local admins'
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -80,6 +83,8 @@ export default function SignUp() {
         lastName: formData.lastName,
         displayName: formData.firstName,
         fullName: `${formData.firstName} ${formData.lastName}`.trim(),
+        estateId: formData.estateId,
+        estateName: formData.estateName,
       })
 
       const verificationInfo = user.verificationEmail || { sent: false, reason: 'Verification email status not available' }
@@ -313,6 +318,30 @@ export default function SignUp() {
                   </p>
                 </motion.div>
 
+                {formData.role === 'admin' && (
+                  <motion.div variants={itemVariants} className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <input
+                        type="text"
+                        name="estateId"
+                        value={formData.estateId}
+                        onChange={handleChange}
+                        placeholder="Assigned Estate ID"
+                        className={`w-full rounded-full bg-white px-6 py-4 font-medium text-gray-800 placeholder-gray-400 focus:outline-none ${errors.estateId ? 'ring-2 ring-red-400' : 'focus:ring-2 focus:ring-blue-300'}`}
+                      />
+                      {errors.estateId && <p className="mt-1 flex items-center gap-1 text-sm text-red-200"><AlertCircle className="h-4 w-4" /> {errors.estateId}</p>}
+                    </div>
+                    <input
+                      type="text"
+                      name="estateName"
+                      value={formData.estateName}
+                      onChange={handleChange}
+                      placeholder="Estate name (e.g. Oak Valley Phase 2)"
+                      className="w-full rounded-full bg-white px-6 py-4 font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    />
+                  </motion.div>
+                )}
+
                 {/* Password */}
                 <motion.div variants={itemVariants}>
                   <div className="relative">
@@ -535,4 +564,3 @@ export default function SignUp() {
     </div>
   )
 }
-

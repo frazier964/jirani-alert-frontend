@@ -108,7 +108,7 @@ async function saveRoleIndexForUser({ user, role, displayName = '', firstName = 
   )
 }
 
-async function saveProfileForUser({ user, role, displayName = '', firstName = '', lastName = '', fullName = '', accountStatus = 'pending_verification' }) {
+async function saveProfileForUser({ user, role, displayName = '', firstName = '', lastName = '', fullName = '', estateId = '', estateName = '', houseNumber = '', accountStatus = 'pending_verification' }) {
   const normalizedRole = normalizeAccountRole(role) || 'resident'
   const normalizedEmail = getEmailRoleId(user?.email)
   if (!firestore || !user?.uid) return null
@@ -126,6 +126,9 @@ async function saveProfileForUser({ user, role, displayName = '', firstName = ''
     lastName: resolvedLastName,
     fullName: resolvedFullName,
     role: normalizedRole,
+    ...(estateId ? { estateId: String(estateId).trim() } : {}),
+    ...(estateName ? { estateName: String(estateName).trim(), jurisdictionName: String(estateName).trim() } : {}),
+    ...(houseNumber ? { houseNumber: String(houseNumber).trim() } : {}),
     accountStatus,
     emailVerified: Boolean(user.emailVerified),
     authProvider: 'password',
@@ -393,7 +396,7 @@ export function getCurrentUser() {
   }
 }
 
-export async function registerUser({ email, password, role = 'resident', firstName = '', lastName = '', displayName = '', fullName = '' }) {
+export async function registerUser({ email, password, role = 'resident', firstName = '', lastName = '', displayName = '', fullName = '', estateId = '', estateName = '', houseNumber = '' }) {
   if (!auth) throw new Error('Firebase not configured')
   const usingEmulators = await waitForFirebaseReady()
   const normalizedEmail = String(email || '').trim().toLowerCase()
@@ -458,7 +461,13 @@ export async function registerUser({ email, password, role = 'resident', firstNa
           firstName: resolvedFirstName,
           lastName: resolvedLastName,
           fullName: resolvedFullName,
+          estateId,
+          estateName,
+          houseNumber,
           role,
+          ...(estateId ? { estateId } : {}),
+          ...(estateName ? { estateName } : {}),
+          ...(houseNumber ? { houseNumber } : {}),
         }),
       })
 
@@ -493,6 +502,9 @@ export async function registerUser({ email, password, role = 'resident', firstNa
       firstName: resolvedFirstName,
       lastName: resolvedLastName,
       fullName: resolvedFullName,
+      estateId,
+      estateName,
+      houseNumber,
       accountStatus: user.emailVerified ? 'active' : 'pending_verification',
     })
     if (!savedProfile && fallbackProfile) {

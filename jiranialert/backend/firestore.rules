@@ -10,6 +10,11 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
+    function adminOwnsEstate(resourceData) {
+      return request.auth.token.role == 'admin'
+        && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.estateId == resourceData.estateId;
+    }
+
     match /users/{userId} {
       allow create: if ownsUserDocument(userId);
       allow read, update: if ownsUserDocument(userId);
@@ -33,22 +38,31 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /adminAuditLogs/{logId} {
+      allow read, write: if false;
+    }
+
     match /reports/{reportId} {
       allow create: if signedIn()
         && request.resource.data.reporterId == request.auth.uid;
       allow read: if signedIn()
         && (resource.data.reporterId == request.auth.uid
           || resource.data.assignedResponderId == request.auth.uid
-          || request.auth.token.role in ['admin', 'responder']);
+          || request.auth.token.role == 'responder'
+          || adminOwnsEstate(resource.data));
       allow update: if signedIn()
-        && request.auth.token.role in ['admin', 'responder'];
+        && (request.auth.token.role == 'responder' || adminOwnsEstate(resource.data));
       allow delete: if false;
     }
 
     match /alerts/{alertId} {
-      allow read: if signedIn() || resource.data.isPublic == true;
-      allow create, update: if signedIn()
-        && request.auth.token.role in ['admin', 'responder'];
+      allow read: if (signedIn() && (request.auth.token.role != 'admin' || adminOwnsEstate(resource.data)))
+        || resource.data.isPublic == true;
+      allow create: if signedIn()
+        && request.auth.token.role in ['admin', 'responder']
+        && (request.auth.token.role != 'admin' || adminOwnsEstate(request.resource.data));
+      allow update: if signedIn()
+        && (request.auth.token.role == 'responder' || adminOwnsEstate(resource.data));
       allow delete: if false;
     }
 

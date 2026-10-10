@@ -567,6 +567,43 @@ async function resolveRequestUserRole(user) {
   return normalizeRole(user.role) || normalizeRole(profile.role) || normalizeRole(profile.accountType) || 'resident'
 }
 
+async function requireLocalAdminUser(req) {
+  const user = await requireUser(req)
+  const profileSnap = await db.collection('profiles').doc(user.uid).get()
+  const profile = profileSnap.exists ? profileSnap.data() || {} : {}
+  const role = normalizeRole(user.role) || normalizeRole(profile.role) || normalizeRole(profile.accountType)
+  if (role !== 'admin') {
+    const error = new Error('Local admin access is required')
+    error.status = 403
+    throw error
+  }
+
+  const estateId = String(profile.estateId || profile.assignedEstateId || '').trim()
+  if (!estateId) {
+    const error = new Error('This admin account is not assigned to an estate')
+    error.status = 403
+    throw error
+  }
+
+  return { ...user, role, estateId, profile }
+}
+
+async function writeLocalAdminAudit({ admin, action, targetId = null, metadata = {} }) {
+  await db.collection('adminAuditLogs').add({
+    adminId: admin.uid,
+    adminEmail: admin.email || null,
+    estateId: admin.estateId,
+    action,
+    targetId,
+    metadata,
+    createdAt: serverTimestampValue(),
+  })
+}
+
+function profileForAdmin(doc) {
+  return { id: doc.id, ...doc.data() }
+}
+
 async function getResponderProfiles() {
   const [roleSnapshot, accountTypeSnapshot] = await Promise.all([
     db.collection('profiles').where('role', 'in', ['responder', 'admin']).get(),
@@ -612,6 +649,158 @@ function requiredString(value, field) {
 function optionalString(value) {
   return typeof value === 'string' ? value.trim() : ''
 }
+
+exports.getLocalAdminDashboard = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'GET')
+    const adminUser = await requireLocalAdminUser(req)
+    const [residentSnapshot, alertSnapshot] = await Promise.all([
+      db.collection('profiles').where('estateId', '==', adminUser.estateId).get(),
+      db.collection('alerts').where('estateId', '==', adminUser.estateId).get(),
+    ])
+    const residents = residentSnapshot.docs
+      .map(profileForAdmin)
+      .filter((profile) => normalizeRole(profile.role) === 'resident' && profile.accountStatus !== 'pending_admin_approval')
+      .filter((profile) => profile.accountStatus !== 'deactivated')
+    const pendingResidents = residentSnapshot.docs
+      .map(profileForAdmin)
+      .filter((profile) => normalizeRole(profile.role) === 'resident')
+      .filter((profile) => ['pending', 'pending_admin_approval', 'pending_verification'].includes(String(profile.accountStatus || '').toLowerCase()))
+    const alerts = alertSnapshot.docs
+      .map(profileForAdmin)
+      .filter((alert) => !['dismissed', 'resolved', 'completed'].includes(String(alert.status || '').toLowerCase()))
+
+    res.json({
+      estateId: adminUser.estateId,
+      jurisdictionName: adminUser.profile.jurisdictionName || adminUser.profile.estateName || adminUser.estateId,
+      stats: {
+        pendingResidents: pendingResidents.length,
+        activeAlerts: alerts.length,
+        verifiedResidents: residents.filter((profile) => String(profile.accountStatus || '').toLowerCase() === 'active').length,
+      },
+      pendingResidents,
+      residents,
+      alerts,
+    })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.reviewLocalResident = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const adminUser = await requireLocalAdminUser(req)
+    const residentId = requiredString(req.body?.residentId, 'residentId')
+    const action = requiredString(req.body?.action, 'action').toLowerCase()
+    const statusByAction = { approve: 'active', reject: 'rejected', suspend: 'suspended' }
+    if (!statusByAction[action]) {
+      const error = new Error('Action must be approve, reject, or suspend')
+      error.status = 400
+      throw error
+    }
+
+    const residentRef = db.collection('profiles').doc(residentId)
+    const residentSnap = await residentRef.get()
+    if (!residentSnap.exists || residentSnap.data()?.estateId !== adminUser.estateId || normalizeRole(residentSnap.data()?.role) !== 'resident') {
+      const error = new Error('Resident is not in your assigned estate')
+      error.status = 404
+      throw error
+    }
+    const now = serverTimestampValue()
+    await residentRef.set({ accountStatus: statusByAction[action], reviewedBy: adminUser.uid, reviewedAt: now, updatedAt: now }, { merge: true })
+    await writeLocalAdminAudit({ admin: adminUser, action: `resident_${action}`, targetId: residentId })
+    res.json({ ok: true, status: statusByAction[action] })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.moderateLocalAlert = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const adminUser = await requireLocalAdminUser(req)
+    const alertId = requiredString(req.body?.alertId, 'alertId')
+    const action = requiredString(req.body?.action, 'action').toLowerCase()
+    const updatesByAction = {
+      pin: { pinned: true },
+      dismiss: { status: 'Dismissed', dismissedBy: adminUser.uid },
+    }
+    if (!updatesByAction[action]) {
+      const error = new Error('Action must be pin or dismiss')
+      error.status = 400
+      throw error
+    }
+    const alertRef = db.collection('alerts').doc(alertId)
+    const alertSnap = await alertRef.get()
+    if (!alertSnap.exists || alertSnap.data()?.estateId !== adminUser.estateId) {
+      const error = new Error('Alert is not in your assigned estate')
+      error.status = 404
+      throw error
+    }
+    await alertRef.set({ ...updatesByAction[action], updatedAt: serverTimestampValue() }, { merge: true })
+    await writeLocalAdminAudit({ admin: adminUser, action: `alert_${action}`, targetId: alertId })
+    res.json({ ok: true })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.createLocalBroadcast = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const adminUser = await requireLocalAdminUser(req)
+    const title = requiredString(req.body?.title, 'title').slice(0, 160)
+    const message = requiredString(req.body?.message, 'message').slice(0, 4000)
+    const severity = ['Info', 'Warning', 'Urgent'].includes(req.body?.severity) ? req.body.severity : 'Info'
+    const now = serverTimestampValue()
+    const broadcastRef = db.collection('broadcasts').doc()
+    const residentSnapshot = await db.collection('profiles')
+      .where('estateId', '==', adminUser.estateId)
+      .where('role', '==', 'resident')
+      .get()
+    const batch = db.batch()
+    batch.set(broadcastRef, {
+      estateId: adminUser.estateId,
+      title,
+      message,
+      severity,
+      authorId: adminUser.uid,
+      createdAt: now,
+    })
+    residentSnapshot.docs
+      .filter((resident) => resident.data()?.accountStatus === 'active')
+      .forEach((resident) => {
+        batch.set(db.collection('notifications').doc(), {
+          recipientId: resident.id,
+          estateId: adminUser.estateId,
+          title,
+          message,
+          severity,
+          broadcastId: broadcastRef.id,
+          read: false,
+          createdAt: now,
+        })
+      })
+    await batch.commit()
+    await writeLocalAdminAudit({ admin: adminUser, action: 'broadcast_created', targetId: broadcastRef.id, metadata: { recipientCount: residentSnapshot.size } })
+    res.status(201).json({ ok: true, broadcastId: broadcastRef.id, recipientCount: residentSnapshot.size })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
 
 function normalizeRole(role) {
   const value = String(role || '').trim().toLowerCase()
@@ -664,6 +853,9 @@ exports.createUserProfile = onRequest({ region: 'us-central1' }, async (req, res
     const displayName = (typeof body.displayName === 'string' ? body.displayName.trim() : '') || firstName
     const requestedRole = typeof body.role === 'string' ? body.role.trim() : 'resident'
     const role = allowedRoles.has(requestedRole) ? requestedRole : 'resident'
+    const estateId = typeof body.estateId === 'string' ? body.estateId.trim().slice(0, 120) : ''
+    const estateName = typeof body.estateName === 'string' ? body.estateName.trim().slice(0, 160) : ''
+    const houseNumber = typeof body.houseNumber === 'string' ? body.houseNumber.trim().slice(0, 80) : ''
     const now = serverTimestampValue()
     const profileRef = db.collection('profiles').doc(user.uid)
     const notificationRef = db.collection('notifications').doc()
@@ -671,7 +863,7 @@ exports.createUserProfile = onRequest({ region: 'us-central1' }, async (req, res
     const emailVerified = Boolean(user.email_verified || user.emailVerified)
 
     try {
-      await admin.auth().setCustomUserClaims(user.uid, { role })
+      await admin.auth().setCustomUserClaims(user.uid, { role, ...(estateId ? { estateId } : {}) })
     } catch (claimsError) {
       console.warn('Could not set custom user claims:', claimsError.message || claimsError)
     }
@@ -695,6 +887,9 @@ exports.createUserProfile = onRequest({ region: 'us-central1' }, async (req, res
           lastName,
           fullName: fullName || [firstName, lastName].filter(Boolean).join(' '),
           role,
+          ...(estateId ? { estateId } : {}),
+          ...(estateName ? { estateName, jurisdictionName: estateName } : {}),
+          ...(houseNumber ? { houseNumber } : {}),
           accountStatus: emailVerified ? 'active' : 'pending_verification',
           emailVerified,
           authProvider: 'password',
@@ -775,6 +970,8 @@ exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req,
       && Number.isFinite(body.locationCoordinates.longitude)
       ? { latitude: body.locationCoordinates.latitude, longitude: body.locationCoordinates.longitude }
       : null
+    const reporterProfile = await db.collection('profiles').doc(user.uid).get().catch(() => null)
+    const estateId = reporterProfile?.data?.()?.estateId || null
 
     const now = serverTimestampValue()
     const reportRef = db.collection('reports').doc()
@@ -802,6 +999,7 @@ exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req,
         reporterName,
         reporterPhone,
         locationCoordinates,
+        ...(estateId ? { estateId } : {}),
         createdAt: now,
         updatedAt: now,
       })
@@ -817,6 +1015,7 @@ exports.createEmergencyReport = onRequest({ region: 'us-central1' }, async (req,
         anonymous,
         status: 'Active',
         evidenceUrl: evidenceUrl || null,
+        ...(estateId ? { estateId } : {}),
         createdAt: now,
         updatedAt: now,
       })
