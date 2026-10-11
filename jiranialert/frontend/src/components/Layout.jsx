@@ -79,28 +79,18 @@ export default function Layout() {
         return
       }
 
-      if (role === 'responder' && !isResponder) {
-        navigate('/responder/dashboard', { replace: true })
-        return
-      }
-
       if (role === 'admin' && !isAdmin) {
         navigate('/admin/dashboard', { replace: true })
         return
       }
 
-      if (role === 'resident' && isResponder) {
-        navigate('/resident/dashboard', { replace: true })
-        return
-      }
-
-      if (role === 'responder' && isResident) {
+      if (role === 'responder' && !isResponder) {
         navigate('/responder/dashboard', { replace: true })
         return
       }
 
-      if (role === 'admin' && (isResident || isResponder)) {
-        navigate('/admin/dashboard', { replace: true })
+      if (role === 'resident' && !isResident) {
+        navigate('/resident/dashboard', { replace: true })
       }
     }
 

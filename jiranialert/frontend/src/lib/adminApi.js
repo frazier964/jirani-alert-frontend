@@ -25,12 +25,14 @@ async function request(endpoint, method = 'GET', body = null) {
 }
 
 export const getAdminDashboard = () => request('getLocalAdminDashboard')
-export const reviewResident = (residentId, action) => request('reviewLocalResident', 'POST', { residentId, action })
+export const reviewResident = (residentId, action, reason = '') => request('reviewLocalResident', 'POST', { residentId, action, reason })
 export const moderateAlert = (alertId, action) => request('moderateLocalAlert', 'POST', { alertId, action })
+export const moderateAlertWithReason = (alertId, action, reason = '') =>
+  request('moderateLocalAlert', 'POST', { alertId, action, reason })
 export const manageUser = (userId, action, payload = {}) => request('manageLocalUser', 'POST', { userId, action, ...payload })
 export const reviewResponder = (responderId, action, reason = '') => request('reviewLocalResponder', 'POST', { responderId, action, reason })
 export const manageIncident = (incidentId, action, payload = {}) => request('manageLocalIncident', 'POST', { incidentId, action, ...payload })
 export const createBroadcast = (title, message, severity = 'Info') =>
   request('createLocalBroadcast', 'POST', { title, message, severity })
 
-export default { getAdminDashboard, reviewResident, moderateAlert, manageUser, reviewResponder, manageIncident, createBroadcast }
+export default { getAdminDashboard, reviewResident, moderateAlert, moderateAlertWithReason, manageUser, reviewResponder, manageIncident, createBroadcast }

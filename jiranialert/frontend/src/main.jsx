@@ -124,7 +124,10 @@ function AppRoutes() {
             <Route path="/responder/team-members" element={<Navigate to="/responder/team" replace />} />
             <Route path="/responder/help-support" element={<Navigate to="/responder/help" replace />} />
 
+            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/member-verification" element={<AdminWorkspace section="member-verification" />} />
+            <Route path="/admin/alert-moderation" element={<AdminWorkspace section="alert-moderation" />} />
             <Route path="/admin/users" element={<AdminWorkspace section="users" />} />
             <Route path="/admin/responders" element={<AdminWorkspace section="responders" />} />
             <Route path="/admin/incidents" element={<AdminWorkspace section="incidents" />} />

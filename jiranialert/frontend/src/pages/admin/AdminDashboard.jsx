@@ -1,27 +1,56 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
-  Activity,
   ArrowUpRight,
+  BarChart3,
   Bell,
   Building2,
+  ClipboardCheck,
   Check,
   Clock3,
+  FileClock,
+  Gavel,
+  LayoutDashboard,
   MapPin,
+  Map,
+  Menu,
   Megaphone,
   Search,
+  Settings,
+  ShieldCheck,
   Users,
   X,
 } from 'lucide-react'
 import { getCurrentUser, logout } from '../../lib/auth'
 import { createBroadcast, getAdminDashboard, moderateAlert, reviewResident } from '../../lib/adminApi'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
-const tabs = [
-  { id: 'verification', label: 'Member verification' },
-  { id: 'alerts', label: 'Alert moderation' },
-  { id: 'directory', label: 'Resident directory' },
+const sidebarItems = [
+  ['Overview', LayoutDashboard, '/admin/dashboard'],
+  ['Member verification', ClipboardCheck, '/admin/member-verification'],
+  ['Alert moderation', Gavel, '/admin/alert-moderation'],
+  ['Resident directory', Building2, '/admin/users'],
+  ['User management', Users, '/admin/users'],
+  ['Responder management', ShieldCheck, '/admin/responders'],
+  ['Incident management', AlertTriangle, '/admin/incidents'],
+  ['Incident map', Map, '/admin/map'],
+  ['Analytics', BarChart3, '/admin/analytics'],
+  ['Audit logs', FileClock, '/admin/audit-logs'],
+  ['Settings', Settings, '/admin/settings'],
 ]
+
+const demoDashboard = {
+  stats: { pendingResidents: 8, activeAlerts: 6, verifiedResidents: 120 },
+  pendingResidents: [
+    { id: 'demo-resident-2', fullName: 'David Otieno', email: 'david@example.com', houseNumber: 'B-07', createdAt: '2026-10-09T10:15:00Z' },
+  ],
+  alerts: [
+    { id: 'demo-alert-1', title: 'Suspicious activity reported', location: 'North entrance', severity: 'High', createdAt: '2026-10-11T09:20:00Z' },
+  ],
+  residents: [
+    { id: 'demo-resident-1', fullName: 'Amina Wanjiku', email: 'amina@example.com', houseNumber: 'A-14', accountStatus: 'active' },
+  ],
+}
 
 function formatDate(value) {
   if (!value) return 'Recently'
@@ -44,13 +73,14 @@ function StatCard({ label, value, icon: Icon, tone }) {
 export default function AdminDashboard() {
   const navigate = useNavigate()
   const [dashboard, setDashboard] = useState(null)
-  const [activeTab, setActiveTab] = useState('verification')
+  const activeTab = 'verification'
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [workingId, setWorkingId] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [broadcastOpen, setBroadcastOpen] = useState(false)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [broadcast, setBroadcast] = useState({ title: '', message: '', severity: 'Info' })
 
   const loadDashboard = async () => {
@@ -60,6 +90,7 @@ export default function AdminDashboard() {
       setDashboard(await getAdminDashboard())
     } catch (err) {
       setError(err.message || 'Unable to load the admin dashboard.')
+      setDashboard(demoDashboard)
     } finally {
       setLoading(false)
     }
@@ -146,27 +177,22 @@ export default function AdminDashboard() {
           <div className="px-4 py-7">
             <p className="px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Workspace</p>
             <nav className="mt-3 space-y-1">
-              {[
-                ['Overview', Activity],
-                ['Member verification', Users],
-                ['Alert moderation', AlertTriangle],
-                ['Resident directory', Building2],
-              ].map(([label, Icon], index) => (
-                <button
+              {sidebarItems.map(([label, Icon, path], index) => (
+                <Link
                   key={label}
-                  type="button"
-                  onClick={() => index === 1 ? setActiveTab('verification') : index === 2 ? setActiveTab('alerts') : index === 3 ? setActiveTab('directory') : undefined}
+                  to={path}
+                  onClick={() => setMobileNavOpen(false)}
                   className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition ${index === 0 ? 'bg-white text-slate-900 shadow-sm' : 'hover:bg-white/10 hover:text-white'}`}
                 >
                   <Icon className={`h-[18px] w-[18px] ${index === 0 ? 'text-[#2563eb]' : 'text-slate-500'}`} />
                   {label}
-                </button>
+                </Link>
               ))}
             </nav>
             <p className="mt-9 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">System</p>
-            <button type="button" onClick={() => setBroadcastOpen(true)} className="mt-3 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition hover:bg-white/10 hover:text-white">
+            <Link to="/admin/announcements" className="mt-3 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition hover:bg-white/10 hover:text-white">
               <Megaphone className="h-[18px] w-[18px] text-slate-500" /> Broadcast center
-            </button>
+            </Link>
           </div>
           <div className="mt-auto border-t border-white/10 p-4">
             <button type="button" onClick={signOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-slate-400 transition hover:bg-white/10 hover:text-white">
@@ -181,6 +207,9 @@ export default function AdminDashboard() {
           <header className="border-b border-slate-200 bg-white">
             <div className="flex min-h-[76px] items-center justify-between gap-4 px-5 py-4 sm:px-8">
               <div className="flex items-center gap-3 lg:hidden">
+                <button type="button" onClick={() => setMobileNavOpen(true)} aria-label="Open admin navigation" className="rounded-xl border border-slate-200 p-2 text-slate-700 transition hover:bg-slate-100">
+                  <Menu className="h-5 w-5" />
+                </button>
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white p-2 shadow-sm ring-1 ring-slate-200">
                   <img src="/jirani-alert-logo.svg" alt="JiraniAlert logo" className="h-full w-full" />
                 </div>
@@ -212,7 +241,7 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-        {error && <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div>}
+        {error && <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">Demo data is displayed while the administrator service is unavailable.</div>}
         {notice && <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{notice}</div>}
 
         <section className="grid gap-4 md:grid-cols-3">
@@ -223,11 +252,9 @@ export default function AdminDashboard() {
 
         <section className="mt-8 rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div className="flex flex-wrap gap-2 border-b border-slate-200 p-3">
-            {tabs.map((tab) => (
-              <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={`rounded-xl px-4 py-2.5 text-sm font-bold transition ${activeTab === tab.id ? 'bg-[#102a43] text-white' : 'text-slate-600 hover:bg-slate-100'}`}>
-                {tab.label}
-              </button>
-            ))}
+            <button type="button" onClick={() => navigate('/admin/member-verification')} className={`rounded-xl px-4 py-2.5 text-sm font-bold transition ${activeTab === 'verification' ? 'bg-[#102a43] text-white' : 'text-slate-600 hover:bg-slate-100'}`}>Member verification</button>
+            <button type="button" onClick={() => navigate('/admin/alert-moderation')} className="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-100">Alert moderation</button>
+            <button type="button" onClick={() => navigate('/admin/users')} className="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-100">Resident directory</button>
           </div>
 
           {activeTab === 'verification' && (
@@ -276,8 +303,21 @@ export default function AdminDashboard() {
       </div>
           </div>
         </div>
+        {mobileNavOpen ? <div className="fixed inset-0 z-40 lg:hidden">
+          <button type="button" aria-label="Close admin navigation" onClick={() => setMobileNavOpen(false)} className="absolute inset-0 bg-slate-950/60" />
+          <aside className="relative flex h-full w-[min(86vw,20rem)] flex-col bg-[#111827] text-slate-300 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-6">
+              <div className="flex items-center gap-3"><img src="/jirani-alert-logo.svg" alt="JiraniAlert logo" className="h-10 w-10 rounded-xl bg-white p-2" /><p className="font-black text-white">JIRANI<span className="text-red-400">ALERT</span></p></div>
+              <button type="button" onClick={() => setMobileNavOpen(false)} aria-label="Close admin navigation" className="rounded-lg p-2 text-slate-300 transition hover:bg-white/10"><X className="h-5 w-5" /></button>
+            </div>
+            <nav className="space-y-1 overflow-y-auto px-4 py-6">
+              {sidebarItems.map(([label, Icon, path], index) => <Link key={label} to={path} onClick={() => setMobileNavOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-white ${index === 0 ? 'bg-white text-slate-900 shadow-sm' : ''}`}><Icon className={`h-[18px] w-[18px] ${index === 0 ? 'text-[#2563eb]' : 'text-slate-500'}`} />{label}</Link>)}
+              <Link to="/admin/announcements" onClick={() => setMobileNavOpen(false)} className="mt-4 flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition hover:bg-white/10 hover:text-white"><Megaphone className="h-[18px] w-[18px] text-slate-500" />Broadcast center</Link>
+            </nav>
+          </aside>
+        </div> : null}
 
-      {broadcastOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"><form onSubmit={submitBroadcast} className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><h2 className="text-xl font-black text-slate-950">Broadcast to {dashboard?.jurisdictionName || dashboard?.estateId}</h2><p className="mt-1 text-sm text-slate-500">This message will be delivered to approved residents in this estate.</p></div><button type="button" onClick={() => setBroadcastOpen(false)} aria-label="Close broadcast dialog"><X /></button></div><input required value={broadcast.title} onChange={(event) => setBroadcast((state) => ({ ...state, title: event.target.value }))} placeholder="Announcement title" className="mt-6 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500" /><select value={broadcast.severity} onChange={(event) => setBroadcast((state) => ({ ...state, severity: event.target.value }))} className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-3"><option>Info</option><option>Warning</option><option>Urgent</option></select><textarea required value={broadcast.message} onChange={(event) => setBroadcast((state) => ({ ...state, message: event.target.value }))} placeholder="Write the official estate announcement..." rows="5" className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500" /><button type="submit" disabled={workingId === 'broadcast'} className="mt-4 w-full rounded-xl bg-[#102a43] px-4 py-3 font-bold text-white disabled:opacity-50">Send broadcast</button></form></div>}
+        {broadcastOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"><form onSubmit={submitBroadcast} className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><h2 className="text-xl font-black text-slate-950">Broadcast to {dashboard?.jurisdictionName || dashboard?.estateId}</h2><p className="mt-1 text-sm text-slate-500">This message will be delivered to approved residents in this estate.</p></div><button type="button" onClick={() => setBroadcastOpen(false)} aria-label="Close broadcast dialog"><X /></button></div><input required value={broadcast.title} onChange={(event) => setBroadcast((state) => ({ ...state, title: event.target.value }))} placeholder="Announcement title" className="mt-6 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500" /><select value={broadcast.severity} onChange={(event) => setBroadcast((state) => ({ ...state, severity: event.target.value }))} className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-3"><option>Info</option><option>Warning</option><option>Urgent</option></select><textarea required value={broadcast.message} onChange={(event) => setBroadcast((state) => ({ ...state, message: event.target.value }))} placeholder="Write the official estate announcement..." rows="5" className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500" /><button type="submit" disabled={workingId === 'broadcast'} className="mt-4 w-full rounded-xl bg-[#102a43] px-4 py-3 font-bold text-white disabled:opacity-50">Send broadcast</button></form></div>}
     </main>
   )
 }

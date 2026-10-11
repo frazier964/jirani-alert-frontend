@@ -665,6 +665,7 @@ exports.getLocalAdminDashboard = onRequest({ region: 'us-central1' }, async (req
       db.collection('adminAuditLogs').where('estateId', '==', adminUser.estateId).get(),
     ])
     const profiles = residentSnapshot.docs.map(profileForAdmin)
+    const verificationRequests = profiles.filter((profile) => normalizeRole(profile.role) === 'resident')
     const residents = profiles
       .filter((profile) => normalizeRole(profile.role) === 'resident' && profile.accountStatus !== 'pending_admin_approval')
       .filter((profile) => profile.accountStatus !== 'deactivated')
@@ -673,8 +674,22 @@ exports.getLocalAdminDashboard = onRequest({ region: 'us-central1' }, async (req
     const pendingResidents = profiles
       .filter((profile) => normalizeRole(profile.role) === 'resident')
       .filter((profile) => ['pending', 'pending_admin_approval', 'pending_verification'].includes(String(profile.accountStatus || '').toLowerCase()))
-    const alerts = alertSnapshot.docs
-      .map(profileForAdmin)
+    const reportById = new Map(reportSnapshot.docs.map((report) => [report.id, report.data() || {}]))
+    const profileById = new Map(profiles.map((profile) => [profile.id, profile]))
+    const allAlerts = alertSnapshot.docs.map((alertDoc) => {
+      const alert = profileForAdmin(alertDoc)
+      const report = reportById.get(alert.reportId || alert.id) || {}
+      const submitter = profileById.get(report.reporterId)
+      return {
+        ...alert,
+        submitterName: report.anonymous ? 'Anonymous reporter' : (report.reporterName || submitter?.fullName || submitter?.displayName || null),
+        submitterEmail: report.anonymous ? null : (report.reporterEmail || submitter?.email || null),
+        submitterRole: submitter?.role || null,
+        emergencyResponseStatus: report.status || alert.status || 'Pending',
+        flags: Array.isArray(alert.flags) ? alert.flags : [],
+      }
+    })
+    const alerts = allAlerts
       .filter((alert) => !['dismissed', 'resolved', 'completed'].includes(String(alert.status || '').toLowerCase()))
     const incidents = reportSnapshot.docs.map(profileForAdmin)
     const broadcasts = broadcastSnapshot.docs.map(profileForAdmin)
@@ -686,6 +701,11 @@ exports.getLocalAdminDashboard = onRequest({ region: 'us-central1' }, async (req
       stats: {
         pendingResidents: pendingResidents.length,
         activeAlerts: alerts.length,
+        moderationPending: allAlerts.filter((alert) => !alert.moderationStatus || alert.moderationStatus === 'pending_review').length,
+        moderationPublished: allAlerts.filter((alert) => alert.moderationStatus === 'published').length,
+        moderationFlagged: allAlerts.filter((alert) => alert.moderationStatus === 'flagged').length,
+        moderationRestricted: allAlerts.filter((alert) => ['restricted', 'changes_requested'].includes(alert.moderationStatus)).length,
+        moderationArchived: allAlerts.filter((alert) => alert.moderationStatus === 'archived').length,
         verifiedResidents: residents.filter((profile) => String(profile.accountStatus || '').toLowerCase() === 'active').length,
         totalResidents: residents.length,
         totalResponders: responders.length,
@@ -694,11 +714,13 @@ exports.getLocalAdminDashboard = onRequest({ region: 'us-central1' }, async (req
         resolvedIncidents: incidents.filter((incident) => ['resolved', 'completed'].includes(String(incident.status || '').toLowerCase())).length,
       },
       pendingResidents,
+      verificationRequests,
       residents,
       responders,
       pendingResponders,
       incidents,
       alerts,
+      allAlerts,
       broadcasts,
       auditLogs,
     })
@@ -725,14 +747,34 @@ exports.reviewLocalResident = onRequest({ region: 'us-central1' }, async (req, r
 
     const residentRef = db.collection('profiles').doc(residentId)
     const residentSnap = await residentRef.get()
-    if (!residentSnap.exists || residentSnap.data()?.estateId !== adminUser.estateId || normalizeRole(residentSnap.data()?.role) !== 'resident') {
+    const resident = residentSnap.exists ? residentSnap.data() || {} : null
+    if (!resident || resident.estateId !== adminUser.estateId || normalizeRole(resident.role) !== 'resident') {
       const error = new Error('Resident is not in your assigned estate')
       error.status = 404
       throw error
     }
+    const currentStatus = String(resident.accountStatus || '').toLowerCase()
+    if (!['pending', 'pending_admin_approval', 'pending_verification'].includes(currentStatus)) {
+      const error = new Error(`This verification request is already ${resident.accountStatus || 'processed'}`)
+      error.status = 409
+      throw error
+    }
     const now = serverTimestampValue()
-    await residentRef.set({ accountStatus: statusByAction[action], reviewedBy: adminUser.uid, reviewedAt: now, updatedAt: now }, { merge: true })
-    await writeLocalAdminAudit({ admin: adminUser, action: `resident_${action}`, targetId: residentId })
+    const rejectionReason = action === 'reject' ? requiredString(req.body?.reason, 'reason').slice(0, 500) : null
+    await residentRef.set({
+      accountStatus: statusByAction[action],
+      verificationStatus: action === 'approve' ? 'approved' : 'rejected',
+      reviewedBy: adminUser.uid,
+      reviewedAt: now,
+      ...(rejectionReason ? { rejectionReason } : {}),
+      updatedAt: now,
+    }, { merge: true })
+    await writeLocalAdminAudit({
+      admin: adminUser,
+      action: `resident_${action}`,
+      targetId: residentId,
+      metadata: { rejectionReason },
+    })
     res.json({ ok: true, status: statusByAction[action] })
   } catch (error) {
     sendError(res, error)
@@ -748,12 +790,23 @@ exports.moderateLocalAlert = onRequest({ region: 'us-central1' }, async (req, re
     const adminUser = await requireLocalAdminUser(req)
     const alertId = requiredString(req.body?.alertId, 'alertId')
     const action = requiredString(req.body?.action, 'action').toLowerCase()
+    const reasonRequired = ['request_corrections', 'flag', 'restrict', 'archive', 'restore'].includes(action)
+    const reason = reasonRequired ? requiredString(req.body?.reason, 'reason').slice(0, 1000) : optionalString(req.body?.reason).slice(0, 1000)
+    const statusByAction = {
+      publish: 'published',
+      approve: 'published',
+      request_corrections: 'changes_requested',
+      flag: 'flagged',
+      restrict: 'restricted',
+      archive: 'archived',
+      restore: 'published',
+    }
     const updatesByAction = {
       pin: { pinned: true },
-      dismiss: { status: 'Dismissed', dismissedBy: adminUser.uid },
+      dismiss: { moderationStatus: 'restricted', isPublic: false, dismissedBy: adminUser.uid },
     }
-    if (!updatesByAction[action]) {
-      const error = new Error('Action must be pin or dismiss')
+    if (!updatesByAction[action] && !statusByAction[action]) {
+      const error = new Error('Action must be publish, request_corrections, flag, restrict, archive, restore, pin, or dismiss')
       error.status = 400
       throw error
     }
@@ -764,9 +817,18 @@ exports.moderateLocalAlert = onRequest({ region: 'us-central1' }, async (req, re
       error.status = 404
       throw error
     }
-    await alertRef.set({ ...updatesByAction[action], updatedAt: serverTimestampValue() }, { merge: true })
-    await writeLocalAdminAudit({ admin: adminUser, action: `alert_${action}`, targetId: alertId })
-    res.json({ ok: true })
+    const now = serverTimestampValue()
+    const updates = updatesByAction[action] || {
+      moderationStatus: statusByAction[action],
+      moderationReason: reason,
+      reviewedBy: adminUser.uid,
+      reviewedAt: now,
+      updatedAt: now,
+      isPublic: ['published', 'flagged'].includes(statusByAction[action]),
+    }
+    await alertRef.set({ ...updates, updatedAt: now }, { merge: true })
+    await writeLocalAdminAudit({ admin: adminUser, action: `alert_${action}`, targetId: alertId, metadata: { moderationReason: reason } })
+    res.json({ ok: true, alert: { id: alertId, ...(await alertRef.get()).data() } })
   } catch (error) {
     sendError(res, error)
   }
@@ -1396,6 +1458,7 @@ exports.listPublicAlerts = onRequest({ region: 'us-central1' }, async (req, res)
     const alerts = snapshot.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
       .filter((item) => item.isPublic !== false)
+      .filter((item) => !['restricted', 'archived', 'changes_requested'].includes(String(item.moderationStatus || '').toLowerCase()))
       .filter((item) => {
         if (!activeOnly) return true
         const status = String(item.status || '').trim().toLowerCase()

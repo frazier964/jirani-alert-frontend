@@ -69,8 +69,15 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.auth.token.role in ['admin', 'responder']
         && (request.auth.token.role != 'admin' || adminOwnsEstate(request.resource.data));
+      // Moderation fields are written only by trusted Functions. Responders
+      // may update operational alert fields through their existing flow, but
+      // cannot change public visibility or moderation history from the client.
       allow update: if signedIn()
-        && (request.auth.token.role == 'responder' || adminOwnsEstate(resource.data));
+        && request.auth.token.role == 'responder'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'updatedAt', 'assignmentStatus', 'assignedResponderId',
+          'assignedResponderEmail', 'timeline'
+        ]);
       allow delete: if false;
     }
 
