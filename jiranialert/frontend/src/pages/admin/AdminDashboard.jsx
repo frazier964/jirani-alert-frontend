@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
+  Activity,
+  ArrowUpRight,
+  Bell,
+  Building2,
   Check,
   Clock3,
   MapPin,
   Megaphone,
   Search,
-  ShieldCheck,
   Users,
   X,
 } from 'lucide-react'
@@ -118,42 +121,96 @@ export default function AdminDashboard() {
   }
 
   if (loading && !dashboard) {
-    return <main className="min-h-screen bg-slate-100 p-8 text-slate-700">Loading admin portal...</main>
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f6f8fb] p-8 text-slate-700">
+        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-5 text-sm font-semibold shadow-sm">
+          Loading admin portal...
+        </div>
+      </main>
+    )
   }
 
   return (
-    <main className="min-h-screen bg-[#f4f7fb] text-slate-900">
-      <header className="border-b border-slate-200 bg-[#102a43] text-white">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-5 px-4 py-5 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-400 text-[#102a43]">
-              <ShieldCheck className="h-6 w-6" />
+    <main className="min-h-screen bg-[#f6f8fb] text-slate-900">
+      <div className="flex min-h-screen">
+        <aside className="hidden w-64 shrink-0 flex-col bg-[#111827] text-slate-300 lg:flex">
+          <div className="flex items-center gap-3 border-b border-white/10 px-7 py-6">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white p-2 shadow-lg">
+              <img src="/jirani-alert-logo.svg" alt="JiraniAlert logo" className="h-full w-full" />
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.24em] text-amber-200">Jirani Alert Admin Portal</p>
-              <h1 className="mt-1 text-xl font-black">Estate: {dashboard?.jurisdictionName || dashboard?.estateId || 'Unassigned'}</h1>
+              <p className="text-lg font-black tracking-tight text-white">JIRANI<span className="text-red-400">ALERT</span></p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Admin workspace</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <p className="hidden text-sm text-slate-300 sm:block">{currentUser?.email || 'Local administrator'}</p>
-            <button type="button" onClick={signOut} className="rounded-xl border border-white/20 px-4 py-2 text-sm font-bold transition hover:bg-white/10">
-              Sign out
+          <div className="px-4 py-7">
+            <p className="px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Workspace</p>
+            <nav className="mt-3 space-y-1">
+              {[
+                ['Overview', Activity],
+                ['Member verification', Users],
+                ['Alert moderation', AlertTriangle],
+                ['Resident directory', Building2],
+              ].map(([label, Icon], index) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => index === 1 ? setActiveTab('verification') : index === 2 ? setActiveTab('alerts') : index === 3 ? setActiveTab('directory') : undefined}
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition ${index === 0 ? 'bg-white text-slate-900 shadow-sm' : 'hover:bg-white/10 hover:text-white'}`}
+                >
+                  <Icon className={`h-[18px] w-[18px] ${index === 0 ? 'text-[#2563eb]' : 'text-slate-500'}`} />
+                  {label}
+                </button>
+              ))}
+            </nav>
+            <p className="mt-9 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">System</p>
+            <button type="button" onClick={() => setBroadcastOpen(true)} className="mt-3 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition hover:bg-white/10 hover:text-white">
+              <Megaphone className="h-[18px] w-[18px] text-slate-500" /> Broadcast center
             </button>
           </div>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-end">
-          <div>
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#2563eb]">Local administration</p>
-            <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">Keep your community informed and verified.</h2>
-            <p className="mt-2 max-w-2xl text-slate-600">Every action below is limited to your assigned estate and recorded in the audit trail.</p>
+          <div className="mt-auto border-t border-white/10 p-4">
+            <button type="button" onClick={signOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-slate-400 transition hover:bg-white/10 hover:text-white">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500/15 text-xs font-black text-red-300">AD</span>
+              <span className="min-w-0 flex-1 truncate">{currentUser?.email || 'Local administrator'}</span>
+              <ArrowUpRight className="h-4 w-4" />
+            </button>
           </div>
-          <button type="button" onClick={() => setBroadcastOpen(true)} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#dc2626] px-5 py-3 font-bold text-white shadow-lg shadow-red-900/15 transition hover:bg-red-700">
-            <Megaphone className="h-5 w-5" /> Broadcast to estate
-          </button>
-        </div>
+        </aside>
+
+        <div className="min-w-0 flex-1">
+          <header className="border-b border-slate-200 bg-white">
+            <div className="flex min-h-[76px] items-center justify-between gap-4 px-5 py-4 sm:px-8">
+              <div className="flex items-center gap-3 lg:hidden">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white p-2 shadow-sm ring-1 ring-slate-200">
+                  <img src="/jirani-alert-logo.svg" alt="JiraniAlert logo" className="h-full w-full" />
+                </div>
+                <p className="text-base font-black tracking-tight text-slate-900">JIRANI<span className="text-red-600">ALERT</span></p>
+              </div>
+              <div className="hidden sm:block">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Estate operations</p>
+                <p className="mt-1 text-sm font-bold text-slate-700">{dashboard?.jurisdictionName || dashboard?.estateId || 'Unassigned estate'}</p>
+              </div>
+              <div className="ml-auto flex items-center gap-3">
+                <button type="button" aria-label="Notifications" className="relative rounded-xl border border-slate-200 p-2.5 text-slate-500 transition hover:bg-slate-50">
+                  <Bell className="h-5 w-5" />
+                  <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-red-500" />
+                </button>
+                <button type="button" onClick={signOut} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50 sm:px-4 sm:text-sm">Sign out</button>
+              </div>
+            </div>
+          </header>
+
+          <div className="mx-auto max-w-[1400px] px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
+            <div className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-end">
+              <div>
+                <p className="text-sm font-bold text-[#2563eb]">Good day, administrator</p>
+                <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Community overview</h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Monitor resident access, respond to local alerts, and keep your estate informed from one place.</p>
+              </div>
+              <button type="button" onClick={() => setBroadcastOpen(true)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#dc2626] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-red-900/15 transition hover:bg-red-700">
+                <Megaphone className="h-4 w-4" /> New broadcast
+              </button>
+            </div>
 
         {error && <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div>}
         {notice && <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{notice}</div>}
@@ -217,6 +274,8 @@ export default function AdminDashboard() {
           )}
         </section>
       </div>
+          </div>
+        </div>
 
       {broadcastOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"><form onSubmit={submitBroadcast} className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><h2 className="text-xl font-black text-slate-950">Broadcast to {dashboard?.jurisdictionName || dashboard?.estateId}</h2><p className="mt-1 text-sm text-slate-500">This message will be delivered to approved residents in this estate.</p></div><button type="button" onClick={() => setBroadcastOpen(false)} aria-label="Close broadcast dialog"><X /></button></div><input required value={broadcast.title} onChange={(event) => setBroadcast((state) => ({ ...state, title: event.target.value }))} placeholder="Announcement title" className="mt-6 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500" /><select value={broadcast.severity} onChange={(event) => setBroadcast((state) => ({ ...state, severity: event.target.value }))} className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-3"><option>Info</option><option>Warning</option><option>Urgent</option></select><textarea required value={broadcast.message} onChange={(event) => setBroadcast((state) => ({ ...state, message: event.target.value }))} placeholder="Write the official estate announcement..." rows="5" className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500" /><button type="submit" disabled={workingId === 'broadcast'} className="mt-4 w-full rounded-xl bg-[#102a43] px-4 py-3 font-bold text-white disabled:opacity-50">Send broadcast</button></form></div>}
     </main>

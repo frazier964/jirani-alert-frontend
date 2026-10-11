@@ -42,6 +42,7 @@ const WorkspaceOperations = lazy(() => import('./pages/responder/WorkspaceOperat
 const ResponderReportEmergency = lazy(() => import('./pages/responder/ResponderReportEmergency'))
 const ResponderIncidentDetails = lazy(() => import('./pages/responder/IncidentDetails'))
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
+const AdminWorkspace = lazy(() => import('./pages/admin/AdminWorkspace'))
 const AlertDetails = lazy(() => import('./pages/alerts/AlertDetails'))
 
 function PageLoader() {
@@ -124,6 +125,15 @@ function AppRoutes() {
             <Route path="/responder/help-support" element={<Navigate to="/responder/help" replace />} />
 
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<AdminWorkspace section="users" />} />
+            <Route path="/admin/responders" element={<AdminWorkspace section="responders" />} />
+            <Route path="/admin/incidents" element={<AdminWorkspace section="incidents" />} />
+            <Route path="/admin/announcements" element={<AdminWorkspace section="announcements" />} />
+            <Route path="/admin/map" element={<AdminWorkspace section="map" />} />
+            <Route path="/admin/analytics" element={<AdminWorkspace section="analytics" />} />
+            <Route path="/admin/audit-logs" element={<AdminWorkspace section="audit-logs" />} />
+            <Route path="/admin/support" element={<AdminWorkspace section="support" />} />
+            <Route path="/admin/settings" element={<AdminWorkspace section="settings" />} />
           </Route>
         </Routes>
       </Suspense>

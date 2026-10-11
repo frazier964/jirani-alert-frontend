@@ -22,8 +22,14 @@ service cloud.firestore {
     }
 
     match /profiles/{userId} {
-      allow create: if ownsUserDocument(userId);
-      allow read, update: if ownsUserDocument(userId);
+      allow create: if ownsUserDocument(userId)
+        && request.resource.data.role in ['resident', 'responder'];
+      allow read: if ownsUserDocument(userId)
+        || (signedIn() && request.auth.token.role == 'admin'
+          && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.estateId == resource.data.estateId);
+      allow update: if ownsUserDocument(userId)
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.accountStatus == resource.data.accountStatus;
       allow delete: if false;
     }
 
@@ -31,7 +37,9 @@ service cloud.firestore {
       allow create, update: if signedIn()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.email == request.auth.token.email
-        && request.resource.data.role in ['resident', 'responder', 'admin'];
+        && request.resource.data.role in ['resident', 'responder']
+        && (!exists(/databases/$(database)/documents/accountRoles/$(emailId))
+          || resource.data.role == request.resource.data.role);
       allow read: if signedIn()
         && (resource.data.uid == request.auth.uid
           || resource.data.email == request.auth.token.email);

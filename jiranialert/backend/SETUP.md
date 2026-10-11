@@ -102,11 +102,28 @@ APP_URL=https://jirani-alert-frontend.vercel.app
 MAIL_FROM="Jirani Alert <your-sender-email@gmail.com>"
 GMAIL_USER=your-sender-email@gmail.com
 GMAIL_APP_PASSWORD=your-16-character-app-password
+BOOTSTRAP_ADMIN_EMAIL=the-controlled-admin-address@example.com
 ```
 
 For Gmail, use a Google App Password, not your normal Gmail password.
 A valid Gmail app password is 16 characters long and contains no spaces.
 If the value in your `.env` file has spaces, remove them before restarting the emulator.
+
+### Provisioning the first administrator
+
+Set `BOOTSTRAP_ADMIN_EMAIL` to an address controlled by the deployment operator.
+That address may receive the initial `admin` role through the trusted
+`createUserProfile` backend operation; browser clients cannot promote any other
+account to administrator. After the initial administrator is created, remove
+the bootstrap value from the runtime environment and use the protected admin
+operations for role changes. Never place service-account credentials or this
+value in frontend environment variables.
+
+Administrator operations are estate-scoped and are exposed through the
+Functions endpoints `getLocalAdminDashboard`, `manageLocalUser`,
+`reviewLocalResponder`, `manageLocalIncident`, `moderateLocalAlert`, and
+`createLocalBroadcast`. Sensitive mutations write to the
+`adminAuditLogs` collection through the Admin SDK.
 
 You can verify SMTP email delivery with a dedicated test endpoint.
 Set `EMAIL_TEST_SECRET` to a secret string in `backend/functions/.env` and then POST to:

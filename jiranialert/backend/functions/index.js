@@ -657,21 +657,28 @@ exports.getLocalAdminDashboard = onRequest({ region: 'us-central1' }, async (req
   try {
     requireMethod(req, 'GET')
     const adminUser = await requireLocalAdminUser(req)
-    const [residentSnapshot, alertSnapshot] = await Promise.all([
+    const [residentSnapshot, alertSnapshot, reportSnapshot, broadcastSnapshot, auditSnapshot] = await Promise.all([
       db.collection('profiles').where('estateId', '==', adminUser.estateId).get(),
       db.collection('alerts').where('estateId', '==', adminUser.estateId).get(),
+      db.collection('reports').where('estateId', '==', adminUser.estateId).get(),
+      db.collection('broadcasts').where('estateId', '==', adminUser.estateId).get(),
+      db.collection('adminAuditLogs').where('estateId', '==', adminUser.estateId).get(),
     ])
-    const residents = residentSnapshot.docs
-      .map(profileForAdmin)
+    const profiles = residentSnapshot.docs.map(profileForAdmin)
+    const residents = profiles
       .filter((profile) => normalizeRole(profile.role) === 'resident' && profile.accountStatus !== 'pending_admin_approval')
       .filter((profile) => profile.accountStatus !== 'deactivated')
-    const pendingResidents = residentSnapshot.docs
-      .map(profileForAdmin)
+    const responders = profiles.filter((profile) => normalizeRole(profile.role) === 'responder')
+    const pendingResponders = responders.filter((profile) => ['pending', 'pending_admin_approval', 'pending_verification'].includes(String(profile.accountStatus || '').toLowerCase()))
+    const pendingResidents = profiles
       .filter((profile) => normalizeRole(profile.role) === 'resident')
       .filter((profile) => ['pending', 'pending_admin_approval', 'pending_verification'].includes(String(profile.accountStatus || '').toLowerCase()))
     const alerts = alertSnapshot.docs
       .map(profileForAdmin)
       .filter((alert) => !['dismissed', 'resolved', 'completed'].includes(String(alert.status || '').toLowerCase()))
+    const incidents = reportSnapshot.docs.map(profileForAdmin)
+    const broadcasts = broadcastSnapshot.docs.map(profileForAdmin)
+    const auditLogs = auditSnapshot.docs.map(profileForAdmin)
 
     res.json({
       estateId: adminUser.estateId,
@@ -680,10 +687,20 @@ exports.getLocalAdminDashboard = onRequest({ region: 'us-central1' }, async (req
         pendingResidents: pendingResidents.length,
         activeAlerts: alerts.length,
         verifiedResidents: residents.filter((profile) => String(profile.accountStatus || '').toLowerCase() === 'active').length,
+        totalResidents: residents.length,
+        totalResponders: responders.length,
+        pendingResponders: pendingResponders.length,
+        activeIncidents: incidents.filter((incident) => !['resolved', 'completed', 'cancelled', 'dismissed'].includes(String(incident.status || '').toLowerCase())).length,
+        resolvedIncidents: incidents.filter((incident) => ['resolved', 'completed'].includes(String(incident.status || '').toLowerCase())).length,
       },
       pendingResidents,
       residents,
+      responders,
+      pendingResponders,
+      incidents,
       alerts,
+      broadcasts,
+      auditLogs,
     })
   } catch (error) {
     sendError(res, error)
@@ -802,6 +819,175 @@ exports.createLocalBroadcast = onRequest({ region: 'us-central1' }, async (req, 
   }
 })
 
+exports.manageLocalUser = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const adminUser = await requireLocalAdminUser(req)
+    const userId = requiredString(req.body?.userId, 'userId')
+    const action = requiredString(req.body?.action, 'action').toLowerCase()
+    const userRef = db.collection('profiles').doc(userId)
+    const userSnap = await userRef.get()
+    const target = userSnap.exists ? userSnap.data() || {} : null
+    if (!target || target.estateId !== adminUser.estateId) {
+      const error = new Error('User is not in your assigned estate')
+      error.status = 404
+      throw error
+    }
+    if (userId === adminUser.uid && ['suspend', 'deactivate', 'role'].includes(action)) {
+      const error = new Error('You cannot disable or change your own administrator account')
+      error.status = 400
+      throw error
+    }
+
+    const now = serverTimestampValue()
+    const updates = { updatedAt: now, reviewedBy: adminUser.uid, reviewedAt: now }
+    if (action === 'suspend' || action === 'reactivate') {
+      updates.accountStatus = action === 'suspend' ? 'suspended' : 'active'
+      updates.suspensionReason = action === 'suspend'
+        ? optionalString(req.body?.reason).slice(0, 500) || 'Suspended by administrator'
+        : null
+    } else if (action === 'role') {
+      const nextRole = normalizeRole(req.body?.role)
+      if (!nextRole) {
+        const error = new Error('A valid role is required')
+        error.status = 400
+        throw error
+      }
+      if (normalizeRole(target.role) === 'admin' && nextRole !== 'admin') {
+        const activeAdmins = await db.collection('profiles').where('role', '==', 'admin').get()
+        if (activeAdmins.docs.filter((item) => item.id !== userId && item.data()?.accountStatus !== 'suspended').length === 0) {
+          const error = new Error('The last active administrator cannot be removed')
+          error.status = 400
+          throw error
+        }
+      }
+      updates.role = nextRole
+      await admin.auth().setCustomUserClaims(userId, { role: nextRole, estateId: adminUser.estateId })
+    } else {
+      const error = new Error('Action must be suspend, reactivate, or role')
+      error.status = 400
+      throw error
+    }
+
+    await userRef.set(updates, { merge: true })
+    await writeLocalAdminAudit({
+      admin: adminUser,
+      action: `user_${action}`,
+      targetId: userId,
+      metadata: {
+        before: { role: target.role || null, accountStatus: target.accountStatus || null },
+        after: { role: updates.role || target.role || null, accountStatus: updates.accountStatus || target.accountStatus || null },
+      },
+    })
+    res.json({ ok: true, user: { id: userId, ...target, ...updates } })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.reviewLocalResponder = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const adminUser = await requireLocalAdminUser(req)
+    const responderId = requiredString(req.body?.responderId, 'responderId')
+    const action = requiredString(req.body?.action, 'action').toLowerCase()
+    const responderRef = db.collection('profiles').doc(responderId)
+    const responderSnap = await responderRef.get()
+    const responder = responderSnap.exists ? responderSnap.data() || {} : null
+    if (!responder || responder.estateId !== adminUser.estateId || normalizeRole(responder.role) !== 'responder') {
+      const error = new Error('Responder is not in your assigned estate')
+      error.status = 404
+      throw error
+    }
+    const statusByAction = { approve: 'active', reject: 'rejected', suspend: 'suspended', reactivate: 'active' }
+    if (!statusByAction[action]) {
+      const error = new Error('Action must be approve, reject, suspend, or reactivate')
+      error.status = 400
+      throw error
+    }
+    const now = serverTimestampValue()
+    const updates = {
+      accountStatus: statusByAction[action],
+      reviewedBy: adminUser.uid,
+      reviewedAt: now,
+      updatedAt: now,
+      ...(action === 'reject' ? { rejectionReason: optionalString(req.body?.reason).slice(0, 500) || 'Rejected by administrator' } : {}),
+    }
+    await responderRef.set(updates, { merge: true })
+    await writeLocalAdminAudit({ admin: adminUser, action: `responder_${action}`, targetId: responderId, metadata: { reason: updates.rejectionReason || null } })
+    res.json({ ok: true, status: updates.accountStatus })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.manageLocalIncident = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const adminUser = await requireLocalAdminUser(req)
+    const incidentId = requiredString(req.body?.incidentId, 'incidentId')
+    const action = requiredString(req.body?.action, 'action').toLowerCase()
+    const incidentRef = db.collection('reports').doc(incidentId)
+    const incidentSnap = await incidentRef.get()
+    const incident = incidentSnap.exists ? incidentSnap.data() || {} : null
+    if (!incident || incident.estateId !== adminUser.estateId) {
+      const error = new Error('Incident is not in your assigned estate')
+      error.status = 404
+      throw error
+    }
+    const now = serverTimestampValue()
+    const updates = { updatedAt: now }
+    if (action === 'status') {
+      const status = requiredString(req.body?.status, 'status')
+      if (!['Pending', 'Under Review', 'Assigned', 'In Progress', 'Resolved', 'Cancelled'].includes(status)) {
+        const error = new Error('Invalid incident status')
+        error.status = 400
+        throw error
+      }
+      updates.status = status
+      updates.adminNote = optionalString(req.body?.note).slice(0, 1000) || null
+    } else if (action === 'assign') {
+      const responderId = requiredString(req.body?.responderId, 'responderId')
+      const responderSnap = await db.collection('profiles').doc(responderId).get()
+      const responder = responderSnap.exists ? responderSnap.data() || {} : null
+      if (!responder || responder.estateId !== adminUser.estateId || normalizeRole(responder.role) !== 'responder' || responder.accountStatus === 'suspended') {
+        const error = new Error('A verified responder in this estate is required')
+        error.status = 400
+        throw error
+      }
+      updates.assignedResponderId = responderId
+      updates.assignedResponderEmail = responder.email || null
+      updates.assignmentStatus = 'Assigned'
+      updates.status = 'Assigned'
+    } else {
+      const error = new Error('Action must be status or assign')
+      error.status = 400
+      throw error
+    }
+    updates.timeline = admin.firestore.FieldValue.arrayUnion({
+      type: `admin_${action}`,
+      label: `Administrator ${action}d incident`,
+      adminId: adminUser.uid,
+      createdAt: new Date().toISOString(),
+    })
+    await incidentRef.set(updates, { merge: true })
+    await writeLocalAdminAudit({ admin: adminUser, action: `incident_${action}`, targetId: incidentId, metadata: { status: updates.status || null, responderId: updates.assignedResponderId || null } })
+    const saved = await incidentRef.get()
+    res.json({ ok: true, incident: { id: saved.id, ...saved.data() } })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
 function normalizeRole(role) {
   const value = String(role || '').trim().toLowerCase()
   return allowedRoles.has(value) ? value : null
@@ -852,7 +1038,16 @@ exports.createUserProfile = onRequest({ region: 'us-central1' }, async (req, res
     const fullName = typeof body.fullName === 'string' ? body.fullName.trim() : ''
     const displayName = (typeof body.displayName === 'string' ? body.displayName.trim() : '') || firstName
     const requestedRole = typeof body.role === 'string' ? body.role.trim() : 'resident'
-    const role = allowedRoles.has(requestedRole) ? requestedRole : 'resident'
+    // Account creation is never allowed to grant administrator privileges from
+    // the browser. A first administrator must be provisioned by an operator
+    // using the trusted bootstrap email configured in the Functions runtime.
+    const bootstrapAdminEmail = getEnv('BOOTSTRAP_ADMIN_EMAIL').toLowerCase()
+    const isConfiguredBootstrapAdmin = Boolean(bootstrapAdminEmail && user.email && user.email.toLowerCase() === bootstrapAdminEmail)
+    const role = requestedRole === 'admin' && !isConfiguredBootstrapAdmin
+      ? 'resident'
+      : allowedRoles.has(requestedRole)
+        ? requestedRole
+        : 'resident'
     const estateId = typeof body.estateId === 'string' ? body.estateId.trim().slice(0, 120) : ''
     const estateName = typeof body.estateName === 'string' ? body.estateName.trim().slice(0, 160) : ''
     const houseNumber = typeof body.houseNumber === 'string' ? body.houseNumber.trim().slice(0, 80) : ''
@@ -1926,17 +2121,8 @@ exports.updateUserProfile = onRequest({ region: 'us-central1' }, async (req, res
     }
     if (typeof body.shiftStatus === 'string' && ['Online', 'Busy', 'Offline'].includes(body.shiftStatus)) updates.shiftStatus = body.shiftStatus
     if (typeof body.handoverNote === 'string') updates.handoverNote = body.handoverNote.trim().slice(0, 4000)
-    if (typeof body.role === 'string') {
-      const requestedRole = body.role.trim()
-      if (allowedRoles.has(requestedRole)) {
-        updates.role = requestedRole
-        try {
-          await admin.auth().setCustomUserClaims(userId, { role: requestedRole })
-        } catch (claimsError) {
-          console.warn('Could not update custom user claims:', claimsError.message || claimsError)
-        }
-      }
-    }
+    // Role and account status are security-sensitive fields. They can only be
+    // changed by dedicated admin endpoints, never by a user's profile update.
     if (!updates.displayName && updates.firstName) {
       updates.displayName = updates.firstName
     }
