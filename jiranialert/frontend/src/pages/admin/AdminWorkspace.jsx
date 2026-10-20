@@ -26,6 +26,7 @@ import {
 import { getCurrentUser, logout } from '../../lib/auth'
 import { createBroadcast, getAdminDashboard, manageIncident, manageUser, moderateAlertWithReason, reviewResponder, reviewResident } from '../../lib/adminApi'
 import AdminSettings from './AdminSettings'
+import LogoutConfirmModal from '../../components/LogoutConfirmModal'
 
 const navigation = [
   ['dashboard', 'Overview', LayoutDashboard, '/admin/dashboard'],
@@ -145,6 +146,8 @@ export default function AdminWorkspace({ section: sectionProp }) {
   const [notice, setNotice] = useState('')
   const [broadcastOpen, setBroadcastOpen] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [logoutOpen, setLogoutOpen] = useState(false)
+  const [logoutBusy, setLogoutBusy] = useState(false)
   const [broadcast, setBroadcast] = useState({ title: '', message: '', severity: 'Info' })
   const currentUser = getCurrentUser()
 
@@ -185,9 +188,20 @@ export default function AdminWorkspace({ section: sectionProp }) {
     }
   }
 
+  const requestSignOut = () => {
+    setMobileNavOpen(false)
+    setLogoutOpen(true)
+  }
+
   const signOut = async () => {
-    await logout()
-    navigate('/login', { replace: true })
+    setLogoutBusy(true)
+    try {
+      await logout()
+      setLogoutOpen(false)
+      navigate('/', { replace: true })
+    } finally {
+      setLogoutBusy(false)
+    }
   }
 
   const filteredUsers = useMemo(() => {
@@ -212,7 +226,7 @@ export default function AdminWorkspace({ section: sectionProp }) {
             ))}
           </nav>
           <div className="mt-auto border-t border-white/10 p-4">
-            <button type="button" onClick={signOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-slate-400 hover:bg-white/10 hover:text-white">
+            <button type="button" onClick={requestSignOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-slate-400 hover:bg-white/10 hover:text-white">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500/15 text-xs font-black text-red-300">AD</span>
               <span className="min-w-0 flex-1 truncate">{currentUser?.email || 'Administrator'}</span><X className="h-4 w-4" />
             </button>
@@ -230,7 +244,7 @@ export default function AdminWorkspace({ section: sectionProp }) {
                 <p className="font-black">JIRANI<span className="text-red-600">ALERT</span></p>
               </div>
               <div className="hidden sm:block"><p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Admin workspace</p><p className="mt-1 text-sm font-bold text-slate-700">{data?.jurisdictionName || 'Assigned estate'}</p></div>
-              <div className="ml-auto flex items-center gap-3"><button type="button" onClick={load} aria-label="Refresh" className="rounded-xl border border-slate-200 p-2.5 text-slate-500 hover:bg-slate-50"><RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} /></button><button type="button" onClick={signOut} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50">Sign out</button></div>
+              <div className="ml-auto flex items-center gap-3"><button type="button" onClick={load} aria-label="Refresh" className="rounded-xl border border-slate-200 p-2.5 text-slate-500 hover:bg-slate-50"><RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} /></button><button type="button" onClick={requestSignOut} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50">Sign out</button></div>
             </div>
           </header>
 
@@ -257,6 +271,7 @@ export default function AdminWorkspace({ section: sectionProp }) {
       </div> : null}
 
       {broadcastOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"><form onSubmit={async (event) => { event.preventDefault(); const title = broadcast.title.trim(); const message = broadcast.message.trim(); if (!title || !message) return; await run('broadcast', async () => { await createBroadcast(title, message, broadcast.severity); setBroadcastOpen(false); setBroadcast({ title: '', message: '', severity: 'Info' }) }) }} className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"><div className="flex justify-between"><div><h2 className="text-xl font-black">New community announcement</h2><p className="mt-1 text-sm text-slate-500">Recipients and delivery are determined by the trusted backend.</p></div><button type="button" disabled={workingId === 'broadcast'} onClick={() => setBroadcastOpen(false)} aria-label="Close"><X /></button></div><label className="mt-6 block text-sm font-bold text-slate-700">Title<input required maxLength="160" value={broadcast.title} onChange={(event) => setBroadcast({ ...broadcast, title: event.target.value })} placeholder="Announcement title" className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 font-normal" /></label><label className="mt-3 block text-sm font-bold text-slate-700">Severity<select value={broadcast.severity} onChange={(event) => setBroadcast({ ...broadcast, severity: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 font-normal"><option>Info</option><option>Warning</option><option>Urgent</option></select></label><label className="mt-3 block text-sm font-bold text-slate-700">Message<textarea required maxLength="4000" value={broadcast.message} onChange={(event) => setBroadcast({ ...broadcast, message: event.target.value })} placeholder="Message" rows="5" className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 font-normal" /></label><button disabled={workingId === 'broadcast'} className="mt-4 w-full rounded-xl bg-slate-900 px-4 py-3 font-bold text-white disabled:opacity-50">{workingId === 'broadcast' ? 'Publishing...' : 'Publish announcement'}</button></form></div> : null}
+      <LogoutConfirmModal open={logoutOpen} onCancel={() => setLogoutOpen(false)} onConfirm={signOut} busy={logoutBusy} />
     </main>
   )
 }

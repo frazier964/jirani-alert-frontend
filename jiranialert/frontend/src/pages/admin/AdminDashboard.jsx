@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { getCurrentUser, logout } from '../../lib/auth'
 import { createBroadcast, getAdminDashboard, moderateAlert, reviewResident } from '../../lib/adminApi'
+import LogoutConfirmModal from '../../components/LogoutConfirmModal'
 import { Link, useNavigate } from 'react-router-dom'
 
 const sidebarItems = [
@@ -81,6 +82,8 @@ export default function AdminDashboard() {
   const [notice, setNotice] = useState('')
   const [broadcastOpen, setBroadcastOpen] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [logoutOpen, setLogoutOpen] = useState(false)
+  const [logoutBusy, setLogoutBusy] = useState(false)
   const [broadcast, setBroadcast] = useState({ title: '', message: '', severity: 'Info' })
 
   const loadDashboard = async () => {
@@ -146,9 +149,20 @@ export default function AdminDashboard() {
     }
   }
 
+  const requestSignOut = () => {
+    setMobileNavOpen(false)
+    setLogoutOpen(true)
+  }
+
   const signOut = async () => {
-    await logout()
-    navigate('/login', { replace: true })
+    setLogoutBusy(true)
+    try {
+      await logout()
+      setLogoutOpen(false)
+      navigate('/', { replace: true })
+    } finally {
+      setLogoutBusy(false)
+    }
   }
 
   if (loading && !dashboard) {
@@ -195,7 +209,7 @@ export default function AdminDashboard() {
             </Link>
           </div>
           <div className="mt-auto border-t border-white/10 p-4">
-            <button type="button" onClick={signOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-slate-400 transition hover:bg-white/10 hover:text-white">
+            <button type="button" onClick={requestSignOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-slate-400 transition hover:bg-white/10 hover:text-white">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500/15 text-xs font-black text-red-300">AD</span>
               <span className="min-w-0 flex-1 truncate">{currentUser?.email || 'Local administrator'}</span>
               <ArrowUpRight className="h-4 w-4" />
@@ -224,7 +238,7 @@ export default function AdminDashboard() {
                   <Bell className="h-5 w-5" />
                   <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-red-500" />
                 </button>
-                <button type="button" onClick={signOut} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50 sm:px-4 sm:text-sm">Sign out</button>
+                <button type="button" onClick={requestSignOut} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50 sm:px-4 sm:text-sm">Sign out</button>
               </div>
             </div>
           </header>
@@ -318,6 +332,7 @@ export default function AdminDashboard() {
         </div> : null}
 
         {broadcastOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"><form onSubmit={submitBroadcast} className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><h2 className="text-xl font-black text-slate-950">Broadcast to {dashboard?.jurisdictionName || dashboard?.estateId}</h2><p className="mt-1 text-sm text-slate-500">This message will be delivered to approved residents in this estate.</p></div><button type="button" onClick={() => setBroadcastOpen(false)} aria-label="Close broadcast dialog"><X /></button></div><input required value={broadcast.title} onChange={(event) => setBroadcast((state) => ({ ...state, title: event.target.value }))} placeholder="Announcement title" className="mt-6 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500" /><select value={broadcast.severity} onChange={(event) => setBroadcast((state) => ({ ...state, severity: event.target.value }))} className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-3"><option>Info</option><option>Warning</option><option>Urgent</option></select><textarea required value={broadcast.message} onChange={(event) => setBroadcast((state) => ({ ...state, message: event.target.value }))} placeholder="Write the official estate announcement..." rows="5" className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500" /><button type="submit" disabled={workingId === 'broadcast'} className="mt-4 w-full rounded-xl bg-[#102a43] px-4 py-3 font-bold text-white disabled:opacity-50">Send broadcast</button></form></div>}
+      <LogoutConfirmModal open={logoutOpen} onCancel={() => setLogoutOpen(false)} onConfirm={signOut} busy={logoutBusy} />
     </main>
   )
 }
