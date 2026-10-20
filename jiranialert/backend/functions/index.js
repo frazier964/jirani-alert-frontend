@@ -729,6 +729,70 @@ exports.getLocalAdminDashboard = onRequest({ region: 'us-central1' }, async (req
   }
 })
 
+const allowedAdminSettings = {
+  notifications: ['localIncidents', 'incidentUpdates', 'assignments', 'verificationRequests', 'announcements', 'securityAlerts'],
+  response: ['dashboardView', 'incidentSort', 'soundAlerts'],
+  appearance: ['theme', 'highContrast', 'reducedMotion', 'textSize'],
+}
+
+function sanitizeAdminSettings(settings) {
+  const source = settings && typeof settings === 'object' ? settings : {}
+  const result = {}
+  Object.entries(allowedAdminSettings).forEach(([group, keys]) => {
+    if (!source[group] || typeof source[group] !== 'object') return
+    result[group] = {}
+    keys.forEach((key) => {
+      const value = source[group][key]
+      if (typeof value === 'boolean') result[group][key] = value
+      if (typeof value === 'string' && value.length <= 40) result[group][key] = value
+    })
+  })
+  return result
+}
+
+exports.getLocalAdminSettings = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+  try {
+    requireMethod(req, 'GET')
+    const adminUser = await requireLocalAdminUser(req)
+    const profile = adminUser.profile || {}
+    res.json({
+      profile: {
+        uid: adminUser.uid,
+        email: profile.email || adminUser.email || '',
+        firstName: profile.firstName || '',
+        lastName: profile.lastName || '',
+        displayName: profile.displayName || '',
+        fullName: profile.fullName || '',
+        phoneNumber: profile.phoneNumber || '',
+        emailVerified: Boolean(adminUser.email_verified || profile.emailVerified),
+        estateId: adminUser.estateId,
+        estateName: profile.estateName || '',
+        jurisdictionName: profile.jurisdictionName || profile.estateName || adminUser.estateId,
+        role: 'admin',
+      },
+      settings: sanitizeAdminSettings(profile.settings),
+    })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.updateLocalAdminSettings = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+  try {
+    requireMethod(req, 'POST')
+    const adminUser = await requireLocalAdminUser(req)
+    const settings = sanitizeAdminSettings(req.body?.settings)
+    await db.collection('profiles').doc(adminUser.uid).set({ settings, updatedAt: serverTimestampValue() }, { merge: true })
+    res.json({ ok: true, settings })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
 exports.reviewLocalResident = onRequest({ region: 'us-central1' }, async (req, res) => {
   setCors(req, res)
   if (handleOptions(req, res)) return
@@ -802,8 +866,15 @@ exports.moderateLocalAlert = onRequest({ region: 'us-central1' }, async (req, re
       restore: 'published',
     }
     const updatesByAction = {
-      pin: { pinned: true },
-      dismiss: { moderationStatus: 'restricted', isPublic: false, dismissedBy: adminUser.uid },
+      pin: { pinned: true, pinnedBy: adminUser.uid, pinnedAt: serverTimestampValue() },
+      dismiss: {
+        moderationStatus: 'restricted',
+        isPublic: false,
+        dismissedBy: adminUser.uid,
+        reviewedBy: adminUser.uid,
+        reviewedAt: serverTimestampValue(),
+        moderationReason: reason,
+      },
     }
     if (!updatesByAction[action] && !statusByAction[action]) {
       const error = new Error('Action must be publish, request_corrections, flag, restrict, archive, restore, pin, or dismiss')

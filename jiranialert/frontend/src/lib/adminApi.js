@@ -1,14 +1,15 @@
-import { auth, ensureAnonymous } from './firebase'
+import { getActiveAuth } from './auth'
 import { getFunctionsBaseUrl } from './backendBase'
 
 const BACKEND_URL = getFunctionsBaseUrl()
 
 async function request(endpoint, method = 'GET', body = null) {
   if (!BACKEND_URL) throw new Error('Backend is not configured')
-  if (!auth?.currentUser) await ensureAnonymous()
+  const activeAuth = getActiveAuth()
+  if (!activeAuth?.currentUser) throw new Error('You must be signed in to use the admin portal')
 
   const send = async (forceRefresh = false) => {
-    const token = await auth?.currentUser?.getIdToken(forceRefresh)
+    const token = await activeAuth.currentUser.getIdToken(forceRefresh)
     if (!token) throw new Error('You must be signed in to use the admin portal')
     return fetch(`${BACKEND_URL}/${endpoint}`, {
       method,
@@ -34,5 +35,7 @@ export const reviewResponder = (responderId, action, reason = '') => request('re
 export const manageIncident = (incidentId, action, payload = {}) => request('manageLocalIncident', 'POST', { incidentId, action, ...payload })
 export const createBroadcast = (title, message, severity = 'Info') =>
   request('createLocalBroadcast', 'POST', { title, message, severity })
+export const getLocalAdminSettings = () => request('getLocalAdminSettings')
+export const updateLocalAdminSettings = (settings) => request('updateLocalAdminSettings', 'POST', { settings })
 
-export default { getAdminDashboard, reviewResident, moderateAlert, moderateAlertWithReason, manageUser, reviewResponder, manageIncident, createBroadcast }
+export default { getAdminDashboard, reviewResident, moderateAlert, moderateAlertWithReason, manageUser, reviewResponder, manageIncident, createBroadcast, getLocalAdminSettings, updateLocalAdminSettings }
