@@ -1,12 +1,23 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { AlertTriangle, Bell, ChevronRight, Search, ShieldCheck } from 'lucide-react'
 import ResponderCommandBar from '../../components/Layout/ResponderCommandBar'
+import { applyResponderSettings, getStoredResponderSettings } from '../../lib/responderSettings'
 import { normalizeIncident, severityStyles, statusStyles } from './responderUtils'
 
 export function ResponderShell({ children }) {
+  const [, setSettings] = useState(() => getStoredResponderSettings())
+
+  useEffect(() => {
+    applyResponderSettings(getStoredResponderSettings())
+    const handleSettingsUpdate = (event) => setSettings(event.detail)
+    window.addEventListener('responder-settings-updated', handleSettingsUpdate)
+    return () => window.removeEventListener('responder-settings-updated', handleSettingsUpdate)
+  }, [])
+
   return (
-    <div className="min-h-screen bg-[#f7f9fc] text-slate-800">
+    <div className="responder-workspace min-h-screen bg-[#f7f9fc] text-slate-800">
       <ResponderCommandBar />
       <main className="min-h-[calc(100vh-7.5rem)] lg:ml-[266px]">
         <div className="mx-auto max-w-[1440px] px-4 py-7 sm:px-7 lg:px-11 lg:py-10">{children}</div>
@@ -108,7 +119,7 @@ export function EmptyState({ title = 'No records found', detail = 'New responder
   )
 }
 
-export function IncidentCard({ incident, onAccept, onReject, actionLabel = 'Open details' }) {
+export function IncidentCard({ incident, onAccept, onReject, busy = false, actionLabel = 'Open details' }) {
   const item = normalizeIncident(incident)
   return (
     <div className="border border-slate-200 bg-white p-4 transition hover:border-blue-300 hover:shadow-md">
@@ -133,9 +144,9 @@ export function IncidentCard({ incident, onAccept, onReject, actionLabel = 'Open
           <span>{item.createdLabel}</span>
         </div>
         <div className="flex flex-wrap gap-2">
-          {onReject ? <button type="button" onClick={() => onReject(item)} className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">Reject</button> : null}
-          {onAccept ? <button type="button" onClick={() => onAccept(item)} className="rounded-full border border-red-600 bg-red-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-red-700">Accept</button> : null}
-          <Link to={`/responder/incidents/${encodeURIComponent(item.id)}`} className="inline-flex items-center gap-1 rounded-full border border-cyan-700 bg-cyan-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-cyan-700">
+          {onReject ? <button type="button" disabled={busy} onClick={() => onReject(item)} className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60">{busy ? 'Updating...' : 'Reject'}</button> : null}
+          {onAccept ? <button type="button" disabled={busy} onClick={() => onAccept(item)} className="rounded-full border border-red-600 bg-red-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60">{busy ? 'Updating...' : 'Accept'}</button> : null}
+          <Link to={`/responder/incidents/${encodeURIComponent(item.id)}`} state={{ incident: item }} aria-disabled={busy} className={`inline-flex items-center gap-1 rounded-full border border-cyan-700 bg-cyan-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-cyan-700 ${busy ? 'pointer-events-none opacity-60' : ''}`}>
             {actionLabel}
             <ChevronRight className="h-3.5 w-3.5" />
           </Link>

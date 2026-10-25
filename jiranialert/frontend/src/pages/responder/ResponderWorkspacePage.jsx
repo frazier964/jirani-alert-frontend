@@ -113,6 +113,8 @@ function ActiveIncidentsPage() {
   const { incidents, loading, error, reload, setIncidents } = useResponderIncidents(false)
   const [query, setQuery] = useState('')
   const [severity, setSeverity] = useState('All')
+  const [busyId, setBusyId] = useState('')
+  const [notice, setNotice] = useState('')
   const navigate = useNavigate()
   const filtered = incidents.filter((item) => {
     const haystack = `${item.title} ${item.type} ${item.location} ${item.severity} ${item.status}`.toLowerCase()
@@ -120,13 +122,31 @@ function ActiveIncidentsPage() {
   })
 
   const handleAccept = async (incident) => {
-    const data = await acceptIncident(incident.id)
-    setIncidents((items) => items.map((item) => (item.id === incident.id ? normalizeIncident(data.incident) : item)))
+    setBusyId(incident.id)
+    setNotice('')
+    try {
+      const data = await acceptIncident(incident.id)
+      setIncidents((items) => items.map((item) => (item.id === incident.id ? normalizeIncident(data.incident) : item)))
+      setNotice(`${incident.title} accepted and assigned to you.`)
+    } catch (requestError) {
+      setNotice(requestError?.message || 'Unable to accept incident')
+    } finally {
+      setBusyId('')
+    }
   }
 
   const handleReject = async (incident) => {
-    const data = await rejectIncident(incident.id, 'Responder declined from active queue')
-    setIncidents((items) => items.map((item) => (item.id === incident.id ? normalizeIncident(data.incident) : item)))
+    setBusyId(incident.id)
+    setNotice('')
+    try {
+      const data = await rejectIncident(incident.id, 'Responder declined from active queue')
+      setIncidents((items) => items.map((item) => (item.id === incident.id ? normalizeIncident(data.incident) : item)))
+      setNotice(`${incident.title} rejected.`)
+    } catch (requestError) {
+      setNotice(requestError?.message || 'Unable to reject incident')
+    } finally {
+      setBusyId('')
+    }
   }
 
   return (
@@ -136,16 +156,17 @@ function ActiveIncidentsPage() {
           <SearchBar value={query} onChange={setQuery} placeholder="Search active incidents" />
           <FilterBar options={['All', 'Critical', 'High', 'Medium', 'Low']} value={severity} onChange={setSeverity} />
         </div>
-        {error ? <p className="mt-3 text-sm text-amber-200">Using fallback incident feed: {error}</p> : null}
+        {error ? <p className="mt-3 border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">Using fallback incident feed: {error}</p> : null}
+        {notice ? <p className="mt-3 border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800">{notice}</p> : null}
         <div className="mt-5 grid gap-3">
-          {loading ? <LoadingState /> : filtered.length ? filtered.map((incident) => <IncidentCard key={incident.id} incident={incident} onAccept={handleAccept} onReject={handleReject} />) : <EmptyState title="No matching incidents" />}
+          {loading ? <LoadingState /> : filtered.length ? filtered.map((incident) => <IncidentCard key={incident.id} incident={incident} onAccept={handleAccept} onReject={handleReject} busy={busyId === incident.id} />) : <EmptyState title="No matching incidents" />}
         </div>
       </SectionCard>
       <SectionCard title="Live status" subtitle="Operational signals" icon={Clock3}>
         <div className="grid gap-3">
           <StatCard label="Visible incidents" value={filtered.length} detail="After search and filters" icon={AlertTriangle} tone="text-red-200" />
           <StatCard label="Critical / High" value={incidents.filter((item) => ['Critical', 'High'].includes(item.severity)).length} detail="Escalated attention required" icon={SirenIcon} tone="text-orange-200" />
-          <button type="button" onClick={reload} className="rounded-2xl border border-cyan-300 bg-cyan-50 px-4 py-3 text-sm font-bold text-cyan-800 hover:bg-cyan-100">Refresh queue</button>
+          <button type="button" disabled={loading} onClick={reload} className="rounded-2xl border border-cyan-300 bg-cyan-50 px-4 py-3 text-sm font-bold text-cyan-800 hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-60">{loading ? 'Refreshing...' : 'Refresh queue'}</button>
           <button type="button" onClick={() => navigate('/responder/map')} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-800 hover:bg-slate-50">Open incident map</button>
         </div>
       </SectionCard>
@@ -236,7 +257,7 @@ function IncidentMapPage() {
 }
 
 function DispatchPage() {
-  const { incidents, setIncidents, error } = useResponderIncidents(false)
+  const { incidents, loading, setIncidents, error } = useResponderIncidents(false)
   const [notice, setNotice] = useState('')
   const [busyId, setBusyId] = useState('')
   const dispatchAction = async (incident, action) => {
@@ -283,7 +304,9 @@ function DispatchPage() {
         {notice ? <p className="mb-3 border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800">{notice}</p> : null}
         {error ? <p className="mb-3 border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-800">{error}</p> : null}
         <div className="grid gap-3">
-          {incidents.slice(0, 5).map((incident) => (
+          {loading ? <LoadingState label="Loading dispatch queue..." /> : null}
+          {!loading && !incidents.length ? <EmptyState title="No incidents in the dispatch queue" /> : null}
+          {!loading ? incidents.slice(0, 5).map((incident) => (
             <div key={incident.id} className="rounded-2xl border border-white/10 bg-slate-950/45 p-4">
               <p className="font-bold text-white">{incident.title}</p>
               <p className="mt-1 text-sm text-slate-400">{incident.location}</p>
@@ -293,7 +316,7 @@ function DispatchPage() {
                 <button type="button" disabled={busyId === incident.id} onClick={() => dispatchAction(incident, 'backup')} className="rounded-full border border-red-300 bg-red-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Request backup</button>
               </div>
             </div>
-          ))}
+          )) : null}
         </div>
       </SectionCard>
     </div>

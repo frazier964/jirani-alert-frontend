@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Camera, Clock3, FileText, MapPin, MessageSquare, Navigation2, Phone, Send, ShieldCheck, UserCircle2, Video } from 'lucide-react'
 import { getReport } from '../../lib/reportApi'
 import { acceptIncident, addIncidentNote, listResponderIncidents, updateIncidentStatus } from '../../lib/responderApi'
@@ -29,8 +29,9 @@ function hasValue(value) {
 
 export default function IncidentDetails() {
   const { id } = useParams()
+  const location = useLocation()
   const navigate = useNavigate()
-  const [incident, setIncident] = useState(null)
+  const [incident, setIncident] = useState(() => location.state?.incident || null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [actionBusy, setActionBusy] = useState(false)
@@ -62,6 +63,11 @@ export default function IncidentDetails() {
       } catch (e) {
         if (!cancelled) {
           const message = String(e?.message || '')
+          if (location.state?.incident) {
+            setIncident(normalizeIncident(location.state.incident))
+            setError(`Live details could not be refreshed: ${message || 'service unavailable'}`)
+            return
+          }
           if (/not found|404/i.test(message)) {
             setIncident(null)
             setNotFound(true)
@@ -78,7 +84,7 @@ export default function IncidentDetails() {
     return () => {
       cancelled = true
     }
-  }, [id])
+  }, [id, location.state])
 
   const timeline = useMemo(() => asArray(incident?.timeline), [incident])
 
@@ -218,7 +224,7 @@ export default function IncidentDetails() {
                   <div key={`${item.note}-${index}`} className="rounded-2xl border border-white/10 bg-slate-950/45 p-4 text-sm leading-6 text-slate-200">{item.note}</div>
                 )) : <EmptyState title="No responder notes yet" detail="Add the first operational note below." />}
               </div>
-              <div className="mt-4 flex gap-2">
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                 <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Add responder note" className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/40" />
                 <button type="button" disabled={actionBusy || !note.trim()} onClick={saveNote} className="inline-flex items-center gap-2 rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-3 text-sm font-bold text-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"><Send className="h-4 w-4" /> Save</button>
               </div>

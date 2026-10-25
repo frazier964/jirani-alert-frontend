@@ -217,6 +217,36 @@ html[data-account-contrast='true'] {
   filter: contrast(1.15) saturate(1.05);
 }
 
+html[data-account-theme='dark'] .responder-workspace {
+  background: #020617 !important;
+  color: #e2e8f0;
+}
+
+html[data-account-theme='dark'] .responder-workspace .bg-white {
+  background-color: #0f172a !important;
+}
+
+html[data-account-theme='dark'] .responder-workspace .bg-slate-50,
+html[data-account-theme='dark'] .responder-workspace .bg-\[\#f7f9fc\] {
+  background-color: #020617 !important;
+}
+
+html[data-account-theme='dark'] .responder-workspace .border-slate-200,
+html[data-account-theme='dark'] .responder-workspace .border-slate-300 {
+  border-color: #334155 !important;
+}
+
+html[data-account-theme='dark'] .responder-workspace .text-slate-900,
+html[data-account-theme='dark'] .responder-workspace .text-slate-800 {
+  color: #f8fafc !important;
+}
+
+html[data-account-theme='dark'] .responder-workspace .text-slate-700,
+html[data-account-theme='dark'] .responder-workspace .text-slate-600,
+html[data-account-theme='dark'] .responder-workspace .text-slate-500 {
+  color: #cbd5e1 !important;
+}
+
 html {
   scroll-behavior: smooth;
 }
