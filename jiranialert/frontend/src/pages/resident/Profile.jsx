@@ -34,7 +34,7 @@ import {
 } from 'lucide-react'
 import ProfileImageUpload from '../../components/UI/ProfileImageUpload'
 import Avatar from '../../components/UI/Avatar'
-import { getCurrentUser, updateCurrentUserProfile, deactivateCurrentUserAccount, deleteCurrentUserAccount } from '../../lib/auth'
+import { getCurrentUser, updateCurrentUserProfile, deleteCurrentUserAccount } from '../../lib/auth'
 import { listContacts, upsertContact } from '../../lib/contactsApi'
 
 const sidebarItems = [
@@ -240,29 +240,6 @@ export default function Profile() {
         message: e?.message || 'Could not export your account data.',
       })
       setToastVisible(true)
-    }
-  }
-
-  const deactivateAccount = async () => {
-    setAccountActionLoading('deactivate')
-    try {
-      await deactivateCurrentUserAccount()
-      setToastContent({
-        tone: 'success',
-        title: 'Account deactivated',
-        message: 'Your account has been saved as deactivated in the backend.',
-      })
-      setToastVisible(true)
-      navigate('/login')
-    } catch (e) {
-      setToastContent({
-        tone: 'error',
-        title: 'Deactivate failed',
-        message: e?.message || 'Could not deactivate your account.',
-      })
-      setToastVisible(true)
-    } finally {
-      setAccountActionLoading('')
     }
   }
 
@@ -862,12 +839,9 @@ export default function Profile() {
                   </div>
                   <Download className="h-6 w-6 text-emerald-500" />
                 </div>
-                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
                   <button type="button" onClick={exportMyData} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-100">
                     Export My Data
-                  </button>
-                  <button type="button" onClick={deactivateAccount} disabled={accountActionLoading === 'deactivate'} className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60">
-                    {accountActionLoading === 'deactivate' ? 'Deactivating...' : 'Deactivate Account'}
                   </button>
                   <button type="button" onClick={() => setDeleteConfirmOpen(true)} disabled={accountActionLoading === 'delete'} className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-black text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60">
                     Delete Account
@@ -1013,35 +987,38 @@ export default function Profile() {
 
       <AnimatePresence>
         {contactModalOpen && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[85] bg-slate-950/45 backdrop-blur-sm p-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[85] bg-slate-950/45 backdrop-blur-sm">
             <motion.div
-              initial={{ opacity: 0, y: 14, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.98 }}
-              className="mx-auto w-full max-w-lg rounded-[28px] border border-white/70 bg-white p-6 shadow-[0_24px_60px_rgba(15,23,42,0.22)]"
+              initial={{ opacity: 0, x: '100%' }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: '100%' }}
+              transition={{ type: 'tween', duration: 0.25 }}
+              className="ml-auto flex h-full w-full max-w-xl flex-col overflow-hidden border-l border-slate-200 bg-white shadow-[-24px_0_60px_rgba(15,23,42,0.22)]"
             >
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-5 py-5 sm:px-7">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#E53935]">Emergency contact</p>
                   <h3 className="mt-2 text-xl font-black text-slate-900">Add Contact</h3>
-                  <p className="mt-2 text-sm text-slate-600">Saved to your account so it stays after refresh.</p>
+                  <p className="mt-2 text-sm text-slate-600">Saved securely to your resident account.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setContactModalOpen(false)}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-700"
+                  aria-label="Close add contact panel"
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              {contactFormError ? (
-                <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7">
+                {contactFormError ? (
+                  <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
                   {contactFormError}
-                </div>
-              ) : null}
+                  </div>
+                ) : null}
 
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <label className="sm:col-span-2">
                   <span className="text-sm font-semibold text-slate-700">Full Name</span>
                   <input
@@ -1122,8 +1099,9 @@ export default function Profile() {
                   />
                 </label>
               </div>
+              </div>
 
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <div className="flex shrink-0 flex-col gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:flex-row sm:px-7">
                 <button
                   type="button"
                   onClick={() => setContactModalOpen(false)}

@@ -618,7 +618,10 @@ export async function loginUser({ email, password }) {
   let backendSourceUrl = null
   let tokenRole = null
   let backendFetchError = null
-  const backendCandidates = (await isBackendAvailable()) ? [BACKEND_URL] : []
+  // Do not block a successful sign-in on the optional Functions health check.
+  // If the backend is available, the profile request below loads it; otherwise
+  // the existing Firestore fallbacks resolve the account locally.
+  const backendCandidates = BACKEND_URL ? [BACKEND_URL] : []
   try {
     const tokenResult = await user.getIdTokenResult(true).catch(() => null)
     tokenRole = normalizeAccountRole(tokenResult?.claims?.role)

@@ -176,7 +176,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f8fb] text-slate-900">
+    <main className="admin-account min-h-screen bg-[#f6f8fb] text-slate-900">
       <div className="flex min-h-screen">
         <aside className="hidden w-64 shrink-0 flex-col bg-[#111827] text-slate-300 lg:flex">
           <div className="flex items-center gap-3 border-b border-white/10 px-7 py-6">

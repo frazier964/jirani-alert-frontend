@@ -247,6 +247,41 @@ html[data-account-theme='dark'] .responder-workspace .text-slate-500 {
   color: #cbd5e1 !important;
 }
 
+html[data-account-theme='dark'] .responder-workspace header,
+html[data-account-theme='dark'] .responder-workspace .bg-\[\#f7f9fc\] {
+  background-color: #0f172a !important;
+}
+
+html[data-account-theme='dark'] .responder-workspace aside {
+  background-color: #020617 !important;
+}
+
+html[data-account-theme='dark'] .responder-workspace .text-slate-800 {
+  color: #f8fafc !important;
+}
+
+html[data-account-theme='dark'] .responder-workspace button:hover,
+html[data-account-theme='dark'] .responder-workspace a:hover {
+  background-color: rgba(148, 163, 184, 0.14);
+}
+
+html[data-account-theme='light'] .responder-workspace aside {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-right: 1px solid #e2e8f0;
+}
+
+html[data-account-theme='light'] .responder-workspace aside .text-white,
+html[data-account-theme='light'] .responder-workspace aside .text-slate-200,
+html[data-account-theme='light'] .responder-workspace aside .text-slate-300 {
+  color: #334155 !important;
+}
+
+html[data-account-theme='light'] .responder-workspace aside .hover\:text-white:hover,
+html[data-account-theme='light'] .responder-workspace aside .text-white:hover {
+  color: #0f172a !important;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -414,6 +449,45 @@ code {
 :is(html[data-account-theme='dark'], .profile-theme-dark) select {
   background-color: rgba(2, 6, 23, 0.55) !important;
   color: rgb(241, 245, 249) !important;
+}
+
+/* Keep the admin workspace readable when its saved account theme changes. */
+html[data-account-theme='dark'] .admin-account {
+  background: #020617 !important;
+  color: #e2e8f0;
+}
+
+html[data-account-theme='dark'] .admin-account .bg-white {
+  background-color: #0f172a !important;
+}
+
+html[data-account-theme='dark'] .admin-account .bg-slate-50 {
+  background-color: #111827 !important;
+}
+
+html[data-account-theme='dark'] .admin-account .text-slate-950,
+html[data-account-theme='dark'] .admin-account .text-slate-900,
+html[data-account-theme='dark'] .admin-account .text-slate-800 {
+  color: #f8fafc !important;
+}
+
+html[data-account-theme='dark'] .admin-account .text-slate-700,
+html[data-account-theme='dark'] .admin-account .text-slate-600,
+html[data-account-theme='dark'] .admin-account .text-slate-500 {
+  color: #cbd5e1 !important;
+}
+
+html[data-account-theme='dark'] .admin-account .border-slate-200,
+html[data-account-theme='dark'] .admin-account .border-slate-100 {
+  border-color: #334155 !important;
+}
+
+html[data-account-theme='dark'] .admin-account input,
+html[data-account-theme='dark'] .admin-account textarea,
+html[data-account-theme='dark'] .admin-account select {
+  border-color: #475569 !important;
+  background-color: #020617 !important;
+  color: #f8fafc !important;
 }
 
 /* Announcement bar utilities */

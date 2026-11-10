@@ -24,9 +24,8 @@ import {
 } from 'lucide-react'
 import { getCurrentUser, getPreferredUserName } from '../../lib/auth'
 import { listNotifications } from '../../lib/notificationsApi'
-import { acceptIncident, assignIncident, listAssignedIncidents, listResponderIncidents, rejectIncident, updateIncidentStatus } from '../../lib/responderApi'
-import { auth } from '../../lib/firebase'
-import { recordDispatchAction } from '../../lib/responderWorkspaceApi'
+import { acceptIncident, listAssignedIncidents, listResponderIncidents, rejectIncident, updateIncidentStatus } from '../../lib/responderApi'
+import DispatchCommandCentre from './DispatchCommandCentre'
 import { EmptyState, FilterBar, IncidentCard, LoadingState, NotificationCard, PageHeader, ResponderShell, SearchBar, SectionCard, StatCard, StatusBadge } from './ResponderComponents'
 import { facilities, fallbackIncidents, normalizeIncident, responderUnits } from './responderUtils'
 
@@ -87,11 +86,11 @@ export default function ResponderWorkspacePage({ page }) {
   return (
     <ResponderShell>
       <div className="grid gap-5">
-        <PageHeader title={title} description={description} icon={Icon} />
+        {page !== 'dispatch' ? <PageHeader title={title} description={description} icon={Icon} /> : null}
         {page === 'incidents' ? <ActiveIncidentsPage /> : null}
         {page === 'assigned' ? <AssignedIncidentsPage /> : null}
         {page === 'map' ? <IncidentMapPage /> : null}
-        {page === 'dispatch' ? <DispatchPage /> : null}
+        {page === 'dispatch' ? <DispatchCommandCentre /> : null}
         {page === 'communications' ? <CommunicationsPage /> : null}
         {page === 'residents' ? <ResidentsPage /> : null}
         {page === 'team' ? <TeamPage /> : null}
@@ -250,73 +249,6 @@ function IncidentMapPage() {
               </div>
             )
           })}
-        </div>
-      </SectionCard>
-    </div>
-  )
-}
-
-function DispatchPage() {
-  const { incidents, loading, setIncidents, error } = useResponderIncidents(false)
-  const [notice, setNotice] = useState('')
-  const [busyId, setBusyId] = useState('')
-  const dispatchAction = async (incident, action) => {
-    setBusyId(incident.id)
-    try {
-      if (action === 'assign') {
-        const data = await assignIncident(incident.id, auth.currentUser?.uid)
-        setIncidents((items) => items.map((item) => item.id === incident.id ? normalizeIncident(data.incident) : item))
-        setNotice(`${incident.title} assigned to you.`)
-      } else {
-        await recordDispatchAction(incident.id, action)
-        setNotice(`${action === 'transfer' ? 'Transfer' : 'Backup request'} logged for ${incident.title}.`)
-      }
-    } catch (requestError) {
-      setNotice(requestError?.message || 'Dispatch action failed')
-    } finally {
-      setBusyId('')
-    }
-  }
-  return (
-    <div className="grid gap-5 xl:grid-cols-2">
-      <SectionCard title="Available units" subtitle="Assign responder resources" icon={Radio}>
-        <div className="grid gap-3">
-          {responderUnits.map((unit) => {
-            const Icon = unit.specialty
-            return (
-              <div key={unit.id} className="rounded-2xl border border-white/10 bg-slate-950/45 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <Icon className="h-5 w-5 text-cyan-200" />
-                    <div>
-                      <p className="font-bold text-white">{unit.name}</p>
-                      <p className="text-sm text-slate-400">{unit.crew}</p>
-                    </div>
-                  </div>
-                  <StatusBadge value={unit.status === 'Available' ? 'Completed' : unit.status === 'En Route' ? 'En Route' : 'Assigned'} />
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </SectionCard>
-      <SectionCard title="Dispatch queue" subtitle="Assign, transfer, and request backup" icon={AlertTriangle}>
-        {notice ? <p className="mb-3 border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800">{notice}</p> : null}
-        {error ? <p className="mb-3 border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-800">{error}</p> : null}
-        <div className="grid gap-3">
-          {loading ? <LoadingState label="Loading dispatch queue..." /> : null}
-          {!loading && !incidents.length ? <EmptyState title="No incidents in the dispatch queue" /> : null}
-          {!loading ? incidents.slice(0, 5).map((incident) => (
-            <div key={incident.id} className="rounded-2xl border border-white/10 bg-slate-950/45 p-4">
-              <p className="font-bold text-white">{incident.title}</p>
-              <p className="mt-1 text-sm text-slate-400">{incident.location}</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button type="button" disabled={busyId === incident.id} onClick={() => dispatchAction(incident, 'assign')} className="rounded-full border border-cyan-300 bg-cyan-500 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Assign to me</button>
-                <button type="button" disabled={busyId === incident.id} onClick={() => dispatchAction(incident, 'transfer')} className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-800 disabled:opacity-50">Log transfer</button>
-                <button type="button" disabled={busyId === incident.id} onClick={() => dispatchAction(incident, 'backup')} className="rounded-full border border-red-300 bg-red-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Request backup</button>
-              </div>
-            </div>
-          )) : null}
         </div>
       </SectionCard>
     </div>

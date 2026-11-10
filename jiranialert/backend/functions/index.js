@@ -1797,6 +1797,12 @@ exports.updateIncidentStatus = onRequest({ region: 'us-central1' }, async (req, 
     const reportId = requiredString(req.body?.reportId, 'reportId')
     const status = requiredString(req.body?.status, 'status')
     const note = optionalString(req.body?.note)
+    const allowedStatuses = new Set(['New', 'Pending Assignment', 'Assigned', 'Acknowledged', 'En Route', 'On Scene', 'Resolved', 'Closed', 'Accepted', 'Completed', 'Rejected'])
+    if (!allowedStatuses.has(status)) {
+      const error = new Error('Unsupported incident status')
+      error.status = 400
+      throw error
+    }
     const reportRef = db.collection('reports').doc(reportId)
     const alertRef = db.collection('alerts').doc(reportId)
     const now = serverTimestampValue()
@@ -1822,8 +1828,21 @@ exports.updateIncidentStatus = onRequest({ region: 'us-central1' }, async (req, 
         error.status = 404
         throw error
       }
+      const current = report.data() || {}
+      if (user.role === 'responder' && current.assignedResponderId && current.assignedResponderId !== user.uid) {
+        const error = new Error('Only the assigned responder can update this incident')
+        error.status = 403
+        throw error
+      }
       transaction.set(reportRef, updates, { merge: true })
       transaction.set(alertRef, { status, updatedAt: now }, { merge: true })
+      if (['Resolved', 'Closed', 'Completed'].includes(status) && current.assignedResponderId) {
+        transaction.set(db.collection('profiles').doc(current.assignedResponderId), {
+          activeAssignmentId: admin.firestore.FieldValue.delete(),
+          activeAssignmentTitle: admin.firestore.FieldValue.delete(),
+          updatedAt: now,
+        }, { merge: true })
+      }
     })
 
     const saved = await reportRef.get()
@@ -1843,11 +1862,49 @@ exports.assignIncident = onRequest({ region: 'us-central1' }, async (req, res) =
     const reportId = requiredString(req.body?.reportId, 'reportId')
     const responderId = requiredString(req.body?.responderId, 'responderId')
     const reportRef = db.collection('reports').doc(reportId)
+    const responderRef = db.collection('profiles').doc(responderId)
     const now = serverTimestampValue()
 
-    await reportRef.set(
-      {
+    await db.runTransaction(async (transaction) => {
+      const [reportSnap, responderSnap] = await Promise.all([
+        transaction.get(reportRef),
+        transaction.get(responderRef),
+      ])
+      if (!reportSnap.exists) {
+        const error = new Error('Incident not found')
+        error.status = 404
+        throw error
+      }
+      const report = reportSnap.data() || {}
+      const responder = responderSnap.exists ? responderSnap.data() || {} : null
+      if (!responder || normalizeRole(responder.role) !== 'responder') {
+        const error = new Error('A valid responder is required')
+        error.status = 400
+        throw error
+      }
+      if (['Resolved', 'Closed', 'Completed'].includes(String(report.status || ''))) {
+        const error = new Error('Resolved incidents cannot be assigned')
+        error.status = 409
+        throw error
+      }
+      if (report.assignedResponderId) {
+        const error = new Error('This incident is already assigned')
+        error.status = 409
+        throw error
+      }
+      if (responder.availability !== 'Online') {
+        const error = new Error('Only online responders can be assigned')
+        error.status = 409
+        throw error
+      }
+      if (responder.activeAssignmentId) {
+        const error = new Error('This responder already has an active assignment')
+        error.status = 409
+        throw error
+      }
+      transaction.set(reportRef, {
         assignedResponderId: responderId,
+        assignedResponderEmail: responder.email || null,
         dispatchedBy: user.uid,
         assignmentStatus: 'Assigned',
         status: 'Assigned',
@@ -1859,9 +1916,13 @@ exports.assignIncident = onRequest({ region: 'us-central1' }, async (req, res) =
           assignedResponderId: responderId,
           createdAt: new Date().toISOString(),
         }),
-      },
-      { merge: true },
-    )
+      }, { merge: true })
+      transaction.set(responderRef, {
+        activeAssignmentId: reportId,
+        activeAssignmentTitle: report.title || `${report.type || 'Emergency'} incident`,
+        updatedAt: now,
+      }, { merge: true })
+    })
 
     const saved = await reportRef.get()
     res.json({ ok: true, incident: { id: saved.id, ...saved.data() } })
@@ -1909,7 +1970,16 @@ exports.listResponderTeam = onRequest({ region: 'us-central1' }, async (req, res
     requireMethod(req, 'GET')
     await requireResponderUser(req)
     const snapshot = await db.collection('profiles').where('role', 'in', ['responder', 'admin']).limit(100).get()
-    res.json({ members: snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) })
+    res.json({ members: snapshot.docs.map((doc) => {
+      const member = doc.data() || {}
+      return {
+        id: doc.id,
+        ...member,
+        currentAssignment: member.activeAssignmentId
+          ? { id: member.activeAssignmentId, title: member.activeAssignmentTitle || 'Active incident' }
+          : null,
+      }
+    }) })
   } catch (error) { sendError(res, error) }
 })
 

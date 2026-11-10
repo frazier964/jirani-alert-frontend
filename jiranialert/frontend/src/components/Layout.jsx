@@ -11,9 +11,11 @@ function applyAccountPreferences(profile) {
   if (typeof document === 'undefined') return
 
   const root = document.documentElement
-  const theme = profile?.theme === 'dark' ? 'dark' : 'light'
-  const highContrast = profile?.highContrast === true
-  const textSize = TEXT_SIZE_OPTIONS.has(profile?.textSize) ? profile.textSize : 'Medium'
+  const appearance = profile?.settings?.appearance || {}
+  const theme = (profile?.theme || appearance.theme) === 'dark' ? 'dark' : 'light'
+  const highContrast = profile?.highContrast === true || appearance.highContrast === true
+  const textSizeValue = profile?.textSize || appearance.textSize
+  const textSize = TEXT_SIZE_OPTIONS.has(textSizeValue) ? textSizeValue : 'Medium'
 
   root.dataset.accountTheme = theme
   root.dataset.accountContrast = highContrast ? 'true' : 'false'

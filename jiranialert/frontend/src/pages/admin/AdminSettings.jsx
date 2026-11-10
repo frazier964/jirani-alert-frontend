@@ -13,7 +13,7 @@ import {
   User,
 } from 'lucide-react'
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth'
-import { getCurrentUser, updateCurrentUserProfile } from '../../lib/auth'
+import { cacheCurrentUserProfile, getCurrentUser, updateCurrentUserProfile } from '../../lib/auth'
 import { auth } from '../../lib/firebase'
 import { getLocalAdminSettings, updateLocalAdminSettings } from '../../lib/adminApi'
 
@@ -90,7 +90,9 @@ export default function AdminSettings() {
         const nextProfile = data.profile || {}
         setSummary({ ...(getCurrentUser() || {}), ...nextProfile })
         setProfile({ firstName: nextProfile.firstName || '', lastName: nextProfile.lastName || '', phoneNumber: nextProfile.phoneNumber || '' })
-        setSettings(mergeSettings(data.settings))
+        const nextSettings = mergeSettings(data.settings)
+        setSettings(nextSettings)
+        cacheCurrentUserProfile({ ...(getCurrentUser() || {}), ...nextProfile, settings: nextSettings, ...nextSettings.appearance })
       })
       .catch((requestError) => { if (active) setError(requestError.message || 'Unable to load administrator settings.') })
       .finally(() => { if (active) setLoading(false) })
@@ -115,10 +117,10 @@ export default function AdminSettings() {
 
   const saveSettings = async (nextSettings) => {
     setSaving('settings'); setNotice(''); setError('')
+    setSettings(nextSettings)
+    cacheCurrentUserProfile({ ...(getCurrentUser() || {}), settings: nextSettings, ...nextSettings.appearance })
     try {
       await updateLocalAdminSettings(nextSettings)
-      setSettings(nextSettings)
-      if (nextSettings.appearance) await updateCurrentUserProfile(nextSettings.appearance)
       setNotice('Preferences saved.')
     } catch (requestError) { setError(requestError.message || 'Unable to save preferences.') } finally { setSaving('') }
   }
@@ -148,14 +150,7 @@ export default function AdminSettings() {
 
   if (loading) return <div className="rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-500">Loading administrator settings...</div>
 
-  return <div className="grid gap-6 xl:grid-cols-[220px_minmax(0,1fr)]">
-    <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-4 shadow-sm xl:sticky xl:top-6">
-      <p className="px-3 text-xs font-black uppercase tracking-widest text-slate-400">Settings menu</p>
-      <nav className="mt-3 grid gap-1 text-sm font-bold text-slate-600">
-        {['profile', 'locality', 'notifications', 'security', 'response', 'permissions', 'appearance', 'help'].map((id) => <a key={id} href={`#${id}`} className="rounded-lg px-3 py-2.5 capitalize hover:bg-red-50 hover:text-red-700">{id === 'response' ? 'Emergency response' : id === 'permissions' ? 'Team & permissions' : id}</a>)}
-      </nav>
-    </aside>
-    <div className="grid gap-5">
+  return <div className="grid gap-5">
       {notice ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700"><Check className="mr-2 inline h-4 w-4" />{notice}</div> : null}
       {error ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div> : null}
       <Section id="profile" title="Profile & account" description="Update the contact details used for your local administration account." icon={User}>
@@ -169,6 +164,5 @@ export default function AdminSettings() {
       <Section id="permissions" title="Team & permissions" description="Effective permissions are informational and come from trusted authorization logic." icon={Eye}><div className="grid gap-3 sm:grid-cols-2"><div className="rounded-xl border border-slate-200 p-4"><p className="font-bold text-slate-800">Local incident management</p><p className="mt-1 text-sm text-slate-500">Manage reports and alerts within your assigned locality.</p></div><div className="rounded-xl border border-slate-200 p-4"><p className="font-bold text-slate-800">Member and responder review</p><p className="mt-1 text-sm text-slate-500">Review requests within your authorized scope.</p></div></div></Section>
       <Section id="appearance" title="Appearance & accessibility" description="Use a presentation that works for your environment." icon={Sun}><div className="flex flex-wrap gap-2"><button type="button" onClick={() => setPreference('appearance', 'theme', 'light')} className={`rounded-xl border px-4 py-2.5 text-sm font-bold ${appearance.theme === 'light' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200'}`}><Sun className="mr-2 inline h-4 w-4" />Light</button><button type="button" onClick={() => setPreference('appearance', 'theme', 'dark')} className={`rounded-xl border px-4 py-2.5 text-sm font-bold ${appearance.theme === 'dark' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200'}`}><Moon className="mr-2 inline h-4 w-4" />Dark</button></div><div className="mt-4 grid gap-3 md:grid-cols-2"><Toggle label="High contrast" description="Increase contrast for controls and text." checked={appearance.highContrast} onChange={(value) => setPreference('appearance', 'highContrast', value)} /><Toggle label="Reduced motion" description="Prefer fewer interface animations." checked={appearance.reducedMotion} onChange={(value) => setPreference('appearance', 'reducedMotion', value)} /></div><button type="button" disabled={saving === 'settings'} onClick={() => void saveSettings(settings)} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />Save appearance</button></Section>
       <Section id="help" title="Help & support" description="Get assistance using real JiraniAlert destinations." icon={ShieldCheck}><div className="flex flex-wrap gap-3 text-sm font-bold"><a href="/support" className="rounded-xl border border-slate-200 px-4 py-2.5 hover:border-red-400 hover:text-red-700">Help & support</a><a href="/privacy" className="rounded-xl border border-slate-200 px-4 py-2.5 hover:border-red-400 hover:text-red-700">Privacy information</a></div></Section>
-    </div>
   </div>
 }

@@ -87,7 +87,8 @@ function AppRoutes() {
 
           <Route element={<Layout />}>
             <Route path="/resident/dashboard" element={<ResidentDashboard />} />
-            <Route path="/resident/report" element={<Navigate to="/emergency-activation" replace />} />
+            <Route path="/resident/report" element={<ReportEmergency />} />
+            <Route path="/resident/report/:id" element={<GuestReportTracking />} />
             <Route path="/resident/map" element={<LiveMap />} />
             <Route path="/resident/notifications" element={<Notifications />} />
             <Route path="/resident/reports" element={<Reports />} />

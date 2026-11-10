@@ -831,7 +831,7 @@ export default function ReportEmergency({ variant = 'resident' }) {
               <div className="mt-6 flex flex-col sm:flex-row gap-3">
                 <button
                   type="button"
-                  onClick={() => navigate(`/report-emergency/${success.id}`)}
+                  onClick={() => navigate(isResident ? `/resident/report/${success.id}` : `/report-emergency/${success.id}`)}
                   className="flex-1 rounded-xl bg-[#2563EB] px-4 py-3 font-bold text-white hover:shadow-[0_0_24px_rgba(37,99,235,0.45)] transition-all"
                 >
                   Track Alert

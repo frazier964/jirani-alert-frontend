@@ -19,7 +19,7 @@ export function ResponderShell({ children }) {
   return (
     <div className="responder-workspace min-h-screen bg-[#f7f9fc] text-slate-800">
       <ResponderCommandBar />
-      <main className="min-h-[calc(100vh-7.5rem)] lg:ml-[266px]">
+      <main className="min-h-[calc(100vh-7.5rem)]">
         <div className="mx-auto max-w-[1440px] px-4 py-7 sm:px-7 lg:px-11 lg:py-10">{children}</div>
       </main>
     </div>

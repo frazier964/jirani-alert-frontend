@@ -678,9 +678,9 @@ We recommend reviewing this policy periodically to stay informed about how we pr
                   </Link>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
+                  <Link to="/terms" className="hover:text-white transition-colors">
                     Terms of Service
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -718,7 +718,7 @@ We recommend reviewing this policy periodically to stay informed about how we pr
               <h4 className="text-white font-semibold mb-4">Community</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
+                  <a href="https://x.com/LilFraz17" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">
                     Twitter
                   </a>
                 </li>
