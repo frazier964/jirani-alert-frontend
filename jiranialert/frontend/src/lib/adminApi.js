@@ -35,7 +35,10 @@ export const reviewResponder = (responderId, action, reason = '') => request('re
 export const manageIncident = (incidentId, action, payload = {}) => request('manageLocalIncident', 'POST', { incidentId, action, ...payload })
 export const createBroadcast = (title, message, severity = 'Info') =>
   request('createLocalBroadcast', 'POST', { title, message, severity })
+export const updateBroadcast = (broadcastId, title, message, severity = 'Info') =>
+  request('updateLocalBroadcast', 'POST', { broadcastId, title, message, severity })
+export const removeBroadcast = (broadcastId) => request('removeLocalBroadcast', 'POST', { broadcastId })
 export const getLocalAdminSettings = () => request('getLocalAdminSettings')
 export const updateLocalAdminSettings = (settings) => request('updateLocalAdminSettings', 'POST', { settings })
 
-export default { getAdminDashboard, reviewResident, moderateAlert, moderateAlertWithReason, manageUser, reviewResponder, manageIncident, createBroadcast, getLocalAdminSettings, updateLocalAdminSettings }
+export default { getAdminDashboard, reviewResident, moderateAlert, moderateAlertWithReason, manageUser, reviewResponder, manageIncident, createBroadcast, updateBroadcast, removeBroadcast, getLocalAdminSettings, updateLocalAdminSettings }

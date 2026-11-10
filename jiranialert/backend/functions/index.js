@@ -924,6 +924,8 @@ exports.createLocalBroadcast = onRequest({ region: 'us-central1' }, async (req, 
     const batch = db.batch()
     batch.set(broadcastRef, {
       estateId: adminUser.estateId,
+      isGlobal: true,
+      status: 'published',
       title,
       message,
       severity,
@@ -947,6 +949,78 @@ exports.createLocalBroadcast = onRequest({ region: 'us-central1' }, async (req, 
     await batch.commit()
     await writeLocalAdminAudit({ admin: adminUser, action: 'broadcast_created', targetId: broadcastRef.id, metadata: { recipientCount: residentSnapshot.size } })
     res.status(201).json({ ok: true, broadcastId: broadcastRef.id, recipientCount: residentSnapshot.size })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.listSystemAnnouncements = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'GET')
+    const snapshot = await db.collection('broadcasts').limit(100).get()
+    const announcements = snapshot.docs
+      .map(profileForAdmin)
+      .filter((announcement) => announcement.isGlobal === true && announcement.status !== 'removed')
+      .sort((left, right) => {
+        const leftTime = left.createdAt?.toMillis ? left.createdAt.toMillis() : new Date(left.createdAt || 0).getTime()
+        const rightTime = right.createdAt?.toMillis ? right.createdAt.toMillis() : new Date(right.createdAt || 0).getTime()
+        return rightTime - leftTime
+      })
+      .slice(0, 20)
+    res.json({ announcements })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.updateLocalBroadcast = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const adminUser = await requireLocalAdminUser(req)
+    const broadcastId = requiredString(req.body?.broadcastId, 'broadcastId')
+    const title = requiredString(req.body?.title, 'title').slice(0, 160)
+    const message = requiredString(req.body?.message, 'message').slice(0, 4000)
+    const severity = ['Info', 'Warning', 'Urgent'].includes(req.body?.severity) ? req.body.severity : 'Info'
+    const ref = db.collection('broadcasts').doc(broadcastId)
+    const snapshot = await ref.get()
+    if (!snapshot.exists || snapshot.data()?.estateId !== adminUser.estateId || snapshot.data()?.isGlobal !== true) {
+      const error = new Error('Announcement is not in your assigned estate')
+      error.status = 404
+      throw error
+    }
+    const now = serverTimestampValue()
+    await ref.set({ title, message, severity, status: 'published', updatedAt: now }, { merge: true })
+    await writeLocalAdminAudit({ admin: adminUser, action: 'broadcast_updated', targetId: broadcastId })
+    res.json({ ok: true, announcement: { id: broadcastId, ...(await ref.get()).data() } })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+exports.removeLocalBroadcast = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const adminUser = await requireLocalAdminUser(req)
+    const broadcastId = requiredString(req.body?.broadcastId, 'broadcastId')
+    const ref = db.collection('broadcasts').doc(broadcastId)
+    const snapshot = await ref.get()
+    if (!snapshot.exists || snapshot.data()?.estateId !== adminUser.estateId || snapshot.data()?.isGlobal !== true) {
+      const error = new Error('Announcement is not in your assigned estate')
+      error.status = 404
+      throw error
+    }
+    await ref.set({ status: 'removed', removedAt: serverTimestampValue(), removedBy: adminUser.uid }, { merge: true })
+    await writeLocalAdminAudit({ admin: adminUser, action: 'broadcast_removed', targetId: broadcastId })
+    res.json({ ok: true })
   } catch (error) {
     sendError(res, error)
   }

@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
+import { listSystemAnnouncements } from '../lib/announcementApi'
 
 const announcementItems = [
   '🚨 Emergency reported near your area',
@@ -18,17 +19,40 @@ const announcementItems = [
 
 export default function AnnouncementBar() {
   const [activeIndex, setActiveIndex] = useState(0)
+  const [publishedAnnouncements, setPublishedAnnouncements] = useState([])
   const shouldReduceMotion = useReducedMotion()
 
   useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const announcements = await listSystemAnnouncements()
+        if (!cancelled) setPublishedAnnouncements(announcements)
+      } catch {
+        // Keep the built-in announcements visible when the backend is unavailable.
+      }
+    }
+    void load()
+    const refresh = window.setInterval(load, 30000)
+    return () => {
+      cancelled = true
+      window.clearInterval(refresh)
+    }
+  }, [])
+
+  const items = publishedAnnouncements.length
+    ? publishedAnnouncements.map((announcement) => `${announcement.title}: ${announcement.message}`)
+    : announcementItems
+
+  useEffect(() => {
     const interval = window.setInterval(() => {
-      setActiveIndex((current) => (current + 1) % announcementItems.length)
+      setActiveIndex((current) => (current + 1) % items.length)
     }, 15000)
 
     return () => window.clearInterval(interval)
-  }, [])
+  }, [items.length])
 
-  const message = announcementItems[activeIndex]
+  const message = items[activeIndex % items.length]
 
   return (
     <motion.section
