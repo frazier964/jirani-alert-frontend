@@ -145,6 +145,7 @@ export default function AdminWorkspace({ section: sectionProp }) {
   const [workingId, setWorkingId] = useState('')
   const [notice, setNotice] = useState('')
   const [broadcastOpen, setBroadcastOpen] = useState(false)
+  const [broadcastError, setBroadcastError] = useState('')
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
   const [logoutBusy, setLogoutBusy] = useState(false)
@@ -158,7 +159,7 @@ export default function AdminWorkspace({ section: sectionProp }) {
       setData(await getAdminDashboard())
     } catch (err) {
       setError(err.message || 'Unable to load administrator data.')
-      setData(demoAdminData)
+      setData(null)
     } finally {
       setLoading(false)
     }
@@ -182,7 +183,9 @@ export default function AdminWorkspace({ section: sectionProp }) {
       setNotice('Action recorded successfully.')
       await load()
     } catch (err) {
-      setError(err.message || 'The action could not be completed.')
+      const message = err.message || 'The action could not be completed.'
+      setError(message)
+      return message
     } finally {
       setWorkingId('')
     }
@@ -195,11 +198,13 @@ export default function AdminWorkspace({ section: sectionProp }) {
 
   const openNewBroadcast = () => {
     setBroadcast({ id: '', title: '', message: '', severity: 'Info' })
+    setBroadcastError('')
     setBroadcastOpen(true)
   }
 
   const openEditBroadcast = (item) => {
     setBroadcast({ id: item.id, title: item.title || '', message: item.message || '', severity: item.severity || 'Info' })
+    setBroadcastError('')
     setBroadcastOpen(true)
   }
 
@@ -207,13 +212,22 @@ export default function AdminWorkspace({ section: sectionProp }) {
     event.preventDefault()
     const title = broadcast.title.trim()
     const message = broadcast.message.trim()
-    if (!title || !message) return
-    await run('broadcast', async () => {
-      if (broadcast.id) await updateBroadcast(broadcast.id, title, message, broadcast.severity)
-      else await createBroadcast(title, message, broadcast.severity)
-      setBroadcastOpen(false)
-      setBroadcast({ id: '', title: '', message: '', severity: 'Info' })
-    })
+    if (!title || !message) {
+      setBroadcastError('Enter both a title and a message before publishing.')
+      return
+    }
+    setBroadcastError('')
+    try {
+      const runError = await run('broadcast', async () => {
+        if (broadcast.id) await updateBroadcast(broadcast.id, title, message, broadcast.severity)
+        else await createBroadcast(title, message, broadcast.severity)
+        setBroadcastOpen(false)
+        setBroadcast({ id: '', title: '', message: '', severity: 'Info' })
+      })
+      if (runError) setBroadcastError(runError)
+    } catch (error) {
+      setBroadcastError(error.message || 'The announcement could not be published.')
+    }
   }
 
   const deleteBroadcast = async (item) => {
@@ -278,7 +292,7 @@ export default function AdminWorkspace({ section: sectionProp }) {
 
           <div className="mx-auto max-w-[1400px] px-5 py-7 sm:px-8 lg:px-10 lg:py-9">
             <div className="mb-7 flex flex-col justify-between gap-4 md:flex-row md:items-end"><div><p className="text-sm font-bold text-blue-600">JiraniAlert administration</p><h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950">{titleByPage[section] || 'Admin workspace'}</h1><p className="mt-2 text-sm text-slate-500">Manage verified community operations with actions recorded in the audit log.</p></div>{['dashboard', 'announcements'].includes(section) ? <button type="button" onClick={openNewBroadcast} className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-bold text-white hover:bg-red-700"><Megaphone className="h-4 w-4" /> New announcement</button> : null}</div>
-            {error ? <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">Demo data is displayed while the administrator service is unavailable.</div> : null}
+            {error ? <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">{error}</div> : null}
             {notice ? <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{notice}</div> : null}
             {loading && !data ? <div className="rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-500">Loading verified administrator data...</div> : <PageContent section={section} data={data} query={query} setQuery={setQuery} filteredUsers={filteredUsers} workingId={workingId} run={run} openEditBroadcast={openEditBroadcast} deleteBroadcast={deleteBroadcast} />}
           </div>
@@ -298,7 +312,7 @@ export default function AdminWorkspace({ section: sectionProp }) {
         </aside>
       </div> : null}
 
-      {broadcastOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"><form onSubmit={saveBroadcast} className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"><div className="flex justify-between"><div><h2 className="text-xl font-black">{broadcast.id ? 'Edit announcement' : 'New community announcement'}</h2><p className="mt-1 text-sm text-slate-500">Published announcements appear in the system-wide announcement bar.</p></div><button type="button" disabled={workingId === 'broadcast'} onClick={() => setBroadcastOpen(false)} aria-label="Close"><X /></button></div><label className="mt-6 block text-sm font-bold text-slate-700">Title<input required maxLength="160" value={broadcast.title} onChange={(event) => setBroadcast({ ...broadcast, title: event.target.value })} placeholder="Announcement title" className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 font-normal" /></label><label className="mt-3 block text-sm font-bold text-slate-700">Severity<select value={broadcast.severity} onChange={(event) => setBroadcast({ ...broadcast, severity: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 font-normal"><option>Info</option><option>Warning</option><option>Urgent</option></select></label><label className="mt-3 block text-sm font-bold text-slate-700">Message<textarea required maxLength="4000" value={broadcast.message} onChange={(event) => setBroadcast({ ...broadcast, message: event.target.value })} placeholder="Message" rows="5" className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 font-normal" /></label><button disabled={workingId === 'broadcast'} className="mt-4 w-full rounded-xl bg-slate-900 px-4 py-3 font-bold text-white disabled:opacity-50">{workingId === 'broadcast' ? 'Saving...' : broadcast.id ? 'Save changes' : 'Publish announcement'}</button></form></div> : null}
+      {broadcastOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"><form onSubmit={saveBroadcast} className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"><div className="flex justify-between"><div><h2 className="text-xl font-black">{broadcast.id ? 'Edit announcement' : 'New community announcement'}</h2><p className="mt-1 text-sm text-slate-500">Published announcements appear in the system-wide announcement bar.</p></div><button type="button" disabled={workingId === 'broadcast'} onClick={() => setBroadcastOpen(false)} aria-label="Close"><X /></button></div>{broadcastError ? <div role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{broadcastError}</div> : null}<label className="mt-6 block text-sm font-bold text-slate-700">Title<input required maxLength="160" value={broadcast.title} onChange={(event) => setBroadcast({ ...broadcast, title: event.target.value })} placeholder="Announcement title" className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 font-normal" /></label><label className="mt-3 block text-sm font-bold text-slate-700">Severity<select value={broadcast.severity} onChange={(event) => setBroadcast({ ...broadcast, severity: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 font-normal"><option>Info</option><option>Warning</option><option>Urgent</option></select></label><label className="mt-3 block text-sm font-bold text-slate-700">Message<textarea required maxLength="4000" value={broadcast.message} onChange={(event) => setBroadcast({ ...broadcast, message: event.target.value })} placeholder="Message" rows="5" className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 font-normal" /></label><button disabled={workingId === 'broadcast'} className="mt-4 w-full rounded-xl bg-slate-900 px-4 py-3 font-bold text-white disabled:opacity-50">{workingId === 'broadcast' ? 'Saving...' : broadcast.id ? 'Save changes' : 'Publish announcement'}</button></form></div> : null}
       <LogoutConfirmModal open={logoutOpen} onCancel={() => setLogoutOpen(false)} onConfirm={signOut} busy={logoutBusy} />
     </main>
   )

@@ -1,4 +1,4 @@
-import { auth, prodAuth, firestore, ensureAnonymous, waitForFirebaseReady } from './firebase'
+import { auth, prodAuth, firestore, ensureAnonymous, waitForFirebaseReady, isEmulatorAuthActive } from './firebase'
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -236,6 +236,7 @@ async function waitForAuthReady() {
 }
 
 export function getActiveUser() {
+  if (isEmulatorAuthActive() && auth?.currentUser) return auth.currentUser
   // In explicit emulator mode, a production verification link can leave an
   // old emulator session beside the verified production session. Prefer the
   // verified identity so route guards and profile sync use the right account.
@@ -245,6 +246,7 @@ export function getActiveUser() {
 }
 
 export function getActiveAuth() {
+  if (isEmulatorAuthActive()) return auth
   if (auth?.currentUser?.emailVerified) return auth
   if (prodAuth?.currentUser?.emailVerified) return prodAuth
   if (auth?.currentUser) return auth

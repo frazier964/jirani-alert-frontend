@@ -52,7 +52,10 @@ export default function AnnouncementBar() {
     return () => window.clearInterval(interval)
   }, [items.length])
 
-  const message = items[activeIndex % items.length]
+  const activeAnnouncement = publishedAnnouncements[activeIndex % Math.max(publishedAnnouncements.length, 1)]
+  const message = activeAnnouncement
+    ? `${activeAnnouncement.title}: ${activeAnnouncement.message}`
+    : items[activeIndex % items.length]
 
   return (
     <motion.section
@@ -71,7 +74,7 @@ export default function AnnouncementBar() {
             animate={shouldReduceMotion ? { x: 0, y: '-50%' } : { x: ['100vw', '-100vw'], y: '-50%' }}
             transition={{ duration: shouldReduceMotion ? 0 : 16, repeat: shouldReduceMotion ? 0 : Infinity, ease: 'linear' }}
           >
-            {message}
+            {activeAnnouncement ? <><strong className="mr-2">{activeAnnouncement.title}</strong><span>{activeAnnouncement.message}</span></> : message}
           </motion.div>
         </div>
       </div>

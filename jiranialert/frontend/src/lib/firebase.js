@@ -2,6 +2,7 @@ import { initializeApp, getApps } from 'firebase/app'
 import {
   getAuth,
   signInAnonymously,
+  signOut as fbSignOut,
   connectAuthEmulator,
   setPersistence,
   browserLocalPersistence,
@@ -81,20 +82,39 @@ async function isEmulatorAvailable(host, port, path = '/') {
 async function connectEmulatorsIfAvailable() {
   if (!app || !shouldUseEmulators) return false
 
+  if (emulatorMode === 'true') {
+    try {
+      if (auth && shouldUseAuthEmulator) {
+        connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
+      }
+      if (firestore && shouldUseFirestoreEmulator) {
+        connectFirestoreEmulator(firestore, '127.0.0.1', 9001)
+      }
+      emulatorsConnected = true
+      return true
+    } catch (e) {
+      console.warn('Firebase emulator connection failed:', e)
+      return false
+    }
+  }
+
   const tryConnect = async () => {
     const authAvailable = await isEmulatorAvailable('127.0.0.1', 9099, '/')
     const firestoreAvailable = await isEmulatorAvailable('127.0.0.1', 9001, '/')
-    const functionsAvailable = await isEmulatorAvailable('127.0.0.1', 5005, '/')
+    const functionsAvailable = await isEmulatorAvailable('127.0.0.1', 5005, '/jiranialert/us-central1/health')
     return authAvailable && firestoreAvailable && functionsAvailable
   }
 
-  const available = emulatorMode === 'true' ? true : await tryConnect()
+  const available = await tryConnect()
   if (!available) {
     console.warn('Firebase emulators not available, using production Firebase services instead.')
     return false
   }
 
   try {
+    if (auth && shouldUseAuthEmulator && auth.currentUser) {
+      await fbSignOut(auth)
+    }
     if (auth && shouldUseAuthEmulator) {
       connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
     }
@@ -102,6 +122,9 @@ async function connectEmulatorsIfAvailable() {
       connectFirestoreEmulator(firestore, '127.0.0.1', 9001)
     }
     emulatorsConnected = true
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('jiranialert_emulator_connected', 'true')
+    }
     console.info(
       `Firebase emulators connected for ${shouldUseAuthEmulator ? 'auth and ' : ''}${shouldUseFirestoreEmulator ? 'firestore' : 'firebase'}`,
     )
@@ -139,6 +162,10 @@ export async function waitForFirebaseReady() {
   return emulatorsConnected
 }
 
+export function isEmulatorAuthActive() {
+  return emulatorsConnected && shouldUseAuthEmulator
+}
+
 if (app) {
   firebaseReadyPromise.catch(() => null)
 }
@@ -149,6 +176,11 @@ async function ensureAnonymous() {
   if (!auth) return null
   await waitForFirebaseReady()
   if (auth.currentUser) return auth.currentUser
+
+  // Production accounts must sign in explicitly. Anonymous Auth is disabled
+  // in the project, and attempting it on every page creates noisy 400 errors.
+  if (!isEmulatorAuthActive()) return null
+
   try {
     const cred = await signInAnonymously(auth)
     return cred.user

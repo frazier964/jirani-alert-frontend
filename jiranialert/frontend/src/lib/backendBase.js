@@ -10,7 +10,7 @@ export function getFunctionsBaseUrl() {
   const explicitBase = String(import.meta.env.VITE_FUNCTIONS_BASE || import.meta.env.VITE_BACKEND_URL || '').trim()
   if (explicitBase) {
     const directCloudFunctions = /^https:\/\/[a-z0-9-]+-[a-z0-9-]+\.cloudfunctions\.net/i.test(explicitBase)
-    if (typeof window === 'undefined' || isLocalhostHost() || !directCloudFunctions) {
+    if (typeof window === 'undefined' || (!isLocalhostHost() && !directCloudFunctions)) {
       return explicitBase
     }
 
