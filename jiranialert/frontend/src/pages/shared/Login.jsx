@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -40,7 +40,6 @@ export default function Login() {
   const [resendLoading, setResendLoading] = useState(false)
   const [resendResult, setResendResult] = useState('')
   const [verificationLink, setVerificationLink] = useState('')
-  const [showResendForm, setShowResendForm] = useState(false)
   const [resendEmail, setResendEmail] = useState('')
   const [resendPassword, setResendPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -247,53 +246,54 @@ export default function Login() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55 }}
-            className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-stretch"
+            className="mx-auto max-w-2xl lg:max-w-6xl"
           >
-            <section id="login-features" className="rounded-3xl bg-gradient-to-br from-[#1d4ed8] via-[#2563EB] to-[#1e3a8a] p-8 sm:p-10 text-white shadow-[0_28px_65px_rgba(37,99,235,0.35)] relative overflow-hidden">
-              <motion.div
-                className="absolute -top-12 -left-8 w-40 h-40 rounded-full bg-white/20 blur-2xl"
-                animate={{ scale: [1, 1.15, 1], opacity: [0.35, 0.7, 0.35] }}
-                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-              />
-              <motion.div
-                className="absolute -bottom-10 right-0 w-52 h-52 rounded-full bg-[#16A34A]/25 blur-2xl"
-                animate={{ scale: [1, 1.08, 1], opacity: [0.3, 0.55, 0.3] }}
-                transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-              />
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-stretch">
+              <section id="login-features" className="hidden lg:block rounded-3xl bg-gradient-to-br from-[#1d4ed8] via-[#2563EB] to-[#1e3a8a] p-8 sm:p-10 text-white shadow-[0_28px_65px_rgba(37,99,235,0.35)] relative overflow-hidden">
+                <motion.div
+                  className="absolute -top-12 -left-8 w-40 h-40 rounded-full bg-white/20 blur-2xl"
+                  animate={{ scale: [1, 1.15, 1], opacity: [0.35, 0.7, 0.35] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                />
+                <motion.div
+                  className="absolute -bottom-10 right-0 w-52 h-52 rounded-full bg-[#16A34A]/25 blur-2xl"
+                  animate={{ scale: [1, 1.08, 1], opacity: [0.3, 0.55, 0.3] }}
+                  transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+                />
 
-              <div className="relative z-10">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/30 bg-white/10 text-xs font-semibold uppercase tracking-wide">
-                  <Shield className="h-4 w-4" />
-                  Secure Access To Your Community Safety Network
+                <div className="relative z-10">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/30 bg-white/10 text-xs font-semibold uppercase tracking-wide">
+                    <Shield className="h-4 w-4" />
+                    Secure Access To Your Community Safety Network
+                  </div>
+                  <h1 className="mt-5 text-4xl sm:text-5xl font-extrabold leading-tight text-white">
+                    Welcome Back to Jirani Alert
+                  </h1>
+                  <p className="mt-4 text-blue-100 text-lg">
+                    Access real-time emergency alerts and help keep your community safe.
+                  </p>
+
+                  <div className="mt-8 grid sm:grid-cols-2 gap-3">
+                    {trustItems.map((item) => {
+                      const Icon = item.icon
+                      return (
+                        <motion.div
+                          key={item.title}
+                          whileHover={{ y: -3 }}
+                          className="rounded-2xl border border-white/20 bg-white/10 backdrop-blur p-4"
+                        >
+                          <div className="h-9 w-9 rounded-lg bg-white/20 flex items-center justify-center mb-3">
+                            <Icon className="h-4.5 w-4.5" />
+                          </div>
+                          <p className="text-sm font-semibold">{item.title}</p>
+                        </motion.div>
+                      )
+                    })}
+                  </div>
                 </div>
-                <h1 className="mt-5 text-4xl sm:text-5xl font-extrabold leading-tight text-white">
-                  Welcome Back to Jirani Alert
-                </h1>
-                <p className="mt-4 text-blue-100 text-lg">
-                  Access real-time emergency alerts and help keep your community safe.
-                </p>
+              </section>
 
-                <div className="mt-8 grid sm:grid-cols-2 gap-3">
-                  {trustItems.map((item) => {
-                    const Icon = item.icon
-                    return (
-                      <motion.div
-                        key={item.title}
-                        whileHover={{ y: -3 }}
-                        className="rounded-2xl border border-white/20 bg-white/10 backdrop-blur p-4"
-                      >
-                        <div className="h-9 w-9 rounded-lg bg-white/20 flex items-center justify-center mb-3">
-                          <Icon className="h-4.5 w-4.5" />
-                        </div>
-                        <p className="text-sm font-semibold">{item.title}</p>
-                      </motion.div>
-                    )
-                  })}
-                </div>
-              </div>
-            </section>
-
-            <section className="rounded-3xl border border-white/80 bg-white/70 backdrop-blur-xl p-7 sm:p-8 shadow-[0_24px_60px_rgba(15,23,42,0.14)]">
+              <section className="rounded-3xl border border-white/80 bg-white/70 backdrop-blur-xl p-7 sm:p-8 shadow-[0_24px_60px_rgba(15,23,42,0.14)]">
               <div className="flex items-center gap-3">
                 <div className="h-11 w-11 rounded-xl bg-[#2563EB] text-white flex items-center justify-center">
                   <Shield className="h-5 w-5" />
@@ -497,7 +497,8 @@ export default function Login() {
                   )
                 })}
               </div>
-            </section>
+              </section>
+            </div>
           </motion.div>
         </div>
       </main>

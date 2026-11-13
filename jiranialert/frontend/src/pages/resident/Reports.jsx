@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link, useNavigate } from 'react-router-dom'
 import {
@@ -11,13 +11,11 @@ import {
   ShieldAlert,
   Car,
   AlertTriangle,
-  CheckCircle2,
-  Clock,
-  AlertCircle,
   Search,
   Filter,
   Sparkles,
 } from 'lucide-react'
+import { getCurrentUser, resolveAccountRole } from '../../lib/auth'
 
 const reportsSeed = [
   {
@@ -96,17 +94,20 @@ function severityTone(severity) {
   return 'bg-amber-100 text-amber-700 border-amber-200'
 }
 
-function statusIcon(status) {
-  if (status === 'Resolved') return <CheckCircle2 className="h-4 w-4" />
-  if (status === 'Under Review') return <Clock className="h-4 w-4" />
-  return <AlertCircle className="h-4 w-4" />
+function getBackDestination() {
+  const role = resolveAccountRole(getCurrentUser())
+  if (role === 'admin') return '/admin/dashboard'
+  if (role === 'responder') return '/responder/dashboard'
+  if (role === 'resident') return '/resident/dashboard'
+  return '/home'
 }
 
 export default function Reports() {
   const [activeTab, setActiveTab] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
-  const [reports, setReports] = useState(reportsSeed)
+  const [reports] = useState(reportsSeed)
   const navigate = useNavigate()
+  const backDestination = getBackDestination()
 
   const filteredReports = useMemo(() => {
     return reports.filter((item) => {
@@ -129,9 +130,9 @@ export default function Reports() {
       <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         <div className="mb-4 flex items-start justify-between">
           <Link
-            to="/home"
+            to={backDestination}
             className="inline-flex items-center gap-3 rounded-full bg-[#2563EB] px-4 py-3 text-sm font-semibold text-white shadow-[0_0_18px_rgba(37,99,235,0.45)] transition-all hover:bg-[#1d4ed8] hover:shadow-[0_0_28px_rgba(37,99,235,0.6)] active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-            aria-label="Return to home page"
+            aria-label="Return to account dashboard"
           >
             <img src="/jirani-alert-logo.svg" alt="Jirani Alert" className="h-10 w-10 rounded-full bg-white" />
             <span className="tracking-wide">JIRANI ALERT</span>

@@ -1,4 +1,5 @@
 import { auth, storage, storageRef, uploadBytesResumable, getDownloadURL, ensureAnonymous } from './firebase'
+import { getActiveUser } from './auth'
 
 import { getFunctionsBaseUrl } from './backendBase'
 
@@ -6,7 +7,8 @@ const BACKEND_URL = getFunctionsBaseUrl()
 
 async function waitForAuthReady() {
   if (!auth) return null
-  if (auth.currentUser) return auth.currentUser
+  const activeUser = getActiveUser()
+  if (activeUser) return activeUser
   const user = await ensureAnonymous()
   if (!user) {
     throw new Error('We could not start a secure emergency-report session. Please check your connection and try again.')
@@ -16,8 +18,8 @@ async function waitForAuthReady() {
 
 async function callBackend(endpoint, method = 'GET', body = null) {
   if (!BACKEND_URL) throw new Error('Backend is not configured')
-  await waitForAuthReady()
-  const token = await auth.currentUser?.getIdToken()
+  const user = await waitForAuthReady()
+  const token = await user?.getIdToken()
   const options = { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }
   if (body) options.body = JSON.stringify(body)
   const res = await fetch(`${BACKEND_URL}/${endpoint}`, options)
@@ -47,7 +49,7 @@ async function callOptionalBackend(endpoint, body) {
 export async function uploadEvidenceFile(file) {
   if (!storage) throw new Error('Storage not configured')
   await waitForAuthReady()
-  const user = auth.currentUser
+  const user = getActiveUser()
   const path = `reports/${user ? user.uid : 'anonymous'}/${Date.now()}-${file.name}`
   const ref = storageRef(storage, path)
 
@@ -76,6 +78,38 @@ export async function getReport(reportId) {
   return callBackend(`getEmergencyReport/${encodeURIComponent(reportId)}`, 'GET')
 }
 
+async function callPublicBackend(endpoint, method = 'GET', body = null) {
+  if (!BACKEND_URL) throw new Error('Backend is not configured')
+  const options = { method, headers: { 'Content-Type': 'application/json' } }
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), 10000)
+  options.signal = controller.signal
+  if (body) options.body = JSON.stringify(body)
+  try {
+    const response = await fetch(`${BACKEND_URL}/${endpoint}`, options)
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data?.error || 'Alert service error')
+    return data
+  } catch (error) {
+    if (error?.name === 'AbortError') throw new Error('The alert service took too long to respond. Please try again.', { cause: error })
+    throw error
+  } finally {
+    window.clearTimeout(timeout)
+  }
+}
+
+export function getPublicReport(reportId) {
+  return callPublicBackend(`getPublicEmergencyReport/${encodeURIComponent(reportId)}`)
+}
+
+export function listPublicAlerts(limit = 50) {
+  return callPublicBackend(`listPublicAlerts?limit=${limit}&activeOnly=false`)
+}
+
+export function updatePublicAlert(payload) {
+  return callPublicBackend('updatePublicAlert', 'POST', payload)
+}
+
 export async function submitEmergencyAlert(payload) {
   const endpoint = '/api/emergency/trigger'
   const requestPayload = {
@@ -85,7 +119,7 @@ export async function submitEmergencyAlert(payload) {
     ...payload,
   }
   const headers = { 'Content-Type': 'application/json' }
-  const token = await auth?.currentUser?.getIdToken().catch(() => null)
+  const token = await getActiveUser()?.getIdToken().catch(() => null)
   if (token) headers.Authorization = `Bearer ${token}`
 
   let response
@@ -154,4 +188,15 @@ export async function geocodeLocation(place) {
     .filter((item) => Number.isFinite(item.latitude) && Number.isFinite(item.longitude))
 }
 
-export default { uploadEvidenceFile, createReport, updateEmergencyReport, submitEmergencyAlert, listReports, getReport, geocodeLocation }
+export default {
+  uploadEvidenceFile,
+  createReport,
+  updateEmergencyReport,
+  updatePublicAlert,
+  submitEmergencyAlert,
+  listReports,
+  getReport,
+  getPublicReport,
+  listPublicAlerts,
+  geocodeLocation,
+}

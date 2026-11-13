@@ -1683,6 +1683,61 @@ exports.getPublicEmergencyReport = onRequest({ region: 'us-central1' }, async (r
   }
 })
 
+exports.updatePublicAlert = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res)
+  if (handleOptions(req, res)) return
+
+  try {
+    requireMethod(req, 'POST')
+    const body = req.body || {}
+    const reportId = requiredString(body.reportId, 'reportId')
+    const reportRef = db.collection('reports').doc(reportId)
+    const alertRef = db.collection('alerts').doc(reportId)
+    const [reportSnap, alertSnap] = await Promise.all([reportRef.get(), alertRef.get()])
+    if (!reportSnap.exists && !alertSnap.exists) {
+      const error = new Error('Alert not found')
+      error.status = 404
+      throw error
+    }
+
+    const report = reportSnap.exists ? reportSnap.data() || {} : {}
+    const alert = alertSnap.exists ? alertSnap.data() || {} : {}
+    if (report.isPublic !== true && alert.isPublic !== true) {
+      const error = new Error('This alert is not public')
+      error.status = 404
+      throw error
+    }
+
+    const updates = { updatedAt: serverTimestampValue() }
+    if (body.action === 'resolve') {
+      updates.status = 'resolved'
+    } else if (body.action === 'comment') {
+      const text = String(body.text || '').trim().slice(0, 1000)
+      if (!text) {
+        const error = new Error('Comment is required')
+        error.status = 400
+        throw error
+      }
+      const comments = Array.isArray(alert.comments) ? alert.comments.slice(-49) : []
+      comments.push({ id: crypto.randomUUID(), text, at: new Date().toISOString() })
+      updates.comments = comments
+    } else {
+      const error = new Error('Unsupported alert action')
+      error.status = 400
+      throw error
+    }
+
+    await Promise.all([
+      reportSnap.exists ? reportRef.set(updates, { merge: true }) : Promise.resolve(),
+      alertRef.set(updates, { merge: true }),
+    ])
+    const saved = await alertRef.get()
+    res.json({ report: { id: reportId, ...saved.data() } })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
 exports.listEmergencyReports = onRequest({ region: 'us-central1' }, async (req, res) => {
   setCors(req, res)
   if (handleOptions(req, res)) return

@@ -1,26 +1,49 @@
-import React, { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { ArrowLeft, MessageSquare, CheckCircle2, Clock, User, MapPin, AlertCircle, Send } from 'lucide-react'
-import { getReport } from '../../lib/reportApi'
+import { useEffect, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle2,
+  Clock,
+  MapPin,
+  MessageSquare,
+  RefreshCw,
+  Send,
+  ShieldAlert,
+  User,
+} from 'lucide-react'
+import {
+  getPublicReport,
+  listPublicAlerts,
+  updatePublicAlert,
+} from '../../lib/reportApi'
 
-function getAlerts() {
+function getLocalAlert(id) {
   try {
-    return JSON.parse(localStorage.getItem('jiranialert_alerts') || '[]')
-  } catch (e) {
-    return []
+    return JSON.parse(localStorage.getItem('jiranialert_alerts') || '[]').find((item) => item.id === id) || null
+  } catch {
+    return null
   }
 }
 
-function saveAlerts(alerts) {
-  localStorage.setItem('jiranialert_alerts', JSON.stringify(alerts || []))
+function formatDate(value) {
+  const timestamp = value && typeof value._seconds === 'number' ? value._seconds * 1000 : value
+  const date = new Date(timestamp)
+  return Number.isNaN(date.getTime()) ? 'Recently' : date.toLocaleString()
 }
 
-function formatDate(isoString) {
-  const value = isoString && typeof isoString._seconds === 'number' ? isoString._seconds * 1000 : isoString
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Recently'
-  return date.toLocaleString()
+function toSlug(item) {
+  return `${item.type || ''}-${item.location || item.title || ''}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
+const severityStyles = {
+  Critical: 'border-red-200 bg-red-100 text-red-800',
+  High: 'border-orange-200 bg-orange-100 text-orange-800',
+  Medium: 'border-amber-200 bg-amber-100 text-amber-800',
+  Low: 'border-emerald-200 bg-emerald-100 text-emerald-800',
 }
 
 export default function AlertDetails() {
@@ -28,260 +51,162 @@ export default function AlertDetails() {
   const [alert, setAlert] = useState(null)
   const [comment, setComment] = useState('')
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [actionLoading, setActionLoading] = useState('')
 
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
+    async function loadAlert() {
       setLoading(true)
+      setError('')
       try {
-        const data = await getReport(id)
-        if (!cancelled && data?.report) {
-          setAlert(data.report)
-          return
+        let result
+        try {
+          result = await getPublicReport(id)
+        } catch {
+          const listed = await listPublicAlerts()
+          const match = (listed?.alerts || []).find((item) => item.id === id || toSlug(item) === id)
+          if (match) result = { report: match }
         }
-      } catch (e) {
-        // Fallback keeps older locally-created alerts readable.
-      } finally {
+        if (!cancelled) setAlert(result?.report || getLocalAlert(id))
+      } catch (loadError) {
         if (!cancelled) {
-          const alerts = getAlerts()
-          const a = alerts.find((x) => x.id === id)
-          setAlert((current) => current || a || null)
-          setLoading(false)
+          setError(loadError?.message || 'Unable to load this alert.')
+          setAlert(getLocalAlert(id))
         }
+      } finally {
+        if (!cancelled) setLoading(false)
       }
-    })()
+    }
+    loadAlert()
     return () => {
       cancelled = true
     }
   }, [id])
 
-  function addComment() {
-    if (!comment.trim() || !alert) return
-    const alerts = getAlerts()
-    const idx = alerts.findIndex((x) => x.id === alert.id)
-    if (idx === -1) return
-    alerts[idx].comments = alerts[idx].comments || []
-    alerts[idx].comments.push({
-      id: Date.now().toString(),
-      text: comment.trim(),
-      at: new Date().toISOString(),
-    })
-    saveAlerts(alerts)
-    setAlert(alerts[idx])
-    setComment('')
-  }
-
-  function markResolved() {
-    const alerts = getAlerts()
-    const idx = alerts.findIndex((x) => x.id === alert.id)
-    if (idx === -1) return
-    alerts[idx].status = 'resolved'
-    saveAlerts(alerts)
-    setAlert(alerts[idx])
+  async function submitAction(action, text = '') {
+    if (!alert || actionLoading) return
+    setActionLoading(action)
+    setError('')
+    try {
+      const result = await updatePublicAlert({ reportId: alert.id, action, text })
+      setAlert((current) => ({ ...current, ...(result?.report || {}), ...(action === 'resolve' ? { status: 'resolved' } : {}) }))
+      if (action === 'comment') setComment('')
+    } catch (actionError) {
+      setError(actionError?.message || 'This update could not be saved.')
+    } finally {
+      setActionLoading('')
+    }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-4 shadow-sm">
-          <p className="text-slate-700">Loading alert...</p>
+      <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6">
+        <div className="mx-auto max-w-5xl animate-pulse space-y-4">
+          <div className="h-10 w-36 rounded-full bg-slate-200" />
+          <div className="h-56 rounded-3xl bg-white shadow-sm" />
+          <div className="h-72 rounded-3xl bg-white shadow-sm" />
         </div>
-      </div>
+      </main>
     )
   }
 
   if (!alert) {
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-900 p-4 sm:p-6 lg:p-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="max-w-2xl mx-auto"
-        >
-          <Link
-            to="/alerts"
-            className="mb-6 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to reports
+      <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 sm:px-6">
+        <section className="mx-auto max-w-2xl rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <AlertCircle className="mx-auto h-12 w-12 text-slate-400" />
+          <h1 className="mt-4 text-2xl font-black">Alert not found</h1>
+          <p className="mt-2 text-slate-600">{error || 'This alert may have been removed.'}</p>
+          <Link to="/alerts" className="mt-6 inline-flex rounded-xl bg-blue-600 px-4 py-3 font-bold text-white hover:bg-blue-700">
+            Go to reports
           </Link>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-            <div className="flex justify-center mb-4">
-              <AlertCircle className="h-12 w-12 text-slate-400" />
-            </div>
-            <h2 className="text-2xl font-bold text-slate-900">Alert not found</h2>
-            <p className="mt-2 text-slate-600">The alert you're looking for doesn't exist or may have been removed.</p>
-            <Link
-              to="/alerts"
-              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#2563EB] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1d4ed8]"
-            >
-              Go to reports
-            </Link>
-          </div>
-        </motion.div>
-      </div>
+        </section>
+      </main>
     )
   }
 
-  const severityColors = {
-    Critical: 'bg-red-100 text-red-800 border-red-200',
-    High: 'bg-orange-100 text-orange-800 border-orange-200',
-    Medium: 'bg-amber-100 text-amber-800 border-amber-200',
-    Low: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  }
+  const comments = Array.isArray(alert.comments) ? alert.comments : []
+  const resolved = String(alert.status || '').toLowerCase() === 'resolved'
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 p-4 sm:p-6 lg:p-8">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
-        className="max-w-3xl mx-auto"
-      >
-        <Link
-          to="/alerts"
-          className="mb-6 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to reports
+    <main className="min-h-screen bg-slate-50 px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-5xl">
+        <Link to="/alerts" className="mb-5 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm hover:text-slate-900">
+          <ArrowLeft className="h-4 w-4" /> Back to reports
         </Link>
 
-        <motion.article
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="space-y-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8"
-        >
-          {/* Header */}
-          <div className="flex flex-col gap-4 border-b border-slate-100 pb-6 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <h1 className="break-words text-3xl font-black text-slate-900">{alert.type}</h1>
-              <p className="mt-2 break-words text-lg text-slate-600">{alert.title}</p>
-            </div>
-            <span
-              className={`inline-block shrink-0 rounded-full border px-4 py-2 text-sm font-bold whitespace-nowrap ${
-                severityColors[alert.severity] || severityColors.High
-              }`}
-            >
-              {alert.severity}
-            </span>
-          </div>
-
-          {/* Alert Info Grid */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-600 mb-2">
-                <MapPin className="h-4 w-4" />
-                Location
+        <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_20px_70px_rgba(15,23,42,0.08)]">
+          <header className="bg-gradient-to-br from-[#1E3A5F] via-[#2563EB] to-[#0f172a] p-5 text-white sm:p-8">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <p className="mb-3 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-blue-100">
+                  <ShieldAlert className="h-4 w-4" /> Community alert
+                </p>
+                <h1 className="break-words text-3xl font-black sm:text-4xl">{alert.title || alert.type || 'Emergency alert'}</h1>
+                <p className="mt-2 break-words text-blue-100">{alert.type || 'Emergency'} · {alert.location || 'Location pending'}</p>
               </div>
-              <p className="text-slate-900 font-semibold">{alert.location}</p>
+              <span className={`inline-flex h-fit shrink-0 rounded-full border px-4 py-2 text-sm font-bold ${severityStyles[alert.severity] || severityStyles.High}`}>
+                {alert.severity || 'High'}
+              </span>
+            </div>
+          </header>
+
+          <div className="space-y-6 p-5 sm:p-8">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                [MapPin, 'Location', alert.location || 'Location pending'],
+                [Clock, 'Reported', formatDate(alert.createdAt)],
+                [User, 'Reporter', alert.anonymous ? 'Anonymous' : alert.reporterEmail || 'Community member'],
+                [CheckCircle2, 'Status', alert.status || 'Active'],
+              ].map(([Icon, label, value]) => (
+                <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500"><Icon className="h-4 w-4" /> {label}</div>
+                  <p className="mt-2 break-words font-bold capitalize text-slate-900">{value}</p>
+                </div>
+              ))}
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-600 mb-2">
-                <Clock className="h-4 w-4" />
-                Reported
+            <section>
+              <h2 className="text-lg font-black">Details</h2>
+              <p className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 leading-7 text-slate-700">{alert.description || 'No additional details were provided.'}</p>
+            </section>
+
+            {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+
+            <section className="border-t border-slate-100 pt-6">
+              <h2 className="flex items-center gap-2 text-lg font-black"><MessageSquare className="h-5 w-5" /> Live updates ({comments.length})</h2>
+              <div className="mt-4 max-h-80 space-y-3 overflow-y-auto">
+                {comments.length === 0 ? <p className="py-6 text-center text-sm text-slate-500">No updates yet.</p> : comments.map((item) => (
+                  <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="font-semibold text-slate-900">{item.text}</p>
+                    <p className="mt-2 text-xs text-slate-500">{formatDate(item.at)}</p>
+                  </div>
+                ))}
               </div>
-              <p className="text-slate-900 font-semibold">{formatDate(alert.createdAt)}</p>
-            </div>
+            </section>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-600 mb-2">
-                <User className="h-4 w-4" />
-                Reporter
+            <section className="border-t border-slate-100 pt-6">
+              <label htmlFor="alert-update" className="text-sm font-bold">Add an update</label>
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                <input id="alert-update" value={comment} onChange={(event) => setComment(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && submitAction('comment', comment.trim())} placeholder="Share an observation or status update..." className="min-w-0 flex-1 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" />
+                <button type="button" onClick={() => submitAction('comment', comment.trim())} disabled={!comment.trim() || Boolean(actionLoading)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+                  <Send className="h-4 w-4" /> {actionLoading === 'comment' ? 'Posting…' : 'Post'}
+                </button>
               </div>
-              <p className="text-slate-900 font-semibold">{alert.anonymous ? 'Anonymous' : alert.reporterEmail || 'Community Member'}</p>
-            </div>
+            </section>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-600 mb-2">
-                <CheckCircle2 className="h-4 w-4" />
-                Status
-              </div>
-              <p className="text-slate-900 font-semibold capitalize">{alert.status || 'Active'}</p>
-            </div>
-          </div>
-
-          {/* Description */}
-          <div className="space-y-3">
-            <h3 className="text-lg font-bold text-slate-900">Details</h3>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="break-words text-slate-700 leading-6">{alert.description}</p>
-            </div>
-          </div>
-
-          {/* Comments Section */}
-          <div className="space-y-4 pt-6 border-t border-slate-100">
-            <div className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-slate-600" />
-              <h3 className="text-lg font-bold text-slate-900">Live Updates ({(alert.comments || []).length})</h3>
-            </div>
-
-            <div className="max-h-80 space-y-3 overflow-y-auto">
-              {(alert.comments || []).length === 0 ? (
-                <p className="text-slate-500 text-sm py-6 text-center">No updates yet. Be the first to comment.</p>
-              ) : (
-                (alert.comments || []).map((c) => (
-                  <motion.div
-                    key={c.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                  >
-                    <p className="text-slate-900 font-semibold">{c.text}</p>
-                    <p className="mt-2 text-xs text-slate-500">{formatDate(c.at)}</p>
-                  </motion.div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Comment Input */}
-          <div className="space-y-3 pt-4 border-t border-slate-100">
-            <label className="block text-sm font-semibold text-slate-900">Add an update</label>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <input
-                type="text"
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') addComment()
-                }}
-                placeholder="Share your observation or status update..."
-                className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-              />
-              <button
-                onClick={addComment}
-                disabled={!comment.trim()}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#2563EB] px-4 py-3 text-sm font-semibold text-white hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Send className="h-4 w-4" />
-                Post
+            {resolved ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center font-bold text-emerald-800">This alert has been resolved.</div>
+            ) : (
+              <button type="button" onClick={() => submitAction('resolve')} disabled={Boolean(actionLoading)} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 font-bold text-white hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60">
+                {actionLoading === 'resolve' ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                {actionLoading === 'resolve' ? 'Updating…' : 'Mark as Resolved'}
               </button>
-            </div>
+            )}
           </div>
-
-          {/* Mark Safe Button */}
-          {alert.status !== 'resolved' && (
-            <motion.button
-              onClick={markResolved}
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full mt-6 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700 transition-colors"
-            >
-              Mark as Resolved
-            </motion.button>
-          )}
-
-          {alert.status === 'resolved' && (
-            <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4 text-center">
-              <p className="text-emerald-800 font-semibold">✓ This alert has been resolved</p>
-            </div>
-          )}
-        </motion.article>
-      </motion.div>
-    </div>
+        </article>
+      </div>
+    </main>
   )
 }

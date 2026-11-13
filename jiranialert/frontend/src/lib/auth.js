@@ -585,12 +585,6 @@ export async function loginUser({ email, password }) {
   }
   let user = cred.user
 
-  try {
-    await user.reload()
-  } catch (e) {
-    // ignore reload failures, continue with the latest available state
-  }
-
   if (!user.emailVerified && authSource === 'emulator' && prodAuth) {
     try {
       const prodCred = await signInWithEmailAndPassword(prodAuth, normalizedEmail, normalizedPassword)
@@ -614,20 +608,43 @@ export async function loginUser({ email, password }) {
     throw new Error('auth/email-not-verified: Please verify your email before signing in.')
   }
 
+  const cachedProfile = getCurrentUser()
+  const cachedRole = normalizeAccountRole(cachedProfile?.role)
+  const cachedEmailRole = getCachedRoleForEmail(user.email)
+  const resolvedCachedRole = cachedRole || cachedEmailRole
+
+  // A previously resolved role is enough to route immediately. Profile
+  // hydration is still used below for first-time or uncached sign-ins.
+  if (
+    resolvedCachedRole &&
+    (!cachedProfile?.email || cachedProfile.email === user.email) &&
+    !isAccountDeactivated(cachedProfile)
+  ) {
+    const profile = {
+      ...cachedProfile,
+      id: user.uid,
+      uid: user.uid,
+      email: user.email,
+      role: resolvedCachedRole,
+    }
+    setCurrentUserLocal(profile)
+    emitProfileUpdated(profile)
+    return { ...profile, authSource }
+  }
+
   // fetch persisted profile from backend first, then fallback to Firestore
   let profile = { id: user.uid, email: user.email }
   let loadedFromBackend = false
   let backendSourceUrl = null
   let tokenRole = null
-  let backendFetchError = null
   // Do not block a successful sign-in on the optional Functions health check.
   // If the backend is available, the profile request below loads it; otherwise
   // the existing Firestore fallbacks resolve the account locally.
   const backendCandidates = BACKEND_URL ? [BACKEND_URL] : []
   try {
-    const tokenResult = await user.getIdTokenResult(true).catch(() => null)
+    const tokenResult = await user.getIdTokenResult().catch(() => null)
     tokenRole = normalizeAccountRole(tokenResult?.claims?.role)
-    const token = await user.getIdToken()
+    const token = tokenResult?.token || await user.getIdToken()
     for (const candidateUrl of backendCandidates) {
       if (!candidateUrl) continue
       try {
@@ -672,13 +689,8 @@ export async function loginUser({ email, password }) {
       }
     }
   } catch (e) {
-    backendFetchError = e
     // ignore backend profile fetch failure and fallback to Firestore
   }
-
-  const cachedProfile = getCurrentUser()
-  const cachedRole = normalizeAccountRole(cachedProfile?.role)
-  const cachedEmailRole = getCachedRoleForEmail(user.email)
 
   if ((!loadedFromBackend || !normalizeAccountRole(profile.role)) && profile.id === user.uid && profile.email === user.email && firestore) {
     try {
@@ -762,32 +774,6 @@ export async function loginUser({ email, password }) {
     }
   } else {
     profile.role = resolvedRole
-  }
-
-  if (firestore && normalizeAccountRole(profile.role)) {
-    try {
-      await saveProfileForUser({
-        user,
-        role: profile.role,
-        displayName: profile.displayName || user.displayName || '',
-        accountStatus: isAccountDeactivated(profile) ? 'deactivated' : 'active',
-      })
-    } catch (e) {
-      // ignore profile repair failures
-    }
-  }
-
-  if (profile.id === user.uid && profile.email === user.email && profile.role && backendSourceUrl === BACKEND_URL) {
-    try {
-      await updateCurrentUserProfile({
-        displayName: profile.displayName || cachedProfile?.displayName || user.displayName || '',
-        role: profile.role,
-        emailVerified: Boolean(user.emailVerified),
-        accountStatus: isAccountDeactivated(profile) ? 'deactivated' : 'active',
-      })
-    } catch (e) {
-      // ignore repair failures; the local session still has a resolved role
-    }
   }
 
   setCurrentUserLocal(profile)

@@ -1,10 +1,18 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react()],
-  server: {
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, '.', '')
+  const useEmulators = String(env.VITE_USE_FIREBASE_EMULATORS || '').trim().toLowerCase() === 'true'
+  const backendTarget = useEmulators
+    ? 'http://127.0.0.1:5005'
+    : String(env.VITE_FUNCTIONS_BASE || env.VITE_BACKEND_URL || 'https://us-central1-jiranialert.cloudfunctions.net').replace(/\/+$/, '')
+  const backendPathPrefix = useEmulators ? '/jiranialert/us-central1' : ''
+
+  return {
+    plugins: [react()],
+    server: {
     // open the full localhost URL so the browser lands on the app root
     open: 'http://localhost:5173',
     host: true,
@@ -18,17 +26,22 @@ export default defineConfig({
       host: 'localhost',
       protocol: 'ws',
     },
-    proxy: {
+      proxy: {
       // Run `vercel dev` from this frontend directory to serve the emergency API locally.
       '/api/emergency/trigger': {
         target: 'http://127.0.0.1:3000',
         changeOrigin: true,
       },
-      '/api': {
-        target: 'http://127.0.0.1:5005',
+        '/api': {
+        target: backendTarget,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/emergency\/trigger$/, '/jiranialert/us-central1/activateEmergency').replace(/^\/api/, '/jiranialert/us-central1'),
+        rewrite: (requestPath) => {
+          const path = requestPath.replace(/^\/api/, '')
+          if (path === '/emergency/trigger') return `${backendPathPrefix}/activateEmergency`
+          return `${backendPathPrefix}${path}`
+        },
+        },
       },
     },
-  },
+  }
 })

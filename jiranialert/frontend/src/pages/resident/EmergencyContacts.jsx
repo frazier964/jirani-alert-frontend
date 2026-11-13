@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import {
   Phone,
   Shield,
@@ -99,7 +99,10 @@ export default function EmergencyContacts() {
   }
 
   useEffect(() => {
-    refresh()
+    const timer = window.setTimeout(() => {
+      void refresh()
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [])
 
   const categories = useMemo(() => {
@@ -159,6 +162,77 @@ export default function EmergencyContacts() {
     setShowModal(true)
   }
 
+  async function shareContactList() {
+    setSharing(true)
+    setError('')
+    const text = contacts.length
+      ? `My JiraniAlert emergency contacts:\n${contacts
+          .map((contact) => `- ${contact.fullName || 'Unnamed'}${contact.phoneNumber ? `: ${contact.phoneNumber}` : ''}`)
+          .join('\n')}`
+      : 'My JiraniAlert emergency contact list is currently empty.'
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'JiraniAlert emergency contacts', text })
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text)
+        setNotice('Contact list copied to your clipboard. Paste it into any messaging or social app.')
+      } else {
+        throw new Error('Sharing is not supported by this browser.')
+      }
+    } catch (e) {
+      if (e?.name !== 'AbortError') setError(e?.message || 'Unable to share your contact list.')
+    } finally {
+      setSharing(false)
+    }
+  }
+
+  async function alertEstateSecurity() {
+    if (alertingSecurity) return
+    const confirmed = window.confirm('Send a critical alert to emergency responders now?')
+    if (!confirmed) return
+
+    setAlertingSecurity(true)
+    setError('')
+    try {
+      const currentUser = getCurrentUser() || {}
+      let location = 'Resident location unavailable'
+      let locationCoordinates = null
+      if (navigator.geolocation) {
+        try {
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 })
+          })
+          locationCoordinates = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          }
+          location = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`
+        } catch {
+          // A report is still useful when location permission is unavailable.
+        }
+      }
+
+      const result = await createReport({
+        type: 'Security',
+        title: 'Resident requested estate security assistance',
+        location,
+        locationCoordinates,
+        description: 'Critical assistance requested through Resident Emergency Quick Access.',
+        severity: 'Critical',
+        anonymous: false,
+        reporterName: currentUser.displayName || '',
+        reporterPhone: currentUser.phoneNumber || '',
+        reporterEmail: currentUser.email || '',
+        notify: [true, true, true, true],
+      })
+      setNotice(`Emergency responders have been alerted. Reference: ${result.reportId || 'saved'}.`)
+    } catch (e) {
+      setError(e?.message || 'Unable to alert emergency responders. Please call emergency services.')
+    } finally {
+      setAlertingSecurity(false)
+    }
+  }
+
   async function onSave() {
     setSaving(true)
     setError('')
@@ -174,78 +248,8 @@ export default function EmergencyContacts() {
         notes: form.notes,
         favorite: form.favorite,
       }
-
-      async function shareContactList() {
-        setSharing(true)
-        setError('')
-        const text = contacts.length
-          ? `My JiraniAlert emergency contacts:\n${contacts
-              .map((contact) => `- ${contact.fullName || 'Unnamed'}${contact.phoneNumber ? `: ${contact.phoneNumber}` : ''}`)
-              .join('\n')}`
-          : 'My JiraniAlert emergency contact list is currently empty.'
-        try {
-          if (navigator.share) {
-            await navigator.share({ title: 'JiraniAlert emergency contacts', text })
-          } else if (navigator.clipboard?.writeText) {
-            await navigator.clipboard.writeText(text)
-            setNotice('Contact list copied to your clipboard. Paste it into any messaging or social app.')
-          } else {
-            throw new Error('Sharing is not supported by this browser.')
-          }
-        } catch (e) {
-          if (e?.name !== 'AbortError') setError(e?.message || 'Unable to share your contact list.')
-        } finally {
-          setSharing(false)
-        }
-      }
-
-      async function alertEstateSecurity() {
-        if (alertingSecurity) return
-        const confirmed = window.confirm('Send a critical alert to emergency responders now?')
-        if (!confirmed) return
-
-        setAlertingSecurity(true)
-        setError('')
-        try {
-          const currentUser = getCurrentUser() || {}
-          let location = 'Resident location unavailable'
-          let locationCoordinates = null
-          if (navigator.geolocation) {
-            try {
-              const position = await new Promise((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 })
-              })
-              locationCoordinates = {
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-              }
-              location = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`
-            } catch {
-              // A report is still useful when location permission is unavailable.
-            }
-          }
-
-          const result = await createReport({
-            type: 'Security',
-            title: 'Resident requested estate security assistance',
-            location,
-            locationCoordinates,
-            description: 'Critical assistance requested through Resident Emergency Quick Access.',
-            severity: 'Critical',
-            anonymous: false,
-            reporterName: currentUser.displayName || '',
-            reporterPhone: currentUser.phoneNumber || '',
-            reporterEmail: currentUser.email || '',
-            notify: [true, true, true, true],
-          })
-          setNotice(`Emergency responders have been alerted. Reference: ${result.reportId || 'saved'}.`)
-        } catch (e) {
-          setError(e?.message || 'Unable to alert emergency responders. Please call emergency services.')
-        } finally {
-          setAlertingSecurity(false)
-        }
-      }
       await upsertContact(payload)
+      setNotice(form.id ? 'Contact updated successfully.' : 'Contact saved successfully.')
       setShowModal(false)
       setForm(emptyForm())
       await refresh()
@@ -548,7 +552,7 @@ export default function EmergencyContacts() {
 
       {showModal ? (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-lg w-full p-6 relative">
+          <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 relative">
             <button
               onClick={() => setShowModal(false)}
               className="absolute top-4 right-4 p-2 rounded-lg hover:bg-slate-100 text-slate-500"
@@ -557,6 +561,11 @@ export default function EmergencyContacts() {
               <X className="w-5 h-5" />
             </button>
             <h3 className="text-lg font-semibold text-slate-900 mb-4">{form.id ? 'Edit Contact' : 'Add New Contact'}</h3>
+            {error ? (
+              <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {error}
+              </div>
+            ) : null}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
                 <label className="text-sm text-slate-700">Full Name</label>
@@ -662,7 +671,7 @@ export default function EmergencyContacts() {
                 className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-60"
                 disabled={saving}
               >
-                {saving ? 'Saving…' : 'Save Contact'}
+                {saving ? 'Saving…' : form.id ? 'Update Contact' : 'Save Contact'}
               </button>
             </div>
           </div>
