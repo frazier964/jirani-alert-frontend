@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import { listSystemAnnouncements } from '../lib/announcementApi'
 
 const announcementItems = [
@@ -74,7 +75,16 @@ export default function AnnouncementBar() {
             animate={shouldReduceMotion ? { x: 0, y: '-50%' } : { x: ['100vw', '-100vw'], y: '-50%' }}
             transition={{ duration: shouldReduceMotion ? 0 : 16, repeat: shouldReduceMotion ? 0 : Infinity, ease: 'linear' }}
           >
-            {activeAnnouncement ? <><strong className="mr-2">{activeAnnouncement.title}</strong><span>{activeAnnouncement.message}</span></> : message}
+            {activeAnnouncement ? (
+              <Link
+                to={`/broadcast/${encodeURIComponent(activeAnnouncement.id)}`}
+                className="rounded-sm outline-none transition hover:text-sky-100 focus-visible:ring-2 focus-visible:ring-white"
+                aria-label={`Read broadcast: ${activeAnnouncement.title}`}
+              >
+                <strong className="mr-2">{activeAnnouncement.title}</strong>
+                <span>{activeAnnouncement.message}</span>
+              </Link>
+            ) : message}
           </motion.div>
         </div>
       </div>

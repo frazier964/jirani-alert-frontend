@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   Activity,
   AlertTriangle,
@@ -336,7 +336,10 @@ function PageContent({ section, data, query, setQuery, filteredUsers, workingId,
 }
 
 function MemberVerification({ data, query, setQuery, workingId, run }) {
-  const [status, setStatus] = useState('All')
+  const [searchParams] = useSearchParams()
+  const requestedStatus = searchParams.get('status')
+  const initialStatus = ['Pending', 'Approved', 'Rejected'].includes(requestedStatus) ? requestedStatus : 'All'
+  const [status, setStatus] = useState(initialStatus)
   const [memberType, setMemberType] = useState('All')
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState(null)
@@ -365,6 +368,11 @@ function MemberVerification({ data, query, setQuery, workingId, run }) {
     rejected: requests.filter((request) => normalizedStatus(request) === 'Rejected').length,
   }
 
+  useEffect(() => {
+    setStatus(initialStatus)
+    setPage(1)
+  }, [initialStatus])
+
   const chooseFilter = (setter, value) => {
     setter(value)
     setPage(1)
@@ -388,10 +396,18 @@ function MemberVerification({ data, query, setQuery, workingId, run }) {
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Card title="Total requests" value={counts.total} detail="Resident verification records" icon={ClipboardCheck} />
-        <Card title="Pending review" value={counts.pending} detail="Requires administrator decision" icon={FileClock} tone="text-amber-600" />
-        <Card title="Approved members" value={counts.approved} detail="Verified resident accounts" icon={Check} tone="text-emerald-600" />
-        <Card title="Rejected requests" value={counts.rejected} detail="Can be corrected and resubmitted" icon={AlertTriangle} tone="text-red-600" />
+        <Link to="/admin/member-verification" className="block rounded-2xl transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+          <Card title="Total requests" value={counts.total} detail="View all resident verification records" icon={ClipboardCheck} />
+        </Link>
+        <Link to="/admin/member-verification?status=Pending" className="block rounded-2xl transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+          <Card title="Pending review" value={counts.pending} detail="View requests awaiting approval" icon={FileClock} tone="text-amber-600" />
+        </Link>
+        <Link to="/admin/member-verification?status=Approved" className="block rounded-2xl transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+          <Card title="Approved members" value={counts.approved} detail="View approved member records" icon={Check} tone="text-emerald-600" />
+        </Link>
+        <Link to="/admin/member-verification?status=Rejected" className="block rounded-2xl transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+          <Card title="Rejected requests" value={counts.rejected} detail="View rejected requests" icon={AlertTriangle} tone="text-red-600" />
+        </Link>
       </div>
 
       <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

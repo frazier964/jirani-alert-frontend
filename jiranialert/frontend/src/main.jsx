@@ -44,6 +44,7 @@ const ResponderIncidentDetails = lazy(() => import('./pages/responder/IncidentDe
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
 const AdminWorkspace = lazy(() => import('./pages/admin/AdminWorkspace'))
 const AlertDetails = lazy(() => import('./pages/alerts/AlertDetails'))
+const Broadcast = lazy(() => import('./pages/shared/Broadcast'))
 
 function PageLoader() {
   return (
@@ -62,6 +63,7 @@ function AppRoutes() {
 
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <AnnouncementBar />
       <EmergencyButton />
       <LogoutToast />
       <Suspense fallback={<PageLoader />}>
@@ -84,6 +86,7 @@ function AppRoutes() {
           <Route path="/report-emergency/:id" element={<GuestReportTracking />} />
           <Route path="/alerts" element={<Reports />} />
           <Route path="/alerts/:id" element={<AlertDetails />} />
+          <Route path="/broadcast/:id" element={<Broadcast />} />
 
           <Route element={<Layout />}>
             <Route path="/resident/dashboard" element={<ResidentDashboard />} />
@@ -147,7 +150,6 @@ function AppRoutes() {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <AnnouncementBar />
     <AppRoutes />
   </StrictMode>,
 )
