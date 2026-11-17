@@ -4,7 +4,8 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '')
-  const useEmulators = String(env.VITE_USE_FIREBASE_EMULATORS || '').trim().toLowerCase() === 'true'
+  const emulatorMode = String(env.VITE_USE_FIREBASE_EMULATORS || '').trim().toLowerCase()
+  const useEmulators = emulatorMode === 'true' || (emulatorMode === 'auto' && mode === 'development')
   const backendTarget = useEmulators
     ? 'http://127.0.0.1:5005'
     : String(env.VITE_FUNCTIONS_BASE || env.VITE_BACKEND_URL || 'https://us-central1-jiranialert.cloudfunctions.net').replace(/\/+$/, '')
